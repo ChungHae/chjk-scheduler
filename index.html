@@ -6199,9 +6199,41 @@ function reloadState() {
     try{ await firebase.auth().signInWithEmailAndPassword(email, fpw); return; }
     catch(e){ try{ await firebase.auth().createUserWithEmailAndPassword(email, fpw); return; }catch(e2){ /* email-already-in-use = 비번 불일치, 이후 단계 처리 */ } }
   }
-  async function _fbAuthorizeSelf(){
+  async function _fbAuthorizeSelf(id){
     if(!_fbAuthReady || !_fbDbUrl) return;
-    try{ var uid = firebase.auth().currentUser && firebase.auth().currentUser.uid; if(uid){ await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_authorized/${uid}.json`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(true)}); } }catch(e){}
+    try{
+      var uid = firebase.auth().currentUser && firebase.auth().currentUser.uid;
+      if(uid){
+        await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_authorized/${uid}.json`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(true)});
+        if(id) await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_authmap/${encodeURIComponent(String(id))}.json`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(uid)});
+      }
+    }catch(e){}
+  }
+  // 관리자: 새 계정 Firebase 가입 + 허용목록 등록 (보조 인스턴스로 관리자 세션 방해 없이)
+  async function _fbProvisionAccount(id, pwHash){
+    if(!_fbAuthReady || !_fbDbUrl || !id || !pwHash) return;
+    var email = await _synthEmail(id), appName='prov_'+Date.now()+'_'+Math.random().toString(36).slice(2,7), sec=null;
+    try{
+      sec = firebase.initializeApp(_FB_CFG, appName);
+      var cred = await sec.auth().createUserWithEmailAndPassword(email, pwHash);
+      var uid = cred.user.uid;
+      await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_authorized/${uid}.json`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(true)});
+      await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_authmap/${encodeURIComponent(String(id))}.json`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(uid)});
+      try{ await sec.auth().signOut(); }catch(_){}
+    }catch(e){ /* email-already-in-use = 기존 계정, 이미 등록됨 */ }
+    finally{ if(sec){ try{ await sec.delete(); }catch(_){} } }
+  }
+  // 관리자: 계정 삭제 시 허용목록에서 제거 (접근 완전 차단)
+  async function _fbRevokeAccount(id){
+    if(!_fbAuthReady || !_fbDbUrl || !id) return;
+    try{
+      var rr = await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_authmap/${encodeURIComponent(String(id))}.json`);
+      var uid = rr.ok ? await rr.json() : null;
+      if(uid){
+        await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_authorized/${uid}.json`, {method:'DELETE'});
+        await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_authmap/${encodeURIComponent(String(id))}.json`, {method:'DELETE'});
+      }
+    }catch(e){}
   }
   window._fbAuthStatus=function(){ try{ return { ready:_fbAuthReady, user: (_fbAuthReady&&firebase.auth().currentUser)?firebase.auth().currentUser.email:null }; }catch(e){ return {ready:_fbAuthReady, err:String(e)}; } };
   fbConnect({ dbUrl: _DEFAULT_FB_URL });
@@ -12414,7 +12446,7 @@ function reloadState() {
       err.textContent = '성명 또는 비밀번호가 올바르지 않습니다.'; return;
     }
     // 3) 허용 목록 등록 (잠금 전 채워두면 잠금 후 이 사람만 접근)
-    try{ await _fbAuthorizeSelf(); }catch(_ae){}
+    try{ await _fbAuthorizeSelf(id); }catch(_ae){}
     localStorage.setItem('sched_last_user', id);
     if(u.mustChange){ _authShowChangePw(id, true); return; }
     _authUser = { id, name: u.name || id, role: u.role || 'user' };
@@ -12503,7 +12535,7 @@ function reloadState() {
             await firebase.auth().currentUser.updatePassword(_newHash);
           }
         }
-        try{ await _fbAuthorizeSelf(); }catch(_ae){}
+        try{ await _fbAuthorizeSelf(id); }catch(_ae){}
       }
     }catch(_pe){ try{console.warn('FB pw sync', _pe);}catch(_){} }
     ov.style.display = 'none';
@@ -12519,6 +12551,7 @@ function reloadState() {
   /* ── 계정 관리 모달 (관리자 전용) ── */
   let _acctDraft = null, _acctDirty = false;
   const _acctPwChanged = new Set();
+  let _acctNewIds = new Set(), _acctDelIds = new Set();
   function _acctMarkDirty(){ _acctDirty = true; }
   function _acctDoClose(){
     _acctDraft = null; _acctDirty = false; _acctPwChanged.clear();
@@ -12535,6 +12568,7 @@ function reloadState() {
   async function _openAcctModal(){
     const acc = (await _authGetAccounts()) || {};
     _acctDraft = JSON.parse(JSON.stringify(acc));
+    _acctNewIds = new Set(); _acctDelIds = new Set();
     _acctDirty = false; _acctPwChanged.clear();
     let ov = document.getElementById('acctOverlay');
     if(!ov){
@@ -12606,6 +12640,9 @@ function reloadState() {
     document.getElementById('acctSave').onclick = async ()=>{
       if(!_acctDirty){ showInfoModal('알림', '변경사항이 없습니다.'); return; }
       await _authPutAccounts(_acctDraft);
+      for(const _nid of Array.from(_acctNewIds)){ if(_acctDraft[_nid]){ await _fbProvisionAccount(_nid, _acctDraft[_nid].pwHash); } }
+      for(const _did of Array.from(_acctDelIds)){ await _fbRevokeAccount(_did); }
+      _acctNewIds = new Set(); _acctDelIds = new Set();
       if(_authUser && _acctDraft[_authUser.id]){
         _authUser.role = _acctDraft[_authUser.id].role || _authUser.role;
         try{ sessionStorage.setItem('sched_auth', JSON.stringify(_authUser)); }catch(e){}
@@ -12623,7 +12660,7 @@ function reloadState() {
       const pw=document.getElementById('naPw').value;
       const role=document.getElementById('naRole').value;
       if(!id || !pw){ showInfoModal('알림', '아이디와 비밀번호는 필수입니다.'); return; }
-      const _doAdd = async ()=>{ _acctDraft[id]={ name:name||id, pwHash:await _sha256(pw), role }; _acctMarkDirty(); _acctRender(); };
+      const _doAdd = async ()=>{ _acctDraft[id]={ name:name||id, pwHash:await _sha256(pw), role }; _acctNewIds.add(id); _acctDelIds.delete(id); _acctMarkDirty(); _acctRender(); };
       if(_acctDraft[id]){ showConfirmModal('계정 덮어쓰기', '이미 존재하는 아이디입니다. 덮어쓸까요?', function(){ _doAdd(); }, '덮어쓰기', '#dc2626'); return; }
       _doAdd();
     };
@@ -12644,6 +12681,7 @@ function reloadState() {
           if(id==='chjk'){ showInfoModal('알림', '마스터 계정(chjk)은 삭제할 수 없습니다.'); return; }
           if(_authUser && id===_authUser.id){ showInfoModal('알림', '현재 로그인한 계정은 삭제할 수 없습니다.'); return; }
           showConfirmModal('계정 삭제', '['+id+'] 계정을 삭제할까요? (저장 시 반영)', function(){
+            if(_acctNewIds.has(id)){ _acctNewIds.delete(id); } else { _acctDelIds.add(id); }
             delete _acctDraft[id]; _acctPwChanged.delete(id); _acctMarkDirty(); _acctRender();
           }, '삭제', '#dc2626');
         }else if(act==='pw'){
