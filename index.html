@@ -6260,25 +6260,38 @@ function reloadState() {
   });
 
 
-  // ─── 백업 / 불러오기 ───────────────────────────────────
-  document.getElementById('btnExport').addEventListener('click', () => {
-    const data = {
-      version: 2,
-      exportedAt: new Date().toISOString(),
-      members,
-      entries,
-      teamGoal,
-      teamTasks,
-      weeklyIssues
+  // ─── 전체 백업 / 복원 ───────────────────────────────────
+  function _fullBackupMain(){
+    return {
+      sched_members: members, sched_entries: entries, sched_team_goal: teamGoal, sched_team_tasks: teamTasks,
+      sched_config: config, sched_assignments: assignments, sched_assign_comments: assignComments,
+      sched_bank_txns: bankTxns, sched_tax_invoices: taxInvoices, sched_ar_items: arItems,
+      sched_purchase_vendors: purchaseVendors, sched_inventory_add: invCustom, sched_inventory_qty: invAdjust,
+      sched_inventory_log: invUseLog, sched_inventory_hidden: invHidden, sched_inv_reset: invResetVer,
+      sched_personal: personalSchedules, sched_comments: schedComments, sched_categories: schedCategories,
+      sched_files: filesList, sched_quote_index: quoteVendors, sched_quote_saved: quoteSaved,
+      sched_price_makers: priceMakers, sched_smc_index: smcIndex, sched_issues: weeklyIssues,
+      sched_leave2026: _leaveVer, sched_clients_added: customClients, sched_client_list: clientList
     };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    const date = new Date().toISOString().slice(0,10);
-    a.href     = url;
-    a.download = `team-scheduler-backup-${date}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+  }
+  document.getElementById('btnExport').addEventListener('click', async () => {
+    var btn = document.getElementById('btnExport'); var _lbl = btn.textContent;
+    btn.textContent = '⏳ 백업 중…'; btn.disabled = true;
+    try{
+      var main = _fullBackupMain();
+      var blobs = { quote:{}, price:{}, smc:{}, qsaved:{} };
+      for(var v of (quoteVendors||[])){ try{ var b=await _qBlobGet(v.id); if(b!=null) blobs.quote[v.id]=b; }catch(e){} }
+      for(var mk of (priceMakers||[])){ try{ var b2=await _priceBlobGet(mk.id); if(b2!=null) blobs.price[mk.id]=b2; }catch(e){} }
+      for(var sm of (smcIndex||[])){ try{ var b3=await _smcBlobGet(sm.id); if(b3!=null) blobs.smc[sm.id]=b3; }catch(e){} }
+      for(var qs of (quoteSaved||[])){ try{ var b4=await _qsBlobGet(qs.id); if(b4!=null) blobs.qsaved[qs.id]=b4; }catch(e){} }
+      var data = { version:3, full:true, exportedAt:new Date().toISOString(), main:main, blobs:blobs };
+      var blob = new Blob([JSON.stringify(data)], { type:'application/json' });
+      var url = URL.createObjectURL(blob); var a = document.createElement('a');
+      a.href = url; a.download = 'chjk-full-backup-'+new Date().toISOString().slice(0,10)+'.json';
+      a.click(); URL.revokeObjectURL(url);
+      showInfoModal('💾 전체 백업 완료', '재고·견적 원장·가격표·SMC·매입처·미수금·거래처·일정 등\n전체 데이터를 파일로 저장했습니다.\n\n※ 자료실 파일 원본과 계정 정보는 제외됩니다.');
+    }catch(e){ showInfoModal('백업 실패', String(e&&e.message||e)); }
+    finally{ btn.textContent=_lbl; btn.disabled=false; }
   });
 
   document.getElementById('importFile').addEventListener('change', e => {
@@ -6286,31 +6299,35 @@ function reloadState() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = ev => {
-      try {
-        const data = JSON.parse(ev.target.result);
-        if (!data.members || !data.entries) throw new Error('형식 오류');
-
-        // 팀원 병합
-        data.members.forEach(m => {
-          if (!members.find(x => x.id === m.id)) members.push(m);
-        });
-        // 일정 병합
-        Object.keys(data.entries).forEach(k => {
-          if (!entries[k]) entries[k] = data.entries[k];
-        });
-        // 팀 목표 병합
-        if (data.teamGoal && !teamGoal) teamGoal = data.teamGoal;
-        if (data.teamTasks) {
-          data.teamTasks.forEach(t => {
-            if (!teamTasks.find(x => x.id === t.id)) teamTasks.push(t);
-          });
-        }
-
-        saveAll();
-        render();
-        showInfoModal('알림', `✅ 불러오기 완료!\n팀원 ${data.members.length}명 / 기록 ${Object.keys(data.entries).length}건 병합됨`);
-      } catch {
-        showInfoModal('알림', '❌ 파일을 읽을 수 없습니다. 올바른 백업 파일인지 확인해 주세요.');
+      let data;
+      try { data = JSON.parse(ev.target.result); }
+      catch(err){ showInfoModal('알림', '❌ 파일을 읽을 수 없습니다.'); e.target.value=''; return; }
+      if (data && data.version===3 && data.full && data.main){
+        showConfirmModal('📂 전체 복원', '백업 파일의 데이터로 현재 데이터를 덮어씁니다.\n(재고·견적·가격표·SMC·매입처·미수금·거래처·일정 전체)\n\n계속할까요?', async function(){
+          try{
+            Object.keys(data.main).forEach(function(k){ save(k, data.main[k]); });
+            reloadState(); applyConfig();
+            var bl = data.blobs||{};
+            for(var id in (bl.quote||{})){ try{ await _qBlobPut(id, bl.quote[id]); }catch(_){} }
+            for(var id2 in (bl.price||{})){ try{ await _priceBlobPut(id2, bl.price[id2]); }catch(_){} }
+            for(var id3 in (bl.smc||{})){ try{ await _smcBlobPut(id3, bl.smc[id3]); }catch(_){} }
+            for(var id4 in (bl.qsaved||{})){ try{ await _qsBlobPut(id4, bl.qsaved[id4]); }catch(_){} }
+            saveAll(); if(typeof doFbSave==='function'){ try{ await doFbSave(); }catch(_){} }
+            render();
+            showInfoModal('📂 전체 복원 완료', '복원이 끝났습니다. Ctrl+F5로 새로고침하면 모두 반영됩니다.');
+          }catch(err){ showInfoModal('복원 실패', String(err&&err.message||err)); }
+        }, '전체 복원', '#dc2626');
+      } else if (data && data.members && data.entries){
+        try{
+          data.members.forEach(m => { if (!members.find(x => x.id === m.id)) members.push(m); });
+          Object.keys(data.entries).forEach(k => { if (!entries[k]) entries[k] = data.entries[k]; });
+          if (data.teamGoal && !teamGoal) teamGoal = data.teamGoal;
+          if (data.teamTasks) data.teamTasks.forEach(t => { if (!teamTasks.find(x => x.id === t.id)) teamTasks.push(t); });
+          saveAll(); render();
+          showInfoModal('알림', '✅ (구버전 백업) 팀원·일정만 병합되었습니다.');
+        }catch(err){ showInfoModal('알림', '❌ 복원 오류: '+(err&&err.message||err)); }
+      } else {
+        showInfoModal('알림', '❌ 백업 파일 형식이 아닙니다.');
       }
       e.target.value = '';
     };
