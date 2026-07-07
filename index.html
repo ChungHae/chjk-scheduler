@@ -6191,7 +6191,15 @@ function reloadState() {
   try{ if(_fbAuthReady){ firebase.auth().onAuthStateChanged(function(){ if(!_fbAuthWaitDone){_fbAuthWaitDone=true;_fbAuthWaitResolve();} }); setTimeout(function(){ if(!_fbAuthWaitDone){_fbAuthWaitDone=true;_fbAuthWaitResolve();} },5000); } else { _fbAuthWaitDone=true; _fbAuthWaitResolve(); } }catch(_we){ _fbAuthWaitDone=true; _fbAuthWaitResolve(); }
   async function _synthEmail(id){ var h=await _sha256(String(id||'')); return 'u'+String(h).slice(0,32)+'@chjk-scheduler.web.app'; }
   async function _fbIdToken(){ try{ await _fbAuthWait; if(_fbAuthReady && firebase.auth().currentUser){ return await firebase.auth().currentUser.getIdToken(); } }catch(_e){} return ''; }
-  async function _fbFetch(url, opts){ try{ var t=await _fbIdToken(); if(t){ url = url + (url.indexOf('?')>=0?'&':'?') + 'auth=' + encodeURIComponent(t); } }catch(_e){} return fetch(url, opts); }
+  async function _fbFetch(url, opts){
+    var t=''; try{ t=await _fbIdToken(); }catch(_e){}
+    var u1 = t ? (url + (url.indexOf('?')>=0?'&':'?') + 'auth=' + encodeURIComponent(t)) : url;
+    var res = await fetch(u1, opts);
+    if(res && res.status===401){
+      try{ if(_fbAuthReady && firebase.auth().currentUser){ var t2 = await firebase.auth().currentUser.getIdToken(true); var u2 = url + (url.indexOf('?')>=0?'&':'?') + 'auth=' + encodeURIComponent(t2); res = await fetch(u2, opts); } }catch(_e2){}
+    }
+    return res;
+  }
   async function _fbEnsureAuth(id, pw){
     if(!_fbAuthReady) return;
     var email = await _synthEmail(id);
