@@ -2874,10 +2874,14 @@
     if (_fbPollTimer) clearInterval(_fbPollTimer);
     _fbPollTimer = setInterval(async () => {
       if (!_fbReady || _fbSkipNext) { _fbSkipNext = false; return; }
-      // 설정 모달이 열려 있으면 폴링 덮어쓰기 건너뜀 (팀원 입력 중 데이터 날아가는 문제 방지)
+      if (document.hidden) return;
       const modalOpen = document.getElementById('configOverlay')?.style.display === 'flex';
       if (modalOpen) return;
       try {
+        const _rr = await _fbFetch(`${_fbDbUrl}/${_FB_PATH}/_updatedAt.json`);
+        if (!_rr.ok) return;
+        const _rt = await _rr.json();
+        if (!_rt || _rt <= _fbLastUpdatedAt) return;
         const d = await _syncGet();
         if (!d || (d._updatedAt || 0) <= _fbLastUpdatedAt) return;
         _fbLastUpdatedAt = d._updatedAt || 0;
