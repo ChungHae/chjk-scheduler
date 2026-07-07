@@ -6189,8 +6189,9 @@ function reloadState() {
   async function _fbEnsureAuth(id, pw){
     if(!_fbAuthReady) return;
     var email = await _synthEmail(id);
-    try{ await firebase.auth().signInWithEmailAndPassword(email, pw); return; }
-    catch(e){ try{ await firebase.auth().createUserWithEmailAndPassword(email, pw); return; }catch(e2){ /* email-already-in-use = 비번 불일치, 이후 단계 처리 */ } }
+    var fpw = await _sha256(pw);   // Firebase 비번 = 커스텀 pwHash(64자) → 최소길이 충족·실비번 미노출
+    try{ await firebase.auth().signInWithEmailAndPassword(email, fpw); return; }
+    catch(e){ try{ await firebase.auth().createUserWithEmailAndPassword(email, fpw); return; }catch(e2){ /* email-already-in-use = 비번 불일치, 이후 단계 처리 */ } }
   }
   window._fbAuthStatus=function(){ try{ return { ready:_fbAuthReady, user: (_fbAuthReady&&firebase.auth().currentUser)?firebase.auth().currentUser.email:null }; }catch(e){ return {ready:_fbAuthReady, err:String(e)}; } };
   fbConnect({ dbUrl: _DEFAULT_FB_URL });
