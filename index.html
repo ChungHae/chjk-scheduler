@@ -2443,6 +2443,8 @@
 
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer onerror="window._xlsxFailed=true"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
 
 (() => {
@@ -2800,7 +2802,7 @@
   let _fbLastUpdatedAt = 0;
   let myMemberId = localStorage.getItem('sched_my_id') || '';
   async function _syncGet() {
-    const res = await fetch(`${_fbDbUrl}/${_FB_PATH}.json`);
+    const res = await _fbFetch(`${_fbDbUrl}/${_FB_PATH}.json`);
     if (!res.ok) {
       const t = await res.text().catch(() => '');
       throw new Error('읽기 오류 ' + res.status + ': ' + t.slice(0, 100));
@@ -2810,7 +2812,7 @@
   }
   async function _syncPost(data) {
     if(_isViewer()) return;
-    const res = await fetch(`${_fbDbUrl}/${_FB_PATH}.json`, {
+    const res = await _fbFetch(`${_fbDbUrl}/${_FB_PATH}.json`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -3385,19 +3387,19 @@ function reloadState() {
   function _fileCacheDel(id){ delete _fileBlobCache[id]; var ix=_fileBlobOrder.indexOf(id); if(ix>=0) _fileBlobOrder.splice(ix,1); }
   async function _fbFilePut(id, dataUrl){
     if(_isViewer()) return;
-    const res = await fetch(`${_fbDbUrl}/${_FB_PATH}_blob/${id}.json`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(dataUrl)});
+    const res = await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_blob/${id}.json`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(dataUrl)});
     if(!res.ok) throw new Error('서버 오류 '+res.status);
     _fileCacheSet(id, dataUrl);
   }
   async function _fbFileGet(id){
     if(id in _fileBlobCache) return _fileBlobCache[id];
-    const res = await fetch(`${_fbDbUrl}/${_FB_PATH}_blob/${id}.json`);
+    const res = await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_blob/${id}.json`);
     if(!res.ok) return null;
     const data = await res.json();
     _fileCacheSet(id, data);
     return data;
   }
-  async function _fbFileDel(id){ if(_isViewer()) return; _fileCacheDel(id); try{ await fetch(`${_fbDbUrl}/${_FB_PATH}_blob/${id}.json`, {method:'DELETE'}); }catch(e){} }
+  async function _fbFileDel(id){ if(_isViewer()) return; _fileCacheDel(id); try{ await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_blob/${id}.json`, {method:'DELETE'}); }catch(e){} }
   var _pvBlobUrl=null;
   function _dataUrlToBlobUrl(dataUrl){
     try{
@@ -3814,13 +3816,13 @@ function reloadState() {
   var _qBlobCache = Object.create(null);
   function _qBlobCacheClear(){ _qBlobCache = Object.create(null); }
   var _priceBlobCache = Object.create(null);
-  async function _priceBlobPut(id, rows){ if(_isViewer()) return; if(!_fbDbUrl) throw new Error('동기화 연결 필요'); await fetch(`${_fbDbUrl}/${_FB_PATH}_price/${id}.json`, {method:'PUT', body:JSON.stringify(rows)}); try{ _priceBlobCache[id]=JSON.parse(JSON.stringify(rows)); }catch(e){ delete _priceBlobCache[id]; } }
-  async function _priceBlobGet(id){ if(!_fbDbUrl) return null; if(id in _priceBlobCache){ try{ return JSON.parse(JSON.stringify(_priceBlobCache[id])); }catch(e){} } try{ const r=await fetch(`${_fbDbUrl}/${_FB_PATH}_price/${id}.json`); if(!r.ok) return null; const d=await r.json(); if(d!=null){ try{ _priceBlobCache[id]=JSON.parse(JSON.stringify(d)); }catch(e){} } return d; }catch(e){ return null; } }
-  async function _priceBlobDel(id){ if(_isViewer()) return; delete _priceBlobCache[id]; if(!_fbDbUrl) return; try{ await fetch(`${_fbDbUrl}/${_FB_PATH}_price/${id}.json`, {method:'DELETE'}); }catch(e){} }
+  async function _priceBlobPut(id, rows){ if(_isViewer()) return; if(!_fbDbUrl) throw new Error('동기화 연결 필요'); await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_price/${id}.json`, {method:'PUT', body:JSON.stringify(rows)}); try{ _priceBlobCache[id]=JSON.parse(JSON.stringify(rows)); }catch(e){ delete _priceBlobCache[id]; } }
+  async function _priceBlobGet(id){ if(!_fbDbUrl) return null; if(id in _priceBlobCache){ try{ return JSON.parse(JSON.stringify(_priceBlobCache[id])); }catch(e){} } try{ const r=await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_price/${id}.json`); if(!r.ok) return null; const d=await r.json(); if(d!=null){ try{ _priceBlobCache[id]=JSON.parse(JSON.stringify(d)); }catch(e){} } return d; }catch(e){ return null; } }
+  async function _priceBlobDel(id){ if(_isViewer()) return; delete _priceBlobCache[id]; if(!_fbDbUrl) return; try{ await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_price/${id}.json`, {method:'DELETE'}); }catch(e){} }
   var _smcBlobCache = Object.create(null);
-  async function _smcBlobPut(id, data){ if(_isViewer()) return; if(!_fbDbUrl) throw new Error('동기화 연결 필요'); await fetch(`${_fbDbUrl}/${_FB_PATH}_smc/${id}.json`, {method:'PUT', body:JSON.stringify(data)}); try{ _smcBlobCache[id]=JSON.parse(JSON.stringify(data)); }catch(e){ delete _smcBlobCache[id]; } }
-  async function _smcBlobGet(id){ if(!_fbDbUrl) return null; if(id in _smcBlobCache){ try{ return JSON.parse(JSON.stringify(_smcBlobCache[id])); }catch(e){} } try{ const r=await fetch(`${_fbDbUrl}/${_FB_PATH}_smc/${id}.json`); if(!r.ok) return null; const d=await r.json(); if(d!=null){ try{ _smcBlobCache[id]=JSON.parse(JSON.stringify(d)); }catch(e){} } return d; }catch(e){ return null; } }
-  async function _smcBlobDel(id){ if(_isViewer()) return; delete _smcBlobCache[id]; if(!_fbDbUrl) return; try{ await fetch(`${_fbDbUrl}/${_FB_PATH}_smc/${id}.json`, {method:'DELETE'}); }catch(e){} }
+  async function _smcBlobPut(id, data){ if(_isViewer()) return; if(!_fbDbUrl) throw new Error('동기화 연결 필요'); await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_smc/${id}.json`, {method:'PUT', body:JSON.stringify(data)}); try{ _smcBlobCache[id]=JSON.parse(JSON.stringify(data)); }catch(e){ delete _smcBlobCache[id]; } }
+  async function _smcBlobGet(id){ if(!_fbDbUrl) return null; if(id in _smcBlobCache){ try{ return JSON.parse(JSON.stringify(_smcBlobCache[id])); }catch(e){} } try{ const r=await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_smc/${id}.json`); if(!r.ok) return null; const d=await r.json(); if(d!=null){ try{ _smcBlobCache[id]=JSON.parse(JSON.stringify(d)); }catch(e){} } return d; }catch(e){ return null; } }
+  async function _smcBlobDel(id){ if(_isViewer()) return; delete _smcBlobCache[id]; if(!_fbDbUrl) return; try{ await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_smc/${id}.json`, {method:'DELETE'}); }catch(e){} }
   // ─ 가격표(SMC·CDC) E가 → 모든 거래처 원장 실시간 연동 (읽을 때 오버레이) ─
   var _priceSyncMap=null, _priceSyncReady=false;
   function _pKey(x){ return String(x==null?'':x).trim(); }
@@ -3832,9 +3834,9 @@ function reloadState() {
   }
   async function _ensurePriceSyncMap(force){ if(force||!_priceSyncReady||!_priceSyncMap){ try{ await _buildPriceSyncMap(); }catch(e){} } return _priceSyncMap; }
   function _applyPriceSyncToRows(rows){ if(!_priceSyncMap||!Array.isArray(rows)) return; rows.forEach(function(r){ if(!r||r.spec==null) return; var e=_priceSyncMap[_pKey(r.spec)]; if(e!=null){ r.e=e; if('dc' in r) delete r.dc; } }); }
-  async function _qBlobPut(id, rows){ if(_isViewer()) return; if(!_fbDbUrl) throw new Error('동기화 연결 필요'); await fetch(`${_fbDbUrl}/${_FB_PATH}_quote/${id}.json`, {method:'PUT', body:JSON.stringify(rows)}); try{ _qBlobCache[id] = JSON.parse(JSON.stringify(rows)); }catch(e){ delete _qBlobCache[id]; } }
-  async function _qBlobGet(id){ if(!_fbDbUrl) return null; if(id in _qBlobCache){ try{ return JSON.parse(JSON.stringify(_qBlobCache[id])); }catch(e){} } try{ const r=await fetch(`${_fbDbUrl}/${_FB_PATH}_quote/${id}.json`); if(!r.ok) return null; const d=await r.json(); if(d!=null){ try{ _qBlobCache[id]=JSON.parse(JSON.stringify(d)); }catch(e){} } return d; }catch(e){ return null; } }
-  async function _qBlobDel(id){ if(_isViewer()) return; delete _qBlobCache[id]; if(!_fbDbUrl) return; try{ await fetch(`${_fbDbUrl}/${_FB_PATH}_quote/${id}.json`, {method:'DELETE'}); }catch(e){} }
+  async function _qBlobPut(id, rows){ if(_isViewer()) return; if(!_fbDbUrl) throw new Error('동기화 연결 필요'); await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_quote/${id}.json`, {method:'PUT', body:JSON.stringify(rows)}); try{ _qBlobCache[id] = JSON.parse(JSON.stringify(rows)); }catch(e){ delete _qBlobCache[id]; } }
+  async function _qBlobGet(id){ if(!_fbDbUrl) return null; if(id in _qBlobCache){ try{ return JSON.parse(JSON.stringify(_qBlobCache[id])); }catch(e){} } try{ const r=await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_quote/${id}.json`); if(!r.ok) return null; const d=await r.json(); if(d!=null){ try{ _qBlobCache[id]=JSON.parse(JSON.stringify(d)); }catch(e){} } return d; }catch(e){ return null; } }
+  async function _qBlobDel(id){ if(_isViewer()) return; delete _qBlobCache[id]; if(!_fbDbUrl) return; try{ await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_quote/${id}.json`, {method:'DELETE'}); }catch(e){} }
   function _qFmt(n){ return (n==null||n==='')?'-':Math.round(Number(n)).toLocaleString(); }
   function _qPct(v){ return (v==null||isNaN(v))?'-':(v*100).toFixed(1)+'%'; }
 
@@ -5201,9 +5203,9 @@ function reloadState() {
     document.body.appendChild(wrap);
     if(_printMode){ try{ _qPrintDoc(wrap.innerHTML); }catch(_pe){} try{ wrap.remove(); }catch(_e){} return; }
   }
-  async function _qsBlobPut(id, items){ if(_isViewer()) return; if(!_fbDbUrl) throw new Error('동기화 연결 필요'); await fetch(`${_fbDbUrl}/${_FB_PATH}_qsaved/${id}.json`, {method:'PUT', body:JSON.stringify(items)}); }
-  async function _qsBlobGet(id){ if(!_fbDbUrl) return null; try{ const r=await fetch(`${_fbDbUrl}/${_FB_PATH}_qsaved/${id}.json`); if(!r.ok) return null; return await r.json(); }catch(e){ return null; } }
-  async function _qsBlobDel(id){ if(!_fbDbUrl) return; try{ await fetch(`${_fbDbUrl}/${_FB_PATH}_qsaved/${id}.json`, {method:'DELETE'}); }catch(e){} }
+  async function _qsBlobPut(id, items){ if(_isViewer()) return; if(!_fbDbUrl) throw new Error('동기화 연결 필요'); await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_qsaved/${id}.json`, {method:'PUT', body:JSON.stringify(items)}); }
+  async function _qsBlobGet(id){ if(!_fbDbUrl) return null; try{ const r=await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_qsaved/${id}.json`); if(!r.ok) return null; return await r.json(); }catch(e){ return null; } }
+  async function _qsBlobDel(id){ if(!_fbDbUrl) return; try{ await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_qsaved/${id}.json`, {method:'DELETE'}); }catch(e){} }
   function _qPrompt(title, label, defVal, onOk){
     var ov=document.getElementById('qPromptOverlay');
     if(!ov){ ov=document.createElement('div'); ov.id='qPromptOverlay'; ov.style.cssText='position:fixed;inset:0;z-index:100078;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px'; document.body.appendChild(ov); ov.addEventListener('click',function(e){ if(e.target===ov) ov.style.display='none'; }); }
@@ -6177,6 +6179,20 @@ function reloadState() {
 
   // Firebase 자동 연결 (URL 고정 내장) — 항상 하드코딩된 URL 사용
   const _DEFAULT_FB_URL = 'https://chjk-scheduler-default-rtdb.asia-southeast1.firebasedatabase.app';
+  // ── Firebase 인증 (백엔드 보안) ──
+  var _FB_CFG = { apiKey:"AIzaSyBTYey9GzRIRRqiiZoQ3gpxI-Ty1BhXyZU", authDomain:"chjk-scheduler.firebaseapp.com", databaseURL:"https://chjk-scheduler-default-rtdb.asia-southeast1.firebasedatabase.app", projectId:"chjk-scheduler", storageBucket:"chjk-scheduler.firebasestorage.app", messagingSenderId:"539351694456", appId:"1:539351694456:web:95f38d75256202c798818d" };
+  var _fbAuthReady=false;
+  try{ if(typeof firebase!=='undefined' && firebase.initializeApp){ if(!(firebase.apps&&firebase.apps.length)) firebase.initializeApp(_FB_CFG); _fbAuthReady=true; } }catch(_fe){ try{console.warn('Firebase Auth init 실패', _fe);}catch(_){} }
+  async function _synthEmail(id){ var h=await _sha256(String(id||'')); return 'u'+String(h).slice(0,32)+'@chjk-scheduler.web.app'; }
+  async function _fbIdToken(){ try{ if(_fbAuthReady && firebase.auth().currentUser){ return await firebase.auth().currentUser.getIdToken(); } }catch(_e){} return ''; }
+  async function _fbFetch(url, opts){ try{ var t=await _fbIdToken(); if(t){ url = url + (url.indexOf('?')>=0?'&':'?') + 'auth=' + encodeURIComponent(t); } }catch(_e){} return fetch(url, opts); }
+  async function _fbEnsureAuth(id, pw){
+    if(!_fbAuthReady) return;
+    var email = await _synthEmail(id);
+    try{ await firebase.auth().signInWithEmailAndPassword(email, pw); return; }
+    catch(e){ try{ await firebase.auth().createUserWithEmailAndPassword(email, pw); return; }catch(e2){ /* email-already-in-use = 비번 불일치, 이후 단계 처리 */ } }
+  }
+  window._fbAuthStatus=function(){ try{ return { ready:_fbAuthReady, user: (_fbAuthReady&&firebase.auth().currentUser)?firebase.auth().currentUser.email:null }; }catch(e){ return {ready:_fbAuthReady, err:String(e)}; } };
   fbConnect({ dbUrl: _DEFAULT_FB_URL });
 
   // ─── 팀원 초기화 ─────────────────────────────────────────
@@ -12292,7 +12308,7 @@ function reloadState() {
   }
   async function _authGetAccounts(){
     try{
-      const r = await fetch(`${_AUTH_URL}/${_AUTH_PATH}.json`);
+      const r = await _fbFetch(`${_AUTH_URL}/${_AUTH_PATH}.json`);
       if(!r.ok) return null;
       const d = await r.json();
       return (d && typeof d === 'object') ? d : {};
@@ -12300,7 +12316,7 @@ function reloadState() {
   }
   async function _authPutAccounts(obj){
     if(_isViewer()) return;
-    await fetch(`${_AUTH_URL}/${_AUTH_PATH}.json`, {
+    await _fbFetch(`${_AUTH_URL}/${_AUTH_PATH}.json`, {
       method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(obj)
     });
   }
@@ -12380,6 +12396,7 @@ function reloadState() {
       err.textContent = '성명 또는 비밀번호가 올바르지 않습니다.'; return;
     }
     localStorage.setItem('sched_last_user', id);
+    try{ await _fbEnsureAuth(id, pw); }catch(_fe){ try{console.warn('FBAuth',_fe);}catch(_){} }
     if(u.mustChange){ _authShowChangePw(id, true); return; }
     _authUser = { id, name: u.name || id, role: u.role || 'user' };
     sessionStorage.setItem('sched_auth', JSON.stringify(_authUser));
