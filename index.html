@@ -6183,8 +6183,10 @@ function reloadState() {
   var _FB_CFG = { apiKey:"AIzaSyBTYey9GzRIRRqiiZoQ3gpxI-Ty1BhXyZU", authDomain:"chjk-scheduler.firebaseapp.com", databaseURL:"https://chjk-scheduler-default-rtdb.asia-southeast1.firebasedatabase.app", projectId:"chjk-scheduler", storageBucket:"chjk-scheduler.firebasestorage.app", messagingSenderId:"539351694456", appId:"1:539351694456:web:95f38d75256202c798818d" };
   var _fbAuthReady=false;
   try{ if(typeof firebase!=='undefined' && firebase.initializeApp){ if(!(firebase.apps&&firebase.apps.length)) firebase.initializeApp(_FB_CFG); _fbAuthReady=true; } }catch(_fe){ try{console.warn('Firebase Auth init 실패', _fe);}catch(_){} }
+  var _fbAuthWaitDone=false, _fbAuthWaitResolve; var _fbAuthWait=new Promise(function(res){ _fbAuthWaitResolve=res; });
+  try{ if(_fbAuthReady){ firebase.auth().onAuthStateChanged(function(){ if(!_fbAuthWaitDone){_fbAuthWaitDone=true;_fbAuthWaitResolve();} }); setTimeout(function(){ if(!_fbAuthWaitDone){_fbAuthWaitDone=true;_fbAuthWaitResolve();} },5000); } else { _fbAuthWaitDone=true; _fbAuthWaitResolve(); } }catch(_we){ _fbAuthWaitDone=true; _fbAuthWaitResolve(); }
   async function _synthEmail(id){ var h=await _sha256(String(id||'')); return 'u'+String(h).slice(0,32)+'@chjk-scheduler.web.app'; }
-  async function _fbIdToken(){ try{ if(_fbAuthReady && firebase.auth().currentUser){ return await firebase.auth().currentUser.getIdToken(); } }catch(_e){} return ''; }
+  async function _fbIdToken(){ try{ await _fbAuthWait; if(_fbAuthReady && firebase.auth().currentUser){ return await firebase.auth().currentUser.getIdToken(); } }catch(_e){} return ''; }
   async function _fbFetch(url, opts){ try{ var t=await _fbIdToken(); if(t){ url = url + (url.indexOf('?')>=0?'&':'?') + 'auth=' + encodeURIComponent(t); } }catch(_e){} return fetch(url, opts); }
   async function _fbEnsureAuth(id, pw){
     if(!_fbAuthReady) return;
@@ -6192,6 +6194,10 @@ function reloadState() {
     var fpw = await _sha256(pw);   // Firebase 비번 = 커스텀 pwHash(64자) → 최소길이 충족·실비번 미노출
     try{ await firebase.auth().signInWithEmailAndPassword(email, fpw); return; }
     catch(e){ try{ await firebase.auth().createUserWithEmailAndPassword(email, fpw); return; }catch(e2){ /* email-already-in-use = 비번 불일치, 이후 단계 처리 */ } }
+  }
+  async function _fbAuthorizeSelf(){
+    if(!_fbAuthReady || !_fbDbUrl) return;
+    try{ var uid = firebase.auth().currentUser && firebase.auth().currentUser.uid; if(uid){ await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_authorized/${uid}.json`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(true)}); } }catch(e){}
   }
   window._fbAuthStatus=function(){ try{ return { ready:_fbAuthReady, user: (_fbAuthReady&&firebase.auth().currentUser)?firebase.auth().currentUser.email:null }; }catch(e){ return {ready:_fbAuthReady, err:String(e)}; } };
   fbConnect({ dbUrl: _DEFAULT_FB_URL });
@@ -12390,14 +12396,22 @@ function reloadState() {
     const err = document.getElementById('authErr');
     err.textContent = '';
     if(!id || !pw){ err.textContent = '성명과 비밀번호를 입력하세요.'; return; }
+    // 1) Firebase 인증 먼저 (잠금 상태에서도 데이터 읽기 전에 토큰 확보)
+    try{ await _fbEnsureAuth(id, pw); }catch(_fe){ try{console.warn('FBAuth',_fe);}catch(_){} }
+    // 2) 계정 읽기 (이제 토큰 부착)
     const acc = await _authGetAccounts();
-    if(acc === null){ err.textContent = '서버 연결에 실패했습니다. 잠시 후 다시 시도하세요.'; return; }
+    if(acc === null){
+      if(_fbAuthReady && !(firebase.auth().currentUser)){ err.textContent = '성명 또는 비밀번호가 올바르지 않습니다.'; }
+      else { err.textContent = '서버 연결에 실패했습니다. 잠시 후 다시 시도하세요.'; }
+      return;
+    }
     const u = acc[id];
     if(!u || u.pwHash !== await _sha256(pw)){
       err.textContent = '성명 또는 비밀번호가 올바르지 않습니다.'; return;
     }
+    // 3) 허용 목록 등록 (잠금 전 채워두면 잠금 후 이 사람만 접근)
+    try{ await _fbAuthorizeSelf(); }catch(_ae){}
     localStorage.setItem('sched_last_user', id);
-    try{ await _fbEnsureAuth(id, pw); }catch(_fe){ try{console.warn('FBAuth',_fe);}catch(_){} }
     if(u.mustChange){ _authShowChangePw(id, true); return; }
     _authUser = { id, name: u.name || id, role: u.role || 'user' };
     sessionStorage.setItem('sched_auth', JSON.stringify(_authUser));
@@ -12469,9 +12483,25 @@ function reloadState() {
     if(np === '0000'){ err.textContent = '기본 비밀번호(0000)는 사용할 수 없습니다.'; return; }
     const acc = (await _authGetAccounts()) || {};
     if(!acc[id]){ err.textContent = '계정을 찾을 수 없습니다.'; return; }
+    const _oldHash = acc[id].pwHash;            // 현재 Firebase 비번(=옛 pwHash)
     acc[id].pwHash = await _sha256(np);
     acc[id].mustChange = false;
     await _authPutAccounts(acc);
+    // Firebase 비번도 함께 변경 (안 하면 잠금 후 이 사람 로그인 불가)
+    try{
+      if(_fbAuthReady && firebase.auth().currentUser){
+        var _newHash = acc[id].pwHash, _em = await _synthEmail(id);
+        try{ await firebase.auth().currentUser.updatePassword(_newHash); }
+        catch(e){
+          if(e && e.code==='auth/requires-recent-login'){
+            var _cr = firebase.auth.EmailAuthProvider.credential(_em, _oldHash);
+            await firebase.auth().currentUser.reauthenticateWithCredential(_cr);
+            await firebase.auth().currentUser.updatePassword(_newHash);
+          }
+        }
+        try{ await _fbAuthorizeSelf(); }catch(_ae){}
+      }
+    }catch(_pe){ try{console.warn('FB pw sync', _pe);}catch(_){} }
     ov.style.display = 'none';
     if(first){
       _authUser = { id, name: acc[id].name || id, role: acc[id].role || 'user' };
