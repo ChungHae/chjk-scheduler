@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="20260708-11">
+  <meta name="app-build" content="20260708-12">
   <title>업무 관리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1707,6 +1707,8 @@
       #qCart > div > div:first-child > span:last-child button,
       #qCart > div > div:last-child button { width: 100% !important; min-width: 0 !important; }
       #qCart span[style*="width:1px"] { display: none !important; }
+      /* 견적·SMC·가격확인 툴바 구분선 숨김 → 버튼 간격 균일 */
+      #qSubQuote span[style*="width:1px"], #qSubSmc span[style*="width:1px"], #qSubPrice span[style*="width:1px"] { display: none !important; }
       /* 원장 업로드·견적 업로드 버튼 숨김 */
       #qXlsxBtn { display: none !important; }
       #qCart button[onclick*="qOpenQuoteUpload"] { display: none !important; }
