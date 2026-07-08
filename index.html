@@ -4920,8 +4920,8 @@ function reloadState() {
       var _pp=Math.max(0,Math.min(_pricePage, Math.ceil(matched.length/20)-1)); _pricePage=_pp;
       _priceCalcRows=[];
       rows=matched.slice(_pp*20,_pp*20+20).map(function(r,_ix){
-        var blocked=(r.st==='차단품')||(Number(r.ega)===0 && !r.qr);
-        var egaCell=blocked?'차단':((r.ega!=null&&r.ega!=='')?fmt(r.ega):'');
+        var blocked=/차단/.test(String(r.st||''));   // 상태열에 '차단'/'차단품' 단어가 있을 때만 차단
+        var egaCell=blocked?'차단':((r.ega!=null&&Number(r.ega)>0)?fmt(r.ega):'');
         var _spU=String(r.spec||'').trim().toUpperCase(); var _taE=(_spU.indexOf('TA-1-')===0||_spU.indexOf('TA-4-')===0||_spU.indexOf('TA-5-')===0);
         var _rowRate=(_buyRate&&_taE)?1:_buyRate;
         var _lry=(r.extra&&r.extra['LRY확판(개당)']!=null&&r.extra['LRY확판(개당)']!=='')?Number(r.extra['LRY확판(개당)']):null;
