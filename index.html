@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="20260708-7">
+  <meta name="app-build" content="20260708-8">
   <title>업무 관리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1661,6 +1661,11 @@
       #pagePersonal > div:first-child { min-height: 0 !important; }
       #personalCalNav { position: static !important; left: auto !important; top: auto !important; transform: none !important; width: 100% !important; order: 99; margin-top: 6px; justify-content: center !important; flex-wrap: wrap; }
       #personalWeekLabel { min-width: 0 !important; }
+      /* 견적관리 툴바: 원장업로드~견적저장 버튼 우측 정렬 */
+      #qSubQuote > div:first-child { justify-content: flex-end !important; }
+      /* 상단 탭: 태블릿에서도 한 줄 균등 배치(이모지 유지) */
+      .page-nav { overflow-x: visible !important; display: flex !important; white-space: normal !important; }
+      .page-tab { flex: 1 1 0 !important; min-width: 0 !important; text-align: center !important; white-space: nowrap !important; }
     }
     /* ── 반응형 보강 4: 연차현황 열 숨김 + 견적 카테고리 표/버튼 정렬 ── */
     @media (max-width: 700px) {
