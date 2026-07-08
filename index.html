@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="20260708-12">
+  <meta name="app-build" content="20260708-13">
   <title>업무 관리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -4421,6 +4421,7 @@ function reloadState() {
   window.smcVendorKey=function(e){ if(e.key!=='Enter'&&e.key!=='Tab') return; var inp=document.getElementById('smcVendorInput'); var raw=(inp&&inp.value||'').trim(); if(!raw) return; var q=_qNorm(raw); var list=allClients().filter(function(c){ return _qNorm(c[0]).indexOf(q)>=0; }); if(list.length===1){ if(e.key==='Enter') e.preventDefault(); smcPickVendor(list[0][0]); } };
   window.smcManualInput=function(){
     if(!_smcVendor){ showInfoModal('🏢 거래처','먼저 상단에서 거래처를 선택하세요.'); return; }
+    if(_smcManualMode){ if(!_smcManualRows) _smcManualRows=[]; _smcManualRows.push(''); renderSmcResult(); setTimeout(function(){ var ins=document.querySelectorAll('#smcResult tbody input'); if(ins.length) ins[ins.length-1].focus(); },30); return; }
     if(!_smcManualMode && _smcItems && _smcItems.length){
       _smcAppend=true;
       _smcManualDate=_smcQuoteDate(_smcMeta);
