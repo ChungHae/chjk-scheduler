@@ -1616,6 +1616,20 @@
       .files-grid { grid-template-columns: 1fr 1fr !important; }
       #personalWeekLabel { font-size:16px !important; }
     }
+    /* ── 반응형 보강 2: 견적·가격확인·SMC 필터/검색 입력 풀폭 + 줄바꿈 ── */
+    @media (max-width: 1024px) {
+      #qSubQuote > div:first-child, #qSubPrice > div:first-child, #qSubSmc > div:first-child { flex-wrap: wrap !important; }
+      #qVendorSearch, #priceSpec, #priceMakerSel, #smcVendorInput, #smcUpVendorInput, #fileSearch { width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; }
+    }
+    @media (max-width: 700px) {
+      .main { padding: 10px 8px !important; }
+      /* 상단 요약/필터 박스 여백 축소 */
+      #qSubPrice > div:first-child, #qSubQuote > div:first-child { padding: 10px !important; gap: 6px !important; }
+      /* 입금매칭 요약: 카드/그래프는 이미 auto-fit → 여백만 */
+      #misuSummaryWrap { margin-bottom: 12px !important; }
+      /* 넓은 데이터 표: 가로 스크롤 컨테이너가 화면을 넘지 않도록 */
+      .page-section > div[style*="overflow-x:auto"], .page-section [style*="overflow-x:auto"] { max-width: 100%; }
+    }
   </style>
 </head>
 <body>
