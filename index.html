@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="20260708-6">
+  <meta name="app-build" content="20260708-7">
   <title>업무 관리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1650,6 +1650,10 @@
       #qCart > div > div:first-child { flex-wrap: wrap !important; gap: 8px !important; }
       #qCart > div > div:first-child > span:first-child { flex: 1 1 100% !important; display: flex !important; flex-wrap: wrap !important; align-items: center; gap: 4px 6px; }
       #qCart .qq-no { order: 3 !important; flex-basis: 100% !important; width: fit-content; margin: 0 !important; }
+      /* 견적관리 툴바: 거래처·규격 검색창을 한 줄에, 버튼은 아래 줄로 */
+      #qSubQuote > div:first-child > div { flex: 1 1 40% !important; width: auto !important; min-width: 150px !important; }
+      #qSpec { flex: 1 1 40% !important; width: auto !important; min-width: 150px !important; }
+      #qSubQuote > div:first-child > span[style*="flex:1"] { flex-basis: 100% !important; height: 0 !important; padding: 0 !important; margin: 0 !important; }
       /* 비우기~견적 다운로드: 상·하단 버튼 그룹 둘 다 우측 정렬 */
       #qCart > div > div:first-child > span:last-child { width: 100% !important; justify-content: flex-end !important; flex-wrap: wrap !important; }
       #qCart > div > div:last-child { justify-content: flex-end !important; flex-wrap: wrap !important; }
