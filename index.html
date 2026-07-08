@@ -1943,21 +1943,23 @@
   <div id="pageArmatch" class="page-section">
     <div id="misuSummaryWrap" style="margin-bottom:18px">
       <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px">
-        <span style="font-size:16px;font-weight:800;color:#14305c">📊 미수 현황 요약</span>
+        <span style="font-size:14px;font-weight:800;color:#14305c">📊 미수 현황 요약</span>
         <span id="misuSummaryMeta" style="font-size:11px;color:#9ca3af"></span>
       </div>
       <div id="misuSummaryGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
         <div style="color:#9ca3af;font-size:13px;padding:14px">불러오는 중…</div>
       </div>
       <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:6px;margin:16px 0 8px">
-        <span style="font-size:16px;font-weight:800;color:#14305c">📈 매출 현황 요약</span>
+        <span style="font-size:14px;font-weight:800;color:#14305c">📈 매출 현황 요약</span>
         <span id="salesSummaryMeta" style="font-size:11px;color:#9ca3af"></span>
       </div>
       <div id="salesSummaryGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
         <div style="color:#9ca3af;font-size:13px;padding:14px">불러오는 중…</div>
       </div>
-      <div id="salesChartYear" style="margin-top:16px"></div>
-      <div id="salesChartMonth" style="margin-top:16px"></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-top:16px">
+        <div id="salesChartYear"></div>
+        <div id="salesChartMonth"></div>
+      </div>
     </div>
     <div style="max-width:640px;margin:36px auto;text-align:center;background:#fff;border:1px solid #e5e9f0;border-radius:14px;padding:40px 28px;box-shadow:0 1px 3px rgba(0,0,0,.06)">
       <div style="font-size:44px;margin-bottom:10px">💳</div>
@@ -2840,20 +2842,23 @@
   function _misuVBarChart(containerId, title, rows){
     var el=document.getElementById(containerId); if(!el) return;
     if(!rows || !rows.length){ el.innerHTML=''; return; }
-    var n=rows.length, W=Math.max(300, n*70), H=200, padL=8, padR=8, padT=10, padB=24, plotH=H-padT-padB;
+    var n=rows.length, W=Math.max(320, n*74), H=210, padL=10, padR=10, padT=26, padB=26, plotH=H-padT-padB;
     var maxv=1; rows.forEach(function(r){ maxv=Math.max(maxv, r.sales||0, r.buy||0); });
     var groupW=(W-padL-padR)/n, barW=Math.min(20, groupW/2.6), gap=3;
     var bars='', labels='';
     rows.forEach(function(r,i){
       var cx=padL+groupW*i+groupW/2;
       var hs=Math.round((r.sales||0)/maxv*plotH), hb=Math.round((r.buy||0)/maxv*plotH);
+      var cxs=cx-barW/2-gap/2, cxb=cx+barW/2+gap/2;
       bars+='<rect x="'+(cx-barW-gap/2)+'" y="'+(padT+plotH-hs)+'" width="'+barW+'" height="'+hs+'" rx="2" fill="#1B3A6B"><title>매출 '+_misuFmtWon(r.sales)+'원</title></rect>';
       bars+='<rect x="'+(cx+gap/2)+'" y="'+(padT+plotH-hb)+'" width="'+barW+'" height="'+hb+'" rx="2" fill="#9db8dd"><title>매입 '+_misuFmtWon(r.buy)+'원</title></rect>';
-      labels+='<text x="'+cx+'" y="'+(H-8)+'" text-anchor="middle" font-size="10" fill="#6b7280">'+r.label+'</text>';
+      if((r.sales||0)>0) bars+='<text x="'+cxs+'" y="'+(padT+plotH-hs-4)+'" text-anchor="middle" font-size="9.5" font-weight="700" fill="#1B3A6B">'+_misuFmtWon(r.sales)+'</text>';
+      if((r.buy||0)>0) bars+='<text x="'+cxb+'" y="'+(padT+plotH-hb-4)+'" text-anchor="middle" font-size="9.5" font-weight="700" fill="#5f7fb0">'+_misuFmtWon(r.buy)+'</text>';
+      labels+='<text x="'+cx+'" y="'+(H-9)+'" text-anchor="middle" font-size="10.5" fill="#6b7280">'+r.label+'</text>';
     });
     var base='<line x1="'+padL+'" y1="'+(padT+plotH)+'" x2="'+(W-padR)+'" y2="'+(padT+plotH)+'" stroke="#e5e9f0" stroke-width="1"/>';
     var legend='<span style="font-size:11px;color:#6b7280"><span style="display:inline-block;width:9px;height:9px;background:#1B3A6B;border-radius:2px;margin-right:3px"></span>매출<span style="display:inline-block;width:9px;height:9px;background:#9db8dd;border-radius:2px;margin:0 3px 0 10px"></span>매입</span>';
-    el.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px"><span style="font-size:13px;font-weight:700;color:#14305c">'+title+'</span>'+legend+'</div>'+
+    el.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;flex-wrap:wrap;gap:4px"><span style="font-size:13px;font-weight:700;color:#14305c">'+title+'</span>'+legend+'</div>'+
       '<div style="border:1px solid #eef2f7;border-radius:10px;padding:6px 6px 2px;background:#fff"><svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" preserveAspectRatio="xMidYMid meet">'+base+bars+labels+'</svg></div>';
   }
   function _misuRenderCards(gridId, cards){
