@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="20260708-14">
+  <meta name="app-build" content="20260708-15">
   <title>업무 관리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1681,6 +1681,7 @@
       #qSubSmc button[onclick*="smcManualUploadClick"], #qSubSmc button[onclick*="smcOpenUpload"] { display: none !important; }
       #qSubSmc .smc-hcol { display: none !important; }
       #qSubSmc .smc-summary { display: none !important; }
+      #qSubSmc .smc-matchcnt { display: none !important; }
       .lbl-full { display: none !important; }
       .lbl-short { display: inline-block !important; }
       /* 견적 전 카테고리 표: 고정폭 해제 → 화면에 맞춰 축소 */
@@ -4964,7 +4965,7 @@ function reloadState() {
     var th=function(t,w,bg){ var _bg=bg||'#1B3A6B'; var _brd=bg?'#0b5563':'#24467d'; var _hc=(t==='No.'||t==='품명'||t==='수량'||t==='판매가'||t==='금액'||t.indexOf('적용 구간')>=0||t.indexOf('최근 발주일')>=0||t.indexOf('판매가 비교')>=0)?'smc-hcol':''; return '<th class="'+_hc+'" style="padding:8px 12px;text-align:center;border:1px solid '+_brd+';white-space:nowrap;background:'+_bg+';color:#fff;font-size:12.5px;font-weight:700'+(w?';width:'+w:'')+'">'+t+'</th>'; };
     var hasData=!!(dm&&Object.keys(dm).length);
     var dl = manual ? '날짜' : '견적일자';
-    var info = hasData ? (dl+' <b>'+(_smcYmdStr(qd)||'-')+'</b> 기준 · 매칭 '+matchN+'/'+_smcItems.length+'건') : ('이 거래처의 SMC 자료가 없습니다 — <b>SMC 자료 업로드</b> 필요');
+    var info = hasData ? (dl+' <b>'+(_smcYmdStr(qd)||'-')+'</b> 기준<span class="smc-matchcnt"> · 매칭 '+matchN+'/'+_smcItems.length+'건</span>') : ('이 거래처의 SMC 자료가 없습니다 — <b>SMC 자료 업로드</b> 필요');
     var head='<tr>'+th('No.','48px')+(manual?'':th('품명','160px'))+th('규격(품번)','230px')+(manual?'':(th('수량','58px')+th('판매가','108px')+th('금액','116px')))+th('<span class="lbl-full">충해전기 매입가<br>(의뢰특가)</span><span class="lbl-short">매입가<br>(의뢰특가)</span>','130px','#0e7490')+th('DC율','72px','#0e7490')+th('<span class="lbl-full">충해전기 판매가<br>(유저특가)</span><span class="lbl-short">판매가<br>(유저특가)</span>','130px','#0e7490')+th('마진율','72px','#0e7490')+th('적용 구간','168px','#0e7490')+th('최근 발주일','116px','#0e7490')+th('판매가 비교','84px','#0e7490')+'</tr>';
     var _tMargin=_tSell-_tBuy;
     var _tRate=_tSell>0?(_tMargin/_tSell*100):0;
