@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="20260708-5">
+  <meta name="app-build" content="20260708-6">
   <title>업무 관리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1644,11 +1644,19 @@
       /* 견적 결과·카트 표: 자체 가로 스크롤 */
       #qResults, #qCart { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     }
-    /* ── 반응형 보강 5: 태블릿(≤1024px) 견적 목록 헤더 정리 ── */
+    /* ── 반응형 보강 5: 태블릿(≤1024px) 견적 헤더/버튼 + 개인일정 겹침 ── */
     @media (max-width: 1024px) {
+      /* 견적 목록 헤더: 제목 한 줄, 견적번호 아래 줄 */
       #qCart > div > div:first-child { flex-wrap: wrap !important; gap: 8px !important; }
       #qCart > div > div:first-child > span:first-child { flex: 1 1 100% !important; display: flex !important; flex-wrap: wrap !important; align-items: center; gap: 4px 6px; }
       #qCart .qq-no { order: 3 !important; flex-basis: 100% !important; width: fit-content; margin: 0 !important; }
+      /* 비우기~견적 다운로드: 상·하단 버튼 그룹 둘 다 우측 정렬 */
+      #qCart > div > div:first-child > span:last-child { width: 100% !important; justify-content: flex-end !important; flex-wrap: wrap !important; }
+      #qCart > div > div:last-child { justify-content: flex-end !important; flex-wrap: wrap !important; }
+      /* 개인일정: 절대배치 달력 네비 → 정적 배치(버튼 겹침 방지) */
+      #pagePersonal > div:first-child { min-height: 0 !important; }
+      #personalCalNav { position: static !important; left: auto !important; top: auto !important; transform: none !important; width: 100% !important; order: 99; margin-top: 6px; justify-content: center !important; flex-wrap: wrap; }
+      #personalWeekLabel { min-width: 0 !important; }
     }
     /* ── 반응형 보강 4: 연차현황 열 숨김 + 견적 카테고리 표/버튼 정렬 ── */
     @media (max-width: 700px) {
