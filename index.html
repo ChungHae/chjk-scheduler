@@ -1651,7 +1651,7 @@
       /* 견적 전 카테고리 표: 고정폭 해제 → 화면에 맞춰 축소 */
       #qSubQuote table, #qSubSmc table, #qSubPrice table { min-width: 0 !important; table-layout: auto !important; font-size: 11.5px !important; }
       #qSubQuote col, #qSubSmc col, #qSubPrice col { width: auto !important; }
-      #qSubQuote th, #qSubQuote td, #qSubSmc th, #qSubSmc td, #qSubPrice th, #qSubPrice td { padding: 5px 5px !important; }
+      #qSubQuote th, #qSubQuote td, #qSubSmc th, #qSubSmc td, #qSubPrice th, #qSubPrice td { padding: 5px 5px !important; white-space: normal !important; overflow-wrap: anywhere !important; }
       /* 견적 목록 헤더: 제목 한 줄, 견적번호는 거래처명 아래 줄로(배경 온전) */
       #qCart > div > div:first-child { flex-wrap: wrap !important; gap: 8px !important; }
       #qCart > div > div:first-child > span:first-child { flex: 1 1 100% !important; display: flex !important; flex-wrap: wrap !important; align-items: center; gap: 4px 6px; }
@@ -1667,16 +1667,17 @@
       #qCart button[onclick*="qOpenQuoteUpload"] { display: none !important; }
       /* 견적 목록 수량 좌우 +/- 버튼 제거 */
       #qCart button[onclick*="qCartQtyAdj"] { display: none !important; }
-      /* 상단 헤더: 오늘 날짜·자료저장·동기화 한 줄에 */
-      .header { flex-wrap: nowrap !important; gap: 6px !important; align-items: center; }
-      #headerLeft { flex-wrap: nowrap !important; gap: 6px !important; min-width: 0; flex-shrink: 1; }
-      .header-right { flex-wrap: nowrap !important; gap: 5px !important; flex-shrink: 0; }
-      .brand-logo { display: none !important; }
-      #btnImportLabel { display: none !important; }
-      #appTitleLabel { font-size: 14px !important; white-space: nowrap; }
-      #headerDate { font-size: 11px !important; white-space: nowrap; }
-      .header-right .btn { padding: 4px 7px !important; font-size: 11px !important; white-space: nowrap; }
-      #syncStatus { font-size: 10.5px !important; padding: 3px 7px !important; white-space: nowrap; }
+      /* 상단 헤더: 2줄 — 1줄=사용자(이름·비번변경·로그아웃), 2줄=날짜~동기화 */
+      .header { flex-wrap: wrap !important; align-items: center !important; gap: 6px 8px !important; }
+      #headerLeft, .header-right { display: contents !important; }
+      .brand-logo, #appTitleLabel, #btnMyProfile, #btnImportLabel { display: none !important; }
+      #userChip { order: 1 !important; flex-basis: 100% !important; margin: 0 !important; }
+      #headerDate { order: 2 !important; font-size: 12px !important; white-space: nowrap; }
+      #acctMgrBtn { order: 3 !important; }
+      #btnExport { order: 4 !important; }
+      #btnAppConfig { order: 5 !important; }
+      #syncStatus { order: 6 !important; margin-left: auto !important; font-size: 11px !important; padding: 3px 8px !important; white-space: nowrap; }
+      .header-right .btn { padding: 4px 8px !important; font-size: 11px !important; white-space: nowrap; }
     }
   </style>
 </head>
