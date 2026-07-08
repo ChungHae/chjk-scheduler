@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="20260708-2">
+  <meta name="app-build" content="20260708-3">
   <title>업무 관리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1678,6 +1678,9 @@
       #qXlsxBtn { display: none !important; }
       #qCart button[onclick*="qOpenQuoteUpload"] { display: none !important; }
       #qCart button[onclick*="qOpenColModal"] { display: none !important; }
+      #qCart .qmemo-row { flex-wrap: nowrap !important; justify-content: flex-start !important; }
+      #qCart .qmemo-row > span { white-space: nowrap !important; flex: 0 0 auto !important; }
+      #qCart .qmemo-row > input { flex: 1 1 auto !important; width: auto !important; min-width: 0 !important; }
       /* 견적 목록 수량 좌우 +/- 버튼 제거 */
       #qCart button[onclick*="qCartQtyAdj"] { display: none !important; }
       /* 상단 헤더: 2줄 — 1줄=로고·사용자(이름·비번변경), 2줄=날짜~동기화 */
@@ -5730,7 +5733,7 @@ function reloadState() {
         <span style="margin-left:8px;font-size:14px;font-weight:800;color:#14305c">최종 금액 <b style="color:#1B3A6B;font-size:16px">${_qFmt(_finalSupply)}</b>원 <span style="font-size:11px;color:#9ca3af;font-weight:500">(부가세 별도)</span></span>
         ${_finalMargin!=null?('<span style="font-size:12px;color:#6b7280">최종 마진율 <b style="color:#e08a1e">'+_finalMargin.toFixed(1)+'%</b></span>'):''}
       </div>
-      <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center;margin-top:10px"><span style="font-size:13px;font-weight:800;color:#14305c">비고</span><input type="text" value="${esc(_qMemo||'')}" oninput="qMemoSet(this.value)" placeholder="견적서에 표시할 비고 (예: 납기·결제 조건 등)" style="width:520px;max-width:100%;padding:7px 10px;border:1.5px solid #d6e0ec;border-radius:8px;font-size:14px;font-family:inherit"></div>
+      <div class="qmemo-row" style="display:flex;gap:10px;justify-content:flex-end;align-items:center;margin-top:10px"><span style="font-size:13px;font-weight:800;color:#14305c">비고</span><input type="text" value="${esc(_qMemo||'')}" oninput="qMemoSet(this.value)" placeholder="견적서에 표시할 비고 (예: 납기·결제 조건 등)" style="width:520px;max-width:100%;padding:7px 10px;border:1.5px solid #d6e0ec;border-radius:8px;font-size:14px;font-family:inherit"></div>
       <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap"><button class="btn" onclick="qCartClear()" style="font-size:12px;padding:7px 4px;width:90px;box-sizing:border-box;text-align:center;background:#fff;font-weight:700;border-radius:8px;border:1.5px solid #cfd4da;color:#6b7280" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='#fff'">🧹 비우기</button><button class="btn" onclick="qOpenColModal()" style="font-size:12px;padding:7px 4px;width:90px;box-sizing:border-box;text-align:center;background:#fff;font-weight:700;border-radius:8px;border:1.5px solid #0e7490;color:#0e7490" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='#fff'">🔧 열 삽입</button><button class="btn" onclick="qAddManualRow()" style="font-size:12px;padding:7px 4px;width:90px;box-sizing:border-box;text-align:center;background:#fff;font-weight:700;border-radius:8px;border:1.5px solid #5b7ba6;color:#5b7ba6" onmouseover="this.style.background='#eef3f9'" onmouseout="this.style.background='#fff'">✍ 행 삽입</button><span style="width:1px;align-self:stretch;background:#d3dae4;margin:2px 6px"></span><button class="btn" onclick="qOpenQuoteUpload()" style="font-size:12px;padding:7px 18px;min-width:144px;box-sizing:border-box;text-align:center;background:#fff;font-weight:700;border-radius:8px;border:1.5px solid #16a34a;color:#16a34a" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='#fff'">📤 견적 업로드</button><button class="btn" onclick="qOpenDownloadMenu()" style="font-size:12px;padding:7px 18px;min-width:144px;box-sizing:border-box;text-align:center;background:#fff;font-weight:700;border-radius:8px;border:1.5px solid #1B3A6B;color:#1B3A6B" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='#fff'">⬇ 견적 다운로드</button></div></div>`;
   }
   window.renderQCart = renderQCart;
