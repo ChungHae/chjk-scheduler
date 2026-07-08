@@ -1677,6 +1677,11 @@
       #headerDate { font-size: 12px !important; white-space: nowrap; }
       #syncStatus { margin-left: auto !important; font-size: 11px !important; padding: 3px 8px !important; white-space: nowrap; }
       .header-right .btn { padding: 4px 8px !important; font-size: 11px !important; white-space: nowrap; }
+      /* 견적 목록 표 더 컴팩트하게 (래퍼 안에 확실히 들어오도록) */
+      #qCart button[onclick*="qCartMove"] { display: none !important; }
+      #qCart .qCartQtyInput { width: 38px !important; padding: 4px 2px !important; }
+      #qCart td, #qCart th { padding: 5px 4px !important; font-size: 11px !important; }
+      #qCart button[onclick*="qCartDel"] { padding: 3px 6px !important; }
     }
   </style>
 </head>
