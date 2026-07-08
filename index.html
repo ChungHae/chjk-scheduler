@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="20260708-4">
+  <meta name="app-build" content="20260708-5">
   <title>업무 관리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1643,6 +1643,12 @@
       #qSubQuote > div:first-child > span[style*="flex:1"], #qSubPrice > div:first-child > span[style*="flex:1"], #qSubSmc > div:first-child > span[style*="flex:1"] { display: none !important; }
       /* 견적 결과·카트 표: 자체 가로 스크롤 */
       #qResults, #qCart { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    }
+    /* ── 반응형 보강 5: 태블릿(≤1024px) 견적 목록 헤더 정리 ── */
+    @media (max-width: 1024px) {
+      #qCart > div > div:first-child { flex-wrap: wrap !important; gap: 8px !important; }
+      #qCart > div > div:first-child > span:first-child { flex: 1 1 100% !important; display: flex !important; flex-wrap: wrap !important; align-items: center; gap: 4px 6px; }
+      #qCart .qq-no { order: 3 !important; flex-basis: 100% !important; width: fit-content; margin: 0 !important; }
     }
     /* ── 반응형 보강 4: 연차현황 열 숨김 + 견적 카테고리 표/버튼 정렬 ── */
     @media (max-width: 700px) {
