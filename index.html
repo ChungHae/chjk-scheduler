@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="20260708-18">
+  <meta name="app-build" content="20260708-19">
   <title>업무 관리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1673,9 +1673,10 @@
       #vacAdminOverlay table th:nth-child(5), #vacAdminOverlay table td:nth-child(5) { display: none !important; }
       /* 최상단 자료저장 버튼 숨김 */
       #btnExport { display: none !important; }
-      /* 주간일정: 메모(업무제안+메모) 컬럼 접기 → 일정칸이 우측 끝까지 */
+      /* 주간일정: 메모 셀은 유지(열 매핑 보존)하되 폭0·내용숨김 → 일정칸이 우측 끝까지 */
       .wkc-memo { width: 0 !important; }
-      .wk-memo { display: none !important; }
+      .wk-memo { padding: 0 !important; overflow: hidden !important; border-left: none !important; border-right: none !important; }
+      .wk-memo > * { display: none !important; }
       /* 상단 탭: 6개를 스크롤 없이 한 화면에 (이모지 숨김 + 균등 배치) */
       .page-nav { overflow-x: visible !important; display: flex !important; padding: 0 14px !important; white-space: normal !important; justify-content: space-between !important; }
       .page-tab { flex: 0 1 auto !important; min-width: 0 !important; padding: 9px 5px !important; font-size: 12px !important; text-align: center !important; white-space: nowrap !important; letter-spacing: -0.3px; }
