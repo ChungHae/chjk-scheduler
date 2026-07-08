@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="20260708-15">
+  <meta name="app-build" content="20260708-16">
   <title>업무 관리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1682,6 +1682,7 @@
       #qSubSmc .smc-hcol { display: none !important; }
       #qSubSmc .smc-summary { display: none !important; }
       #qSubSmc .smc-matchcnt { display: none !important; }
+      #qSubSmc .smc-qno { display: block !important; width: fit-content; margin: 4px 0 0 !important; }
       .lbl-full { display: none !important; }
       .lbl-short { display: inline-block !important; }
       /* 견적 전 카테고리 표: 고정폭 해제 → 화면에 맞춰 축소 */
@@ -4978,7 +4979,7 @@ function reloadState() {
       +'<span>총 마진금액 <b style="color:'+(_tMargin>=0?'#0e7490':'#dc2626')+'">'+fmt(_tMargin)+'원</b></span>'+_dv
       +'<span>총 마진율 <b style="color:'+(_tMargin>=0?'#0e7490':'#dc2626')+'">'+(Math.round(_tRate*10)/10)+'%</b></span>'
       +'</div>') : '';
-    box.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap"><span style="font-size:15px;font-weight:800;color:#14305c">🧾 '+esc(_smcMeta.vname||'')+' <span style="font-size:12px;color:#1B3A6B;font-weight:700;background:#eef2f8;border:1px solid #d6e4f5;border-radius:6px;padding:2px 8px">'+esc(_smcMeta.title||'')+'</span></span><span style="display:flex;align-items:center;gap:10px"><button class="btn" onclick="smcClearAll()" style="border:1.5px solid #9ca3af;color:#6b7280;font-weight:600;padding:4px 10px;font-size:12px;white-space:nowrap">🧹 비우기</button><button class="btn" onclick="smcDownloadExcel()" style="border:1.5px solid #16a34a;color:#16a34a;font-weight:600;padding:4px 10px;font-size:12px;white-space:nowrap">⬇ 엑셀 다운로드</button><span style="font-size:12px;color:#6b7280">'+info+'</span></span></div>'
+    box.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap"><span style="font-size:15px;font-weight:800;color:#14305c">🧾 '+esc(_smcMeta.vname||'')+' <span class="smc-qno" style="font-size:12px;color:#1B3A6B;font-weight:700;background:#eef2f8;border:1px solid #d6e4f5;border-radius:6px;padding:2px 8px">'+esc(_smcMeta.title||'')+'</span></span><span style="display:flex;align-items:center;gap:10px"><button class="btn" onclick="smcClearAll()" style="border:1.5px solid #9ca3af;color:#6b7280;font-weight:600;padding:4px 10px;font-size:12px;white-space:nowrap">🧹 비우기</button><button class="btn" onclick="smcDownloadExcel()" style="border:1.5px solid #16a34a;color:#16a34a;font-weight:600;padding:4px 10px;font-size:12px;white-space:nowrap">⬇ 엑셀 다운로드</button><span style="font-size:12px;color:#6b7280">'+info+'</span></span></div>'
       +'<div style="overflow-x:auto;border:1px solid #e5e9f0;border-radius:10px"><table style="border-collapse:collapse;font-size:13px;width:100%"><thead>'+head+'</thead><tbody>'+rowsH+'</tbody></table></div>'+summaryStr
       +(_smcAppend?'<div style="margin-top:10px"><button class="btn" onclick="smcManualAddRow()" style="border:1.5px solid #5b7ba6;color:#5b7ba6;font-weight:600;padding:6px 14px;font-size:12px">+ 줄 추가</button><span style="font-size:11.5px;color:#9ca3af;margin-left:8px">※ 파란 행은 이 견적과 별개로 직접 입력해 확인하는 규격입니다</span></div>':'')
       +(hasData?'<div style="font-size:11.5px;color:#9ca3af;margin-top:8px;text-align:right">※ 매입가·DC율·매출가·마진율 = 규격(품번)이 일치하고 '+dl+'가 속한 구간의 SMC 보고 값. 회색 행은 SMC 자료에 없는 규격입니다.</div>':'');
