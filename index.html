@@ -1643,6 +1643,13 @@
       /* 견적 결과·카트 표: 자체 가로 스크롤 */
       #qResults, #qCart { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     }
+    /* ── 반응형 보강 4: 연차현황·견적목록 모바일 열 숨김 ── */
+    @media (max-width: 700px) {
+      #vacAdminOverlay table th:nth-child(5), #vacAdminOverlay table td:nth-child(5) { display: none !important; }
+      #qCart .qm-h { display: none !important; }
+      #qCart table { min-width: 0 !important; table-layout: auto !important; font-size: 12px !important; }
+      #qCart th, #qCart td { padding: 6px 6px !important; }
+    }
   </style>
 </head>
 <body>
@@ -5633,10 +5640,10 @@ function reloadState() {
       var cBuy=_m?('<input value="'+(c.buy!=null?_qFmt(c.buy):'')+'" inputmode="numeric" oninput="_qNumInput(this)" onchange="qCartField('+i+',\'buy\',this.value)" style="'+_iR+'">'):_qFmt(c.buy);
       var cSell=_m?('<input value="'+(c.sell!=null?_qFmt(c.sell):'')+'" inputmode="numeric" oninput="_qNumInput(this)" onchange="qCartField('+i+',\'sell\',this.value)" style="'+_iR+'">'):sellTxt;
       return `<tr style="border-bottom:1px solid #eef2f7">
-        <td style="padding:8px 6px;text-align:center;color:#9ca3af;font-size:12px">${i+1}</td><td style="padding:6px 2px;text-align:center">${cInfo}</td>${_qColsRowCells(c,i)}
-        <td title="${esc(c.name||'')}" style="padding:8px 10px;text-align:center;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cName}</td>
+        <td class="qm-h" style="padding:8px 6px;text-align:center;color:#9ca3af;font-size:12px">${i+1}</td><td class="qm-h" style="padding:6px 2px;text-align:center">${cInfo}</td>${_qColsRowCells(c,i)}
+        <td class="qm-h" title="${esc(c.name||'')}" style="padding:8px 10px;text-align:center;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cName}</td>
         <td title="${esc(c.spec)}" style="padding:8px 10px;text-align:center;font-weight:700;color:#14305c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cSpec}</td>
-        <td title="${esc(c.eta||'')}" style="padding:8px 10px;text-align:center;color:#6b7280;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cEta}</td>
+        <td class="qm-h" title="${esc(c.eta||'')}" style="padding:8px 10px;text-align:center;color:#6b7280;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cEta}</td>
         <td style="padding:8px 10px;text-align:right;color:#6b7280">${cE}</td>
         <td style="padding:8px 10px;text-align:right;color:#0d9488">${_qPct(_qDcOf(c.e,c.buy))}</td>
         <td style="padding:8px 10px;text-align:right;color:#2f5288">${cBuy}</td>
@@ -5654,10 +5661,10 @@ function reloadState() {
     var _finalMargin=(totalBuy>0&&_finalSupply>0)?((1-totalBuy/_finalSupply)*100):null;
     var _nC=_qCols?_qCols.length:0; var _nameW=Math.max(76,180-_nC*50); var _etaW=Math.max(64,130-_nC*40);
     var _qVenName=(_qCart.length&&_qCart[0].vname)?_qCart[0].vname:((typeof quoteVendors!=='undefined'&&quoteVendors)?(function(){var v=quoteVendors.find(function(x){return x.id===_qCurId;});return v?v.name:'';})():'');
-    var _qColHdr='<tr style="background:#eef2f8;color:#14305c"><th style="padding:8px 6px;text-align:center">No.</th><th style="padding:8px 2px;text-align:center;white-space:nowrap;color:#8a94a6;font-size:11px">ℹ️</th>'+_qColsHdrCells()+'<th style="padding:8px 10px;text-align:center">품명</th><th style="padding:8px 10px;text-align:center">규격</th><th style="padding:8px 10px;text-align:center;white-space:nowrap">예상납기</th><th style="padding:8px 10px;text-align:right">E가</th><th style="padding:8px 10px;text-align:right">DC율</th><th style="padding:8px 10px;text-align:right">구매가</th><th style="padding:8px 10px;text-align:right">마진율</th><th></th><th style="padding:8px 10px;text-align:center">수량</th><th style="padding:8px 10px;text-align:right">판매가</th><th style="padding:8px 10px;text-align:right">금액</th><th style="padding:8px 10px"></th></tr>';
+    var _qColHdr='<tr style="background:#eef2f8;color:#14305c"><th class="qm-h" style="padding:8px 6px;text-align:center">No.</th><th class="qm-h" style="padding:8px 2px;text-align:center;white-space:nowrap;color:#8a94a6;font-size:11px">ℹ️</th>'+_qColsHdrCells()+'<th class="qm-h" style="padding:8px 10px;text-align:center">품명</th><th style="padding:8px 10px;text-align:center">규격</th><th class="qm-h" style="padding:8px 10px;text-align:center;white-space:nowrap">예상납기</th><th style="padding:8px 10px;text-align:right">E가</th><th style="padding:8px 10px;text-align:right">DC율</th><th style="padding:8px 10px;text-align:right">구매가</th><th style="padding:8px 10px;text-align:right">마진율</th><th></th><th style="padding:8px 10px;text-align:center">수량</th><th style="padding:8px 10px;text-align:right">판매가</th><th style="padding:8px 10px;text-align:right">금액</th><th style="padding:8px 10px"></th></tr>';
     el.innerHTML=`<div style="margin-top:20px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><span style="font-size:15px;font-weight:800;color:#14305c">🧾 견적 목록 ${_qVenName?'<span style="font-size:13.5px;color:#0e7490;font-weight:800;margin:0 5px 0 2px">'+esc(_qVenName)+'</span>':''}${_qQuoteNo?'<span style="font-size:12px;color:#1B3A6B;font-weight:700;background:#eef2f8;border:1px solid #d6e4f5;border-radius:6px;padding:2px 8px;margin-right:4px">'+esc(_qQuoteNo)+'</span>':''}<span style="font-size:12px;color:#888;font-weight:500">${_qCart.length}건</span></span><span style="display:flex;gap:6px;align-items:center"><button class="btn" onclick="qCartClear()" style="font-size:12px;padding:7px 4px;width:90px;box-sizing:border-box;text-align:center;background:#fff;font-weight:700;border-radius:8px;border:1.5px solid #cfd4da;color:#6b7280" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='#fff'">🧹 비우기</button><button class="btn" onclick="qOpenColModal()" style="font-size:12px;padding:7px 4px;width:90px;box-sizing:border-box;text-align:center;background:#fff;font-weight:700;border-radius:8px;border:1.5px solid #0e7490;color:#0e7490" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='#fff'">🔧 열 삽입</button><button class="btn" onclick="qAddManualRow()" style="font-size:12px;padding:7px 4px;width:90px;box-sizing:border-box;text-align:center;background:#fff;font-weight:700;border-radius:8px;border:1.5px solid #5b7ba6;color:#5b7ba6" onmouseover="this.style.background='#eef3f9'" onmouseout="this.style.background='#fff'">✍ 행 삽입</button><span style="width:1px;align-self:stretch;background:#d3dae4;margin:2px 6px"></span><button class="btn" onclick="qOpenQuoteUpload()" style="font-size:12px;padding:7px 18px;min-width:144px;box-sizing:border-box;text-align:center;background:#fff;font-weight:700;border-radius:8px;border:1.5px solid #16a34a;color:#16a34a" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='#fff'">📤 견적 업로드</button><button class="btn" onclick="qOpenDownloadMenu()" style="font-size:12px;padding:7px 18px;min-width:144px;box-sizing:border-box;text-align:center;background:#fff;font-weight:700;border-radius:8px;border:1.5px solid #1B3A6B;color:#1B3A6B" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='#fff'">⬇ 견적 다운로드</button></span></div>
-      <div style="overflow-x:auto;border:1px solid #e9edf2;border-radius:10px"><table style="width:100%;border-collapse:collapse;font-size:13px;min-width:${1168+_nameW+_etaW+90*_nC}px;table-layout:fixed"><colgroup><col style="width:46px"><col style="width:26px">${(_qCols||[]).map(function(){return '<col style="width:90px">';}).join('')}<col style="width:${_nameW}px"><col><col style="width:${_etaW}px"><col style="width:110px"><col style="width:110px"><col style="width:110px"><col style="width:110px"><col style="width:50px"><col style="width:120px"><col style="width:120px"><col style="width:120px"><col style="width:88px"></colgroup>
+      <div style="overflow-x:auto;border:1px solid #e9edf2;border-radius:10px"><table style="width:100%;border-collapse:collapse;font-size:13px;min-width:${1168+_nameW+_etaW+90*_nC}px;table-layout:fixed"><colgroup><col class="qm-h" style="width:46px"><col class="qm-h" style="width:26px">${(_qCols||[]).map(function(){return '<col style="width:90px">';}).join('')}<col class="qm-h" style="width:${_nameW}px"><col><col class="qm-h" style="width:${_etaW}px"><col style="width:110px"><col style="width:110px"><col style="width:110px"><col style="width:110px"><col style="width:50px"><col style="width:120px"><col style="width:120px"><col style="width:120px"><col style="width:88px"></colgroup>
         <thead>${_qColHdr}</thead>
         <tbody>${rows}</tbody>
         <tfoot>${_qColHdr}<tr style="background:#f7f9fc;font-weight:800;color:#1B3A6B"><td colspan="${12+(_qCols?_qCols.length:0)}" style="padding:10px;text-align:right">합계 (판매) <span style="font-size:11px;color:#9ca3af;font-weight:500">· 부가세 별도</span></td><td style="padding:10px;text-align:right">${_qFmt(totalSell)}</td><td></td></tr></tfoot>
@@ -7621,7 +7628,7 @@ function reloadState() {
         const _ven = entries[m.id+'_'+dk(d)]||{};
         const _vtype = (_ven.status==='휴가' && _ven.vacation) ? _ven.vacation.type : '';
         const _vbg = _vtype==='연차' ? '#dde7f5' : _vtype==='반차' ? '#d8efea' : _vtype==='반반차' ? '#fbedd6' : '';
-        tb += `<tr class="wk-mem-row${(isWE||hol)?' weekend':''}">${_grpCell}<td class="wk-mem-col"${_vbg?` style="background:${_vbg}"`:''}><div class="wk-mem"><span>${esc(m.name)}${m.role==='팀장'?'<span class="leader-badge">팀장</span>':''}</span></div></td><td class="wk-memo"${_vbg?` style="background:${_vbg}"`:''} onclick="openEntry('${m.id}','${dk(d)}')"><div class="wk-memo-row">${weekCellMemo(m,d)}</div></td><td class="wk-rec"${_vbg?` style="background:${_vbg}"`:''} onclick="openEntry('${m.id}','${dk(d)}')"><div class="wk-rec-row">${weekCellInner(m,d)}</div></td></tr>`;
+        tb += `<tr class="wk-mem-row${(isWE||hol)?' weekend':''}">${_grpCell}<td class="wk-mem-col"${_vbg?` style="background:${_vbg}"`:''}><div class="wk-mem"><span>${esc(m.name)}${m.role==='팀장'?'<span class="leader-badge">팀장</span>':''}</span></div></td><td class="wk-memo"${_vbg?` style="background:${_vbg}"`:''} onclick="wkCellClick('${m.id}','${dk(d)}')"><div class="wk-memo-row">${weekCellMemo(m,d)}</div></td><td class="wk-rec"${_vbg?` style="background:${_vbg}"`:''} onclick="wkCellClick('${m.id}','${dk(d)}')"><div class="wk-rec-row">${weekCellInner(m,d)}</div></td></tr>`;
       });
     });
     tBody.innerHTML = tb;
@@ -8274,6 +8281,14 @@ function reloadState() {
   window.openEntryToday = function() {
     if (!myMemberId || !members.find(function(x){return x.id===myMemberId;})) { openMyProfileModal(); return; }
     openEntry(myMemberId, dk(new Date()));
+  };
+  window.wkCellClick = function(memberId, dkStr){
+    var en = entries[memberId+'_'+dkStr];
+    if(en && en.status==='휴가' && en.vacation){
+      if(memberId===myMemberId || _isAdmin()){ openVacationEdit(memberId, dkStr); }
+      return;
+    }
+    openEntry(memberId, dkStr);
   };
   window.openEntry = function(memberId, dkStr) {
     // 프로필이 설정되지 않았거나 다른 사람의 일정이면 읽기전용 모달
