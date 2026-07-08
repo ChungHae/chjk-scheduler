@@ -1662,6 +1662,7 @@
   <button class="page-tab" data-page="inventory">📦 재고</button>
   <button class="page-tab" data-page="purchase">🏭 매입처</button>
   <button class="page-tab" data-page="files">📁 자료실</button>
+  <button class="page-tab" data-page="armatch">💳 입금매칭</button>
 </nav>
 <nav class="sub-nav" id="scheduleSubNav">
   <button class="sub-tab active" data-page="personal">📆 개인 일정</button>
@@ -1935,6 +1936,30 @@
           <tr><td colspan="12" style="padding:40px;text-align:center;color:#ccc">대조표를 가져오거나 항목을 추가하세요</td></tr>
         </tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- ─── 입금매칭(미수) 페이지 ─── -->
+  <div id="pageArmatch" class="page-section">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <span style="font-size:15px;font-weight:800;color:#14305c">💳 세금계산서 입금 매칭 <span style="font-size:12px;color:#9ca3af;font-weight:500">· 파일 업로드·대사·문서 생성</span></span>
+      <a href="https://chjk-manage.streamlit.app/" target="_blank" rel="noopener" class="btn" style="font-size:12px;padding:7px 14px;text-decoration:none;border:1.5px solid #1B3A6B;color:#1B3A6B;font-weight:700;border-radius:8px">↗ 새 창으로 열기</a>
+    </div>
+    <div id="misuSummaryWrap" style="margin-bottom:18px">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+        <span style="font-size:13px;font-weight:700;color:#14305c">📊 미수 현황 요약</span>
+        <span id="misuSummaryMeta" style="font-size:11px;color:#9ca3af"></span>
+      </div>
+      <div id="misuSummaryGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+        <div style="color:#9ca3af;font-size:13px;padding:14px">불러오는 중…</div>
+      </div>
+    </div>
+    <div style="max-width:640px;margin:36px auto;text-align:center;background:#fff;border:1px solid #e5e9f0;border-radius:14px;padding:40px 28px;box-shadow:0 1px 3px rgba(0,0,0,.06)">
+      <div style="font-size:44px;margin-bottom:10px">💳</div>
+      <div style="font-size:18px;font-weight:800;color:#14305c;margin-bottom:8px">세금계산서 입금 매칭</div>
+      <div style="font-size:13px;color:#6b7280;line-height:1.7;margin-bottom:22px">은행 입금내역과 세금계산서를 자동으로 대사하고,<br>내용증명 등 문서를 생성하는 전용 앱입니다.</div>
+      <a href="https://chjk-manage.streamlit.app/" target="_blank" rel="noopener" style="display:inline-block;background:#1B3A6B;color:#fff;font-weight:700;font-size:14px;padding:12px 30px;border-radius:10px;text-decoration:none">💳 입금매칭 앱 열기 ↗</a>
+      <div style="font-size:11px;color:#9ca3af;margin-top:16px">새 탭에서 열립니다 (팝업·다운로드가 원활히 작동합니다).</div>
     </div>
   </div>
 
@@ -2801,6 +2826,34 @@
   let _fbPollTimer = null;
   let _fbLastUpdatedAt = 0;
   let myMemberId = localStorage.getItem('sched_my_id') || '';
+  function _misuFmtWon(x){
+    x = Number(x)||0;
+    if(x>=1e8) return (x/1e8).toFixed(1).replace(/\.0$/,'')+'억';
+    if(x>=1e4) return Math.round(x/1e4).toLocaleString()+'만';
+    return x.toLocaleString();
+  }
+  async function loadMisuSummary(){
+    var grid=document.getElementById('misuSummaryGrid'), meta=document.getElementById('misuSummaryMeta');
+    if(!grid) return;
+    try{
+      if(!_fbDbUrl){ grid.innerHTML='<div style="color:#9ca3af;font-size:13px;padding:14px">로그인 후 표시됩니다.</div>'; return; }
+      var r=await _fbFetch(_fbDbUrl+'/'+_FB_PATH+'_misu_summary.json');
+      var d = (r && r.ok) ? await r.json() : null;
+      if(!d || typeof d!=='object'){ grid.innerHTML='<div style="color:#9ca3af;font-size:13px;padding:14px">아직 요약 데이터가 없습니다. 미수 앱에서 “미수 현황”을 한 번 열면 생성됩니다.</div>'; if(meta) meta.textContent=''; return; }
+      var cards=[
+        ['총 미수액', _misuFmtWon(d.total_unpaid)+'원', true, '#1B3A6B'],
+        ['미수 거래처', (d.unpaid_count||0)+'곳', false, '#EAF1FB'],
+        ['장기미수', (d.longoverdue_count||0)+'곳 · '+_misuFmtWon(d.longoverdue_amt)+'원', false, '#fdecea'],
+        ['서울 미수', _misuFmtWon(d.seoul_unpaid)+'원', false, '#EAF1FB'],
+        ['화성 미수', _misuFmtWon(d.hwaseong_unpaid)+'원', false, '#EAF1FB']
+      ];
+      grid.innerHTML=cards.map(function(c){
+        var hi=c[2], bg=hi?'#1B3A6B':c[3], lc=hi?'#ccdcf5':'#3A5C8A', vc=hi?'#fff':'#14305c';
+        return '<div style="background:'+bg+';border-radius:10px;padding:12px 14px"><div style="font-size:12px;color:'+lc+'">'+c[0]+'</div><div style="font-size:19px;font-weight:800;color:'+vc+';margin-top:2px">'+c[1]+'</div></div>';
+      }).join('');
+      if(meta) meta.textContent=(d.basis?('기준일 '+d.basis):'')+(d.updatedAt?('   ·   갱신 '+String(d.updatedAt).replace('T',' ')):'');
+    }catch(e){ grid.innerHTML='<div style="color:#9ca3af;font-size:13px;padding:14px">요약을 불러오지 못했습니다.</div>'; }
+  }
   async function _syncGet() {
     const res = await _fbFetch(`${_fbDbUrl}/${_FB_PATH}.json`);
     if (!res.ok) {
@@ -10087,8 +10140,9 @@ function reloadState() {
     var _enav=document.getElementById('estimateSubNav'); if(_enav) _enav.style.display = (page==='estimate') ? 'flex' : 'none';
     document.querySelectorAll('.sub-tab').forEach(t => t.classList.toggle('active', t.dataset.page === page));
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-    const pageMap = { weekly:'pageWeekly', biz:'pageBiz', assign:'pageAssign', personal:'pagePersonal', finance:'pageFinance', ar:'pageAr', inventory:'pageInventory', purchase:'pagePurchase', files:'pageFiles', estimate:'pageEstimate' };
+    const pageMap = { weekly:'pageWeekly', biz:'pageBiz', assign:'pageAssign', personal:'pagePersonal', finance:'pageFinance', ar:'pageAr', inventory:'pageInventory', purchase:'pagePurchase', files:'pageFiles', estimate:'pageEstimate', armatch:'pageArmatch' };
     document.getElementById(pageMap[page] || 'pageWeekly').classList.add('active');
+    if (page === 'armatch'){ if(typeof loadMisuSummary==='function') loadMisuSummary(); }
     if (page === 'biz'){
       var _bt=document.getElementById('bizFilterInput'); if(_bt) _bt.value='';
       var _bm=document.getElementById('bizFilterMember'); if(_bm) _bm.value='';
