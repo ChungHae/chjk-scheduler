@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="20260708-3">
+  <meta name="app-build" content="20260708-4">
   <title>업무 관리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1647,6 +1647,10 @@
     /* ── 반응형 보강 4: 연차현황 열 숨김 + 견적 카테고리 표/버튼 정렬 ── */
     @media (max-width: 700px) {
       #vacAdminOverlay table th:nth-child(5), #vacAdminOverlay table td:nth-child(5) { display: none !important; }
+      /* 상단 탭: 6개를 스크롤 없이 한 화면에 (이모지 숨김 + 균등 배치) */
+      .page-nav { overflow-x: visible !important; display: flex !important; padding: 0 !important; white-space: normal !important; }
+      .page-tab { flex: 1 1 0 !important; min-width: 0 !important; padding: 9px 2px !important; font-size: 12px !important; text-align: center !important; white-space: nowrap !important; letter-spacing: -0.3px; }
+      .ptab-ico { display: none !important; }
       /* 견적 목록·검색결과: 지정 열 숨김 */
       #qCart .qm-h, #qResults .qm-h { display: none !important; }
       /* 견적 전 카테고리 표: 고정폭 해제 → 화면에 맞춰 축소 */
@@ -1739,12 +1743,12 @@
 
 <!-- ─── 페이지 탭 ─────────────────────────────────────── -->
 <nav class="page-nav">
-  <button class="page-tab active" id="tabSchedule">🗓 일정</button>
-  <button class="page-tab" data-page="estimate">📝 견적</button>
-  <button class="page-tab" data-page="inventory">📦 재고</button>
-  <button class="page-tab" data-page="purchase">🏭 매입처</button>
-  <button class="page-tab" data-page="files">📁 자료실</button>
-  <button class="page-tab" data-page="armatch">💳 입금매칭</button>
+  <button class="page-tab active" id="tabSchedule"><span class="ptab-ico">🗓</span> 일정</button>
+  <button class="page-tab" data-page="estimate"><span class="ptab-ico">📝</span> 견적</button>
+  <button class="page-tab" data-page="inventory"><span class="ptab-ico">📦</span> 재고</button>
+  <button class="page-tab" data-page="purchase"><span class="ptab-ico">🏭</span> 매입처</button>
+  <button class="page-tab" data-page="files"><span class="ptab-ico">📁</span> 자료실</button>
+  <button class="page-tab" data-page="armatch"><span class="ptab-ico">💳</span> 입금매칭</button>
 </nav>
 <nav class="sub-nav" id="scheduleSubNav">
   <button class="sub-tab active" data-page="personal">📆 개인 일정</button>
