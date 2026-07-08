@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="20260708-13">
+  <meta name="app-build" content="20260708-14">
   <title>업무 관리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1680,6 +1680,7 @@
       /* SMC 관리: 업로드 버튼 숨김 + 검색표 No/적용구간/최근발주일 숨김 */
       #qSubSmc button[onclick*="smcManualUploadClick"], #qSubSmc button[onclick*="smcOpenUpload"] { display: none !important; }
       #qSubSmc .smc-hcol { display: none !important; }
+      #qSubSmc .smc-summary { display: none !important; }
       .lbl-full { display: none !important; }
       .lbl-short { display: inline-block !important; }
       /* 견적 전 카테고리 표: 고정폭 해제 → 화면에 맞춰 축소 */
@@ -4737,7 +4738,7 @@ function reloadState() {
     var pct=function(n){ return (n==null||n==='')?'-':(Math.round(Number(n)*1000)/10)+'%'; };
     if(!_smcManualRows||!_smcManualRows.length) _smcManualRows=[''];
     var dm=_smcDataMap; var hasData=!!(dm&&Object.keys(dm).length); var matchN=0;
-    var th=function(t,w,bg){ var _bg=bg||'#1B3A6B'; var _brd=bg?'#0b5563':'#24467d'; var _hc=(t==='No.'||t.indexOf('적용 구간')>=0||t.indexOf('최근 발주일')>=0)?'smc-hcol':''; return '<th class="'+_hc+'" style="padding:8px 12px;text-align:center;border:1px solid '+_brd+';white-space:nowrap;background:'+_bg+';color:#fff;font-size:12.5px;font-weight:700'+(w?';width:'+w:'')+'">'+t+'</th>'; };
+    var th=function(t,w,bg){ var _bg=bg||'#1B3A6B'; var _brd=bg?'#0b5563':'#24467d'; var _hc=(t==='No.'||t==='품명'||t==='수량'||t==='판매가'||t==='금액'||t.indexOf('적용 구간')>=0||t.indexOf('최근 발주일')>=0||t.indexOf('판매가 비교')>=0)?'smc-hcol':''; return '<th class="'+_hc+'" style="padding:8px 12px;text-align:center;border:1px solid '+_brd+';white-space:nowrap;background:'+_bg+';color:#fff;font-size:12.5px;font-weight:700'+(w?';width:'+w:'')+'">'+t+'</th>'; };
     var vc=function(id,val,color){ return '<td id="'+id+'" style="padding:5px 12px;text-align:right;border:1px solid #eef2f7;'+(color?('color:'+color+';font-weight:700'):'color:#c9ccd1')+'">'+val+'</td>'; };
     var rowsH=_smcManualRows.map(function(sp,i){
       var reg=(sp&&sp.trim())?_smcMatchReg(sp.trim()):null; if(reg) matchN++;
@@ -4960,7 +4961,7 @@ function reloadState() {
       }).join('');
     }
     rowsH = rowsH + extraH;
-    var th=function(t,w,bg){ var _bg=bg||'#1B3A6B'; var _brd=bg?'#0b5563':'#24467d'; var _hc=(t==='No.'||t.indexOf('적용 구간')>=0||t.indexOf('최근 발주일')>=0)?'smc-hcol':''; return '<th class="'+_hc+'" style="padding:8px 12px;text-align:center;border:1px solid '+_brd+';white-space:nowrap;background:'+_bg+';color:#fff;font-size:12.5px;font-weight:700'+(w?';width:'+w:'')+'">'+t+'</th>'; };
+    var th=function(t,w,bg){ var _bg=bg||'#1B3A6B'; var _brd=bg?'#0b5563':'#24467d'; var _hc=(t==='No.'||t==='품명'||t==='수량'||t==='판매가'||t==='금액'||t.indexOf('적용 구간')>=0||t.indexOf('최근 발주일')>=0||t.indexOf('판매가 비교')>=0)?'smc-hcol':''; return '<th class="'+_hc+'" style="padding:8px 12px;text-align:center;border:1px solid '+_brd+';white-space:nowrap;background:'+_bg+';color:#fff;font-size:12.5px;font-weight:700'+(w?';width:'+w:'')+'">'+t+'</th>'; };
     var hasData=!!(dm&&Object.keys(dm).length);
     var dl = manual ? '날짜' : '견적일자';
     var info = hasData ? (dl+' <b>'+(_smcYmdStr(qd)||'-')+'</b> 기준 · 매칭 '+matchN+'/'+_smcItems.length+'건') : ('이 거래처의 SMC 자료가 없습니다 — <b>SMC 자료 업로드</b> 필요');
@@ -4969,7 +4970,7 @@ function reloadState() {
     var _tRate=_tSell>0?(_tMargin/_tSell*100):0;
     var _card=function(lbl,val,col){ return '<div style="flex:1;min-width:132px;background:#f7f9fc;border:1px solid #e5e9f0;border-radius:9px;padding:10px 14px"><div style="font-size:11px;color:#6b7280;margin-bottom:3px">'+lbl+'</div><div style="font-size:15px;font-weight:800;color:'+col+'">'+val+'</div></div>'; };
     var _dv='<span style="color:#d3dae4">|</span>';
-    var summaryStr = (!manual && _tCnt>0) ? ('<div style="margin-top:12px;background:#f7f9fc;border:1px solid #e5e9f0;border-radius:10px;padding:12px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px 16px;font-size:13px;color:#374151">'
+    var summaryStr = (!manual && _tCnt>0) ? ('<div class="smc-summary" style="margin-top:12px;background:#f7f9fc;border:1px solid #e5e9f0;border-radius:10px;padding:12px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px 16px;font-size:13px;color:#374151">'
       +'<span>매칭 <b style="color:#14305c">'+_tCnt+'건</b></span>'+_dv
       +'<span>총 매입가(의뢰특가) <b style="color:#1B3A6B">'+fmt(_tBuy)+'원</b></span>'+_dv
       +'<span>총 판매가(견적) <b style="color:#16a34a">'+fmt(_tSell)+'원</b></span>'+_dv
