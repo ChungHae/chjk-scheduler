@@ -1943,7 +1943,6 @@
   <div id="pageArmatch" class="page-section">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
       <span style="font-size:15px;font-weight:800;color:#14305c">💳 세금계산서 입금 매칭 <span style="font-size:12px;color:#9ca3af;font-weight:500">· 파일 업로드·대사·문서 생성</span></span>
-      <a href="https://chjk-manage.streamlit.app/" target="_blank" rel="noopener" class="btn" style="font-size:12px;padding:7px 14px;text-decoration:none;border:1.5px solid #1B3A6B;color:#1B3A6B;font-weight:700;border-radius:8px">↗ 새 창으로 열기</a>
     </div>
     <div id="misuSummaryWrap" style="margin-bottom:18px">
       <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px">
@@ -1951,6 +1950,13 @@
         <span id="misuSummaryMeta" style="font-size:11px;color:#9ca3af"></span>
       </div>
       <div id="misuSummaryGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+        <div style="color:#9ca3af;font-size:13px;padding:14px">불러오는 중…</div>
+      </div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:6px;margin:16px 0 8px">
+        <span style="font-size:13px;font-weight:700;color:#14305c">📈 매출 현황 요약</span>
+        <span id="salesSummaryMeta" style="font-size:11px;color:#9ca3af"></span>
+      </div>
+      <div id="salesSummaryGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
         <div style="color:#9ca3af;font-size:13px;padding:14px">불러오는 중…</div>
       </div>
     </div>
@@ -2832,27 +2838,40 @@
     if(x>=1e4) return Math.round(x/1e4).toLocaleString()+'만';
     return x.toLocaleString();
   }
+  function _misuRenderCards(gridId, cards){
+    var g=document.getElementById(gridId); if(!g) return;
+    g.innerHTML=cards.map(function(c){
+      var hi=c[2], bg=hi?'#1B3A6B':c[3], lc=hi?'#ccdcf5':'#3A5C8A', vc=hi?'#fff':'#14305c';
+      return '<div style="background:'+bg+';border-radius:10px;padding:12px 14px"><div style="font-size:12px;color:'+lc+'">'+c[0]+'</div><div style="font-size:19px;font-weight:800;color:'+vc+';margin-top:2px">'+c[1]+'</div></div>';
+    }).join('');
+  }
+  function _misuNote(gridId, msg){ var g=document.getElementById(gridId); if(g) g.innerHTML='<div style="color:#9ca3af;font-size:13px;padding:14px">'+msg+'</div>'; }
   async function loadMisuSummary(){
-    var grid=document.getElementById('misuSummaryGrid'), meta=document.getElementById('misuSummaryMeta');
-    if(!grid) return;
+    var meta=document.getElementById('misuSummaryMeta'), smeta=document.getElementById('salesSummaryMeta');
+    if(!document.getElementById('misuSummaryGrid')) return;
     try{
-      if(!_fbDbUrl){ grid.innerHTML='<div style="color:#9ca3af;font-size:13px;padding:14px">로그인 후 표시됩니다.</div>'; return; }
+      if(!_fbDbUrl){ _misuNote('misuSummaryGrid','로그인 후 표시됩니다.'); _misuNote('salesSummaryGrid','로그인 후 표시됩니다.'); return; }
       var r=await _fbFetch(_fbDbUrl+'/'+_FB_PATH+'_misu_summary.json');
       var d = (r && r.ok) ? await r.json() : null;
-      if(!d || typeof d!=='object'){ grid.innerHTML='<div style="color:#9ca3af;font-size:13px;padding:14px">아직 요약 데이터가 없습니다. 미수 앱에서 “미수 현황”을 한 번 열면 생성됩니다.</div>'; if(meta) meta.textContent=''; return; }
-      var cards=[
+      if(!d || typeof d!=='object'){ var m='아직 요약 데이터가 없습니다. 미수 앱에서 “미수 현황”을 한 번 열면 생성됩니다.'; _misuNote('misuSummaryGrid',m); _misuNote('salesSummaryGrid',m); if(meta)meta.textContent=''; if(smeta)smeta.textContent=''; return; }
+      _misuRenderCards('misuSummaryGrid', [
         ['총 미수액', _misuFmtWon(d.total_unpaid)+'원', true, '#1B3A6B'],
         ['미수 거래처', (d.unpaid_count||0)+'곳', false, '#EAF1FB'],
         ['장기미수', (d.longoverdue_count||0)+'곳 · '+_misuFmtWon(d.longoverdue_amt)+'원', false, '#fdecea'],
         ['서울 미수', _misuFmtWon(d.seoul_unpaid)+'원', false, '#EAF1FB'],
         ['화성 미수', _misuFmtWon(d.hwaseong_unpaid)+'원', false, '#EAF1FB']
-      ];
-      grid.innerHTML=cards.map(function(c){
-        var hi=c[2], bg=hi?'#1B3A6B':c[3], lc=hi?'#ccdcf5':'#3A5C8A', vc=hi?'#fff':'#14305c';
-        return '<div style="background:'+bg+';border-radius:10px;padding:12px 14px"><div style="font-size:12px;color:'+lc+'">'+c[0]+'</div><div style="font-size:19px;font-weight:800;color:'+vc+';margin-top:2px">'+c[1]+'</div></div>';
-      }).join('');
+      ]);
       if(meta) meta.textContent=(d.basis?('기준일 '+d.basis):'')+(d.updatedAt?('   ·   갱신 '+String(d.updatedAt).replace('T',' ')):'');
-    }catch(e){ grid.innerHTML='<div style="color:#9ca3af;font-size:13px;padding:14px">요약을 불러오지 못했습니다.</div>'; }
+      if(d.sales_year){
+        _misuRenderCards('salesSummaryGrid', [
+          ['올해('+d.sales_year+') 매출', _misuFmtWon(d.sales_year_total)+'원', true, '#1B3A6B'],
+          ['매출총이익', _misuFmtWon(d.sales_year_profit)+'원', false, '#eafaf1'],
+          ['마진율', (d.sales_year_margin||0)+'%', false, '#EAF1FB'],
+          [(d.sales_latest_month||'최근월')+' 매출', _misuFmtWon(d.sales_latest_month_total)+'원', false, '#EAF1FB']
+        ]);
+        if(smeta) smeta.textContent=d.sales_year+'년 누적 (계산서 기준)';
+      } else { _misuNote('salesSummaryGrid','매출 요약이 아직 없습니다.'); if(smeta)smeta.textContent=''; }
+    }catch(e){ _misuNote('misuSummaryGrid','요약을 불러오지 못했습니다.'); _misuNote('salesSummaryGrid','요약을 불러오지 못했습니다.'); }
   }
   async function _syncGet() {
     const res = await _fbFetch(`${_fbDbUrl}/${_FB_PATH}.json`);
