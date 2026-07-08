@@ -1653,7 +1653,16 @@
       #qSubQuote col, #qSubSmc col, #qSubPrice col { width: auto !important; }
       #qSubQuote th, #qSubQuote td, #qSubSmc th, #qSubSmc td, #qSubPrice th, #qSubPrice td { padding: 5px 5px !important; }
       #qSubQuote table, #qResults table { width: 100% !important; }
-      #qSubQuote .qm-spec, #qResults .qm-spec { width: 100% !important; white-space: normal !important; word-break: break-all !important; }
+      #qSubQuote .qm-spec, #qResults .qm-spec { white-space: normal !important; word-break: break-all !important; }
+      /* 견적 목록(장바구니) 표: 고정 레이아웃 + 열별 폭 → 테두리 꽉 채움, 빈 스페이서열 제거 */
+      #qCart table { table-layout: fixed !important; }
+      #qCart colgroup { display: none !important; }
+      #qCart th:empty:not(.cw-act) { width: 0 !important; padding: 0 !important; }
+      #qCart .cw-spec { width: 35% !important; }
+      #qCart .cw-qty { width: 15% !important; }
+      #qCart .cw-sell { width: 21% !important; }
+      #qCart .cw-amt { width: 21% !important; }
+      #qCart .cw-act { width: 8% !important; }
       /* 견적 목록 헤더: 제목 한 줄, 견적번호는 거래처명 아래 줄로(배경 온전) */
       #qCart > div > div:first-child { flex-wrap: wrap !important; gap: 8px !important; }
       #qCart > div > div:first-child > span:first-child { flex: 1 1 100% !important; display: flex !important; flex-wrap: wrap !important; align-items: center; gap: 4px 6px; }
@@ -1680,9 +1689,9 @@
       .header-right .btn { padding: 4px 8px !important; font-size: 11px !important; white-space: nowrap; }
       /* 견적 목록 표 더 컴팩트하게 (래퍼 안에 확실히 들어오도록) */
       #qCart button[onclick*="qCartMove"] { display: none !important; }
-      #qCart .qCartQtyInput { width: 38px !important; padding: 4px 2px !important; }
-      #qCart td, #qCart th { padding: 5px 4px !important; font-size: 11px !important; }
-      #qCart button[onclick*="qCartDel"] { padding: 3px 6px !important; }
+      #qCart .qCartQtyInput { width: 100% !important; box-sizing: border-box; text-align: center; padding: 4px 1px !important; }
+      #qCart td, #qCart th { padding: 5px 3px !important; font-size: 11px !important; overflow: hidden; }
+      #qCart button[onclick*="qCartDel"] { padding: 3px 5px !important; }
     }
   </style>
 </head>
@@ -5695,7 +5704,7 @@ function reloadState() {
     var _finalMargin=(totalBuy>0&&_finalSupply>0)?((1-totalBuy/_finalSupply)*100):null;
     var _nC=_qCols?_qCols.length:0; var _nameW=Math.max(76,180-_nC*50); var _etaW=Math.max(64,130-_nC*40);
     var _qVenName=(_qCart.length&&_qCart[0].vname)?_qCart[0].vname:((typeof quoteVendors!=='undefined'&&quoteVendors)?(function(){var v=quoteVendors.find(function(x){return x.id===_qCurId;});return v?v.name:'';})():'');
-    var _qColHdr='<tr style="background:#eef2f8;color:#14305c"><th class="qm-h" style="padding:8px 6px;text-align:center">No.</th><th class="qm-h" style="padding:8px 2px;text-align:center;white-space:nowrap;color:#8a94a6;font-size:11px">ℹ️</th>'+_qColsHdrCells()+'<th class="qm-h" style="padding:8px 10px;text-align:center">품명</th><th style="padding:8px 10px;text-align:center">규격</th><th class="qm-h" style="padding:8px 10px;text-align:center;white-space:nowrap">예상납기</th><th class="qm-h" style="padding:8px 10px;text-align:right">E가</th><th class="qm-h" style="padding:8px 10px;text-align:right">DC율</th><th class="qm-h" style="padding:8px 10px;text-align:right">구매가</th><th class="qm-h" style="padding:8px 10px;text-align:right">마진율</th><th></th><th style="padding:8px 10px;text-align:center">수량</th><th style="padding:8px 10px;text-align:right">판매가</th><th style="padding:8px 10px;text-align:right">금액</th><th style="padding:8px 10px"></th></tr>';
+    var _qColHdr='<tr style="background:#eef2f8;color:#14305c"><th class="qm-h" style="padding:8px 6px;text-align:center">No.</th><th class="qm-h" style="padding:8px 2px;text-align:center;white-space:nowrap;color:#8a94a6;font-size:11px">ℹ️</th>'+_qColsHdrCells()+'<th class="qm-h" style="padding:8px 10px;text-align:center">품명</th><th class="cw-spec" style="padding:8px 10px;text-align:center">규격</th><th class="qm-h" style="padding:8px 10px;text-align:center;white-space:nowrap">예상납기</th><th class="qm-h" style="padding:8px 10px;text-align:right">E가</th><th class="qm-h" style="padding:8px 10px;text-align:right">DC율</th><th class="qm-h" style="padding:8px 10px;text-align:right">구매가</th><th class="qm-h" style="padding:8px 10px;text-align:right">마진율</th><th></th><th class="cw-qty" style="padding:8px 10px;text-align:center">수량</th><th class="cw-sell" style="padding:8px 10px;text-align:right">판매가</th><th class="cw-amt" style="padding:8px 10px;text-align:right">금액</th><th class="cw-act" style="padding:8px 10px"></th></tr>';
     el.innerHTML=`<div style="margin-top:20px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><span style="font-size:15px;font-weight:800;color:#14305c">🧾 견적 목록 ${_qVenName?'<span style="font-size:13.5px;color:#0e7490;font-weight:800;margin:0 5px 0 2px">'+esc(_qVenName)+'</span>':''}${_qQuoteNo?'<span class="qq-no" style="font-size:12px;color:#1B3A6B;font-weight:700;background:#eef2f8;border:1px solid #d6e4f5;border-radius:6px;padding:2px 8px;margin-right:4px">'+esc(_qQuoteNo)+'</span>':''}<span style="font-size:12px;color:#888;font-weight:500">${_qCart.length}건</span></span><span style="display:flex;gap:6px;align-items:center"><button class="btn" onclick="qCartClear()" style="font-size:12px;padding:7px 4px;width:90px;box-sizing:border-box;text-align:center;background:#fff;font-weight:700;border-radius:8px;border:1.5px solid #cfd4da;color:#6b7280" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='#fff'">🧹 비우기</button><button class="btn" onclick="qOpenColModal()" style="font-size:12px;padding:7px 4px;width:90px;box-sizing:border-box;text-align:center;background:#fff;font-weight:700;border-radius:8px;border:1.5px solid #0e7490;color:#0e7490" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='#fff'">🔧 열 삽입</button><button class="btn" onclick="qAddManualRow()" style="font-size:12px;padding:7px 4px;width:90px;box-sizing:border-box;text-align:center;background:#fff;font-weight:700;border-radius:8px;border:1.5px solid #5b7ba6;color:#5b7ba6" onmouseover="this.style.background='#eef3f9'" onmouseout="this.style.background='#fff'">✍ 행 삽입</button><span style="width:1px;align-self:stretch;background:#d3dae4;margin:2px 6px"></span><button class="btn" onclick="qOpenQuoteUpload()" style="font-size:12px;padding:7px 18px;min-width:144px;box-sizing:border-box;text-align:center;background:#fff;font-weight:700;border-radius:8px;border:1.5px solid #16a34a;color:#16a34a" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='#fff'">📤 견적 업로드</button><button class="btn" onclick="qOpenDownloadMenu()" style="font-size:12px;padding:7px 18px;min-width:144px;box-sizing:border-box;text-align:center;background:#fff;font-weight:700;border-radius:8px;border:1.5px solid #1B3A6B;color:#1B3A6B" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='#fff'">⬇ 견적 다운로드</button></span></div>
       <div style="overflow-x:auto;border:1px solid #e9edf2;border-radius:10px"><table style="width:100%;border-collapse:collapse;font-size:13px;min-width:${1168+_nameW+_etaW+90*_nC}px;table-layout:fixed"><colgroup><col class="qm-h" style="width:46px"><col class="qm-h" style="width:26px">${(_qCols||[]).map(function(){return '<col style="width:90px">';}).join('')}<col class="qm-h" style="width:${_nameW}px"><col><col class="qm-h" style="width:${_etaW}px"><col style="width:110px"><col style="width:110px"><col style="width:110px"><col style="width:110px"><col style="width:50px"><col style="width:120px"><col style="width:120px"><col style="width:120px"><col style="width:88px"></colgroup>
