@@ -4925,7 +4925,8 @@ function reloadState() {
         var _spU=String(r.spec||'').trim().toUpperCase(); var _taE=(_spU.indexOf('TA-1-')===0||_spU.indexOf('TA-4-')===0||_spU.indexOf('TA-5-')===0);
         var _rowRate=(_buyRate&&_taE)?1:_buyRate;
         var _lry=(r.extra&&r.extra['LRY확판(개당)']!=null&&r.extra['LRY확판(개당)']!=='')?Number(r.extra['LRY확판(개당)']):null;
-        var _buyNum=null; if(!blocked){ if(_lry!=null&&!isNaN(_lry)) _buyNum=_lry; else if(_rowRate) _buyNum=Math.ceil(Number(r.ega||0)*_rowRate); else if(_isCDC&&Number(r.ega||0)>0) _buyNum=Number(r.ega||0); }
+        var _directBuy=(r.buy!=null&&Number(r.buy)>0)?Number(r.buy):null;
+        var _buyNum=null; if(!blocked){ if(_directBuy!=null) _buyNum=_directBuy; else if(_lry!=null&&!isNaN(_lry)) _buyNum=_lry; else if(_rowRate) _buyNum=Math.ceil(Number(r.ega||0)*_rowRate); else if(_isCDC&&Number(r.ega||0)>0) _buyNum=Number(r.ega||0); }
         var buyCell=(_buyNum!=null)?fmt(_buyNum):'';
         var _hasBuy=(_buyNum!=null); var _egaP=Number(r.ega)||0;
         var _buyG=null; if(!blocked){ if(_hasBuy) _buyG=_buyNum; else if(_egaP>0) _buyG=Math.ceil((_egaP*(1-_priceDcRate/100))/10)*10; }
@@ -4966,9 +4967,9 @@ function reloadState() {
     var ov=document.getElementById('priceUpOverlay');
     if(!ov){ ov=document.createElement('div'); ov.id='priceUpOverlay'; ov.style.cssText='position:fixed;inset:0;z-index:100050;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px'; document.body.appendChild(ov); }
     ov.innerHTML='<div style="width:100%;max-width:540px;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 14px 44px rgba(27,58,107,.22)">'
-      +'<div style="padding:16px 20px;border-bottom:2px solid #1B3A6B;font-size:16px;font-weight:700;color:#1B3A6B">📤 단가표 엑셀 업로드</div>'
+      +'<div style="padding:16px 20px;border-bottom:2px solid #1B3A6B;font-size:16px;font-weight:700;color:#1B3A6B">📤 가격표 엑셀 업로드</div>'
       +'<div style="padding:20px;display:flex;flex-direction:column;gap:14px">'
-      +'<div style="background:#f4f8fe;border:1px solid #d6e4f5;border-radius:9px;padding:11px 13px;font-size:11.5px;color:#374151;line-height:1.85"><b style="color:#1B3A6B;font-size:12px">📋 형식 안내</b><br>· 머리글(필수): <b>규격 · 대리점가(E가)</b><br>· 선택: <b>단위 · 수량범위 · 상태 · 품번(코드) · 박스포장단위 · 재고등급 · 품목분류</b> 자동 인식<br>· 파일에 <b>메이커 열</b>이 있으면 그 값, 없으면 아래 <b>메이커명</b>으로 저장<br>· 같은 메이커를 다시 올리면 규격·수량범위 기준으로 <b>누적 병합</b>됩니다 (겹치면 새 값으로 교체·없으면 추가·기존 자료는 유지)</div>'
+      +'<div style="background:#f4f8fe;border:1px solid #d6e4f5;border-radius:9px;padding:11px 13px;font-size:11.5px;color:#374151;line-height:1.85"><b style="color:#1B3A6B;font-size:12px">📋 형식 안내</b><br>· 머리글(필수): <b>규격 · 대리점가(E가)</b><br>· 선택: <b>매입가 · 단위 · 수량범위 · 상태 · 품번(코드) · 박스포장단위 · 재고등급 · 품목분류</b> 자동 인식<br>· 파일에 <b>매입가 열</b>이 있으면 그 값을 매입가로 바로 사용합니다 (없으면 DC·기존 방식으로 계산)<br>· 파일에 <b>메이커 열</b>이 있으면 그 값, 없으면 아래 <b>메이커명</b>으로 저장<br>· 같은 메이커를 다시 올리면 규격·수량범위 기준으로 <b>누적 병합</b>됩니다 (겹치면 새 값으로 교체·없으면 추가·기존 자료는 유지)</div>'
       +'<div><div style="font-size:12px;font-weight:700;color:#14305c;margin-bottom:5px">메이커명 <span style="color:#dc2626">*</span> <span style="font-size:11px;color:#9ca3af;font-weight:400">(파일에 메이커 열이 없으면 필수)</span></div><input id="priceMakerName" placeholder="예: CDC, NITTA MOORE, SMC" autocomplete="off" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid #d6e0ec;border-radius:8px;font-size:13px;font-family:inherit"></div>'
       +'<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><label class="btn" style="cursor:pointer;margin:0;font-weight:600">📎 파일 선택<input type="file" id="priceFileInput" accept=".xlsx,.xls" onchange="priceFileChange()" style="display:none"></label><span id="priceFileName" style="font-size:12px;color:#9ca3af">선택된 파일 없음</span></div>'
       +'</div>'
@@ -4989,16 +4990,19 @@ function reloadState() {
     var col=function(keys){ for(var i=0;i<hdr.length;i++){ for(var k=0;k<keys.length;k++){ if(hdr[i].indexOf(keys[k])>=0) return i; } } return -1; };
     var cMk=col(['메이커','브랜드','maker']), cSp=col(['규격']), cE=col(['E가','대리점가','단가','정상가']), cU=col(['단위']), cQ=col(['수량']), cS=col(['상태']);
     var cCode=col(['품번','품목코드','바코드','barcode','코드']), cBox=col(['박스','포장단위']), cGrade=col(['재고등급','등급']), cCat=col(['품목분류','분류']);
+    var cBuy=col(['매입가','매입단가','매입원가','매입']);
+    if(cBuy>=0&&(cBuy===cE||cBuy===cSp||cBuy===cMk)) cBuy=-1;
     if(cU>=0&&cU===cBox) cU=-1;
     if(cSp<0||cE<0) throw new Error('규격/E가(대리점가) 열이 필요합니다');
     var num=function(x){ if(x==null||x==='') return 0; var v=Number(String(x).replace(/[,\s]/g,'')); return isNaN(v)?0:v; };
     var ov=(makerOverride||'').trim();
     var byMaker={};
-    var _knownCol={}; [cMk,cSp,cE,cU,cQ,cS,cCode,cBox,cGrade,cCat].forEach(function(ci){ if(ci>=0) _knownCol[ci]=1; });
+    var _knownCol={}; [cMk,cSp,cE,cBuy,cU,cQ,cS,cCode,cBox,cGrade,cCat].forEach(function(ci){ if(ci>=0) _knownCol[ci]=1; });
     for(var rr2=hi+1; rr2<aoa.length; rr2++){ var row=aoa[rr2]; if(!row) continue; var sp=row[cSp]; if(sp==null||String(sp).trim()==='') continue;
       var mk=ov||(cMk>=0?String(row[cMk]||'').trim():'')||'';
       if(!mk) continue;
       var o={spec:String(sp).trim(), ega:num(row[cE])};
+      var bp=(cBuy>=0&&row[cBuy]!=null)?num(row[cBuy]):0; if(bp>0) o.buy=bp;
       var u=(cU>=0&&row[cU]!=null)?String(row[cU]).trim():''; if(u) o.unit=u;
       var qr=(cQ>=0&&row[cQ]!=null)?String(row[cQ]).trim():''; if(qr) o.qr=qr;
       var st=(cS>=0&&row[cS]!=null)?String(row[cS]).trim():''; if(st) o.st=st;
@@ -5053,9 +5057,10 @@ function reloadState() {
   };
   async function _priceExportXlsx(m, rows){
     await _ensureXlsxLib();
-    var has={unit:false,qr:false,st:false,code:false,box:false,grade:false,cat:false};
+    var has={unit:false,qr:false,st:false,code:false,box:false,grade:false,cat:false,buy:false};
     rows.forEach(function(r){ Object.keys(has).forEach(function(k){ if(r[k]!=null&&r[k]!=='') has[k]=true; }); });
     var hdr=['메이커','규격','대리점가 (E가)'], fields=['__mk','spec','ega'], numIdx={2:1}, colw=[{wch:16},{wch:24},{wch:14}];
+    if(has.buy){ numIdx[fields.length]=1; hdr.push('매입가'); fields.push('buy'); colw.push({wch:14}); }
     if(has.unit){ hdr.push('단위'); fields.push('unit'); colw.push({wch:8}); }
     if(has.qr){ hdr.push('수량범위'); fields.push('qr'); colw.push({wch:13}); }
     if(has.st){ hdr.push('상태'); fields.push('st'); colw.push({wch:12}); }
