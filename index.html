@@ -1643,12 +1643,21 @@
       /* 견적 결과·카트 표: 자체 가로 스크롤 */
       #qResults, #qCart { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     }
-    /* ── 반응형 보강 4: 연차현황·견적목록 모바일 열 숨김 ── */
+    /* ── 반응형 보강 4: 연차현황 열 숨김 + 견적 카테고리 표/버튼 정렬 ── */
     @media (max-width: 700px) {
+      /* 연차 현황: '올해 사용 내역'(5번째 열) 숨김 */
       #vacAdminOverlay table th:nth-child(5), #vacAdminOverlay table td:nth-child(5) { display: none !important; }
+      /* 견적 목록: 지정 열 숨김 */
       #qCart .qm-h { display: none !important; }
-      #qCart table { min-width: 0 !important; table-layout: auto !important; font-size: 12px !important; }
-      #qCart th, #qCart td { padding: 6px 6px !important; }
+      /* 견적 전 카테고리 표: 고정폭 해제 → 화면에 맞춰 축소(가로 스크롤 최소화) */
+      #qSubQuote table, #qSubSmc table, #qSubPrice table { min-width: 0 !important; table-layout: auto !important; font-size: 11.5px !important; }
+      #qSubQuote col, #qSubSmc col, #qSubPrice col { width: auto !important; }
+      #qSubQuote th, #qSubQuote td, #qSubSmc th, #qSubSmc td, #qSubPrice th, #qSubPrice td { padding: 5px 5px !important; }
+      /* 견적 목록 헤더: 제목 한 줄 + 버튼 아래 줄 좌측 정렬 */
+      #qCart > div > div:first-child { flex-wrap: wrap !important; gap: 8px !important; }
+      #qCart > div > div:first-child > span:first-child { flex: 1 1 100% !important; }
+      #qCart > div > div:first-child > span:last-child { flex-wrap: wrap !important; justify-content: flex-start !important; width: 100% !important; }
+      #qCart > div > div:last-child { justify-content: flex-start !important; }
     }
   </style>
 </head>
@@ -7628,7 +7637,7 @@ function reloadState() {
         const _ven = entries[m.id+'_'+dk(d)]||{};
         const _vtype = (_ven.status==='휴가' && _ven.vacation) ? _ven.vacation.type : '';
         const _vbg = _vtype==='연차' ? '#dde7f5' : _vtype==='반차' ? '#d8efea' : _vtype==='반반차' ? '#fbedd6' : '';
-        tb += `<tr class="wk-mem-row${(isWE||hol)?' weekend':''}">${_grpCell}<td class="wk-mem-col"${_vbg?` style="background:${_vbg}"`:''}><div class="wk-mem"><span>${esc(m.name)}${m.role==='팀장'?'<span class="leader-badge">팀장</span>':''}</span></div></td><td class="wk-memo"${_vbg?` style="background:${_vbg}"`:''} onclick="wkCellClick('${m.id}','${dk(d)}')"><div class="wk-memo-row">${weekCellMemo(m,d)}</div></td><td class="wk-rec"${_vbg?` style="background:${_vbg}"`:''} onclick="wkCellClick('${m.id}','${dk(d)}')"><div class="wk-rec-row">${weekCellInner(m,d)}</div></td></tr>`;
+        tb += `<tr class="wk-mem-row${(isWE||hol)?' weekend':''}">${_grpCell}<td class="wk-mem-col"${_vbg?` style="background:${_vbg}"`:''}><div class="wk-mem"><span>${esc(m.name)}${m.role==='팀장'?'<span class="leader-badge">팀장</span>':''}</span></div></td><td class="wk-memo"${_vbg?` style="background:${_vbg}"`:''} onclick="openEntry('${m.id}','${dk(d)}')"><div class="wk-memo-row">${weekCellMemo(m,d)}</div></td><td class="wk-rec"${_vbg?` style="background:${_vbg}"`:''} onclick="openEntry('${m.id}','${dk(d)}')"><div class="wk-rec-row">${weekCellInner(m,d)}</div></td></tr>`;
       });
     });
     tBody.innerHTML = tb;
@@ -8281,14 +8290,6 @@ function reloadState() {
   window.openEntryToday = function() {
     if (!myMemberId || !members.find(function(x){return x.id===myMemberId;})) { openMyProfileModal(); return; }
     openEntry(myMemberId, dk(new Date()));
-  };
-  window.wkCellClick = function(memberId, dkStr){
-    var en = entries[memberId+'_'+dkStr];
-    if(en && en.status==='휴가' && en.vacation){
-      if(memberId===myMemberId || _isAdmin()){ openVacationEdit(memberId, dkStr); }
-      return;
-    }
-    openEntry(memberId, dkStr);
   };
   window.openEntry = function(memberId, dkStr) {
     // 프로필이 설정되지 않았거나 다른 사람의 일정이면 읽기전용 모달
