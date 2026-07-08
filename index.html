@@ -5031,7 +5031,8 @@ function reloadState() {
           var m=priceMakers.find(function(x){return x.name===nm;});
           var id=m?m.id:('pm'+Date.now().toString(36)+i);
           var _existing=[]; if(m){ try{ var _eb=await _priceBlobGet(id); if(Array.isArray(_eb)) _existing=_eb; }catch(_e){} }
-          var _key=function(r){ return _qNorm(r.spec)+'|'+String(r.qr==null?'':r.qr).trim()+'|'+String(r.st==null?'':r.st).trim(); };
+          var _pkNorm=function(z){ return String(z==null?'':z).toLowerCase().replace(/\s+/g,''); }; // 업로드 병합: 하이픈/밑줄/점은 구분(공백·대소문자만 정규화)
+          var _key=function(r){ return _pkNorm(r.spec)+'|'+String(r.qr==null?'':r.qr).trim()+'|'+String(r.st==null?'':r.st).trim(); };
           var _map={}, _order=[];
           _existing.forEach(function(r){ var k=_key(r); if(!(k in _map)) _order.push(k); _map[k]=r; });
           var _added=0,_replaced=0;
