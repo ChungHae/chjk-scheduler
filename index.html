@@ -1662,6 +1662,21 @@
       #qCart > div > div:first-child > span:last-child button,
       #qCart > div > div:last-child button { width: 100% !important; min-width: 0 !important; }
       #qCart span[style*="width:1px"] { display: none !important; }
+      /* 원장 업로드·견적 업로드 버튼 숨김 */
+      #qXlsxBtn { display: none !important; }
+      #qCart button[onclick*="qOpenQuoteUpload"] { display: none !important; }
+      /* 견적 목록 수량 좌우 +/- 버튼 제거 */
+      #qCart button[onclick*="qCartQtyAdj"] { display: none !important; }
+      /* 상단 헤더: 오늘 날짜·자료저장·동기화 한 줄에 */
+      .header { flex-wrap: nowrap !important; gap: 6px !important; align-items: center; }
+      #headerLeft { flex-wrap: nowrap !important; gap: 6px !important; min-width: 0; flex-shrink: 1; }
+      .header-right { flex-wrap: nowrap !important; gap: 5px !important; flex-shrink: 0; }
+      .brand-logo { display: none !important; }
+      #btnImportLabel { display: none !important; }
+      #appTitleLabel { font-size: 14px !important; white-space: nowrap; }
+      #headerDate { font-size: 11px !important; white-space: nowrap; }
+      .header-right .btn { padding: 4px 7px !important; font-size: 11px !important; white-space: nowrap; }
+      #syncStatus { font-size: 10.5px !important; padding: 3px 7px !important; white-space: nowrap; }
     }
   </style>
 </head>
