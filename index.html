@@ -1630,6 +1630,19 @@
       /* 넓은 데이터 표: 가로 스크롤 컨테이너가 화면을 넘지 않도록 */
       .page-section > div[style*="overflow-x:auto"], .page-section [style*="overflow-x:auto"] { max-width: 100%; }
     }
+    /* ── 반응형 보강 3: 개인일정 컨트롤바 · 견적 툴바 겹침/밀림 방지 ── */
+    @media (max-width: 700px) {
+      /* 개인일정 상단: 절대배치 달력 네비 → 정적 배치로 내려 겹침 방지 */
+      #pagePersonal > div:first-child { min-height: 0 !important; }
+      #personalCalNav { position: static !important; left: auto !important; top: auto !important; transform: none !important; width: 100% !important; order: 99; margin-top: 6px; justify-content: center !important; flex-wrap: wrap; }
+      #personalWeekLabel { min-width: 0 !important; }
+      /* 견적/SMC/가격확인 상단 툴바: 세로 스택 + 요소 풀폭 */
+      #qSubQuote > div:first-child, #qSubPrice > div:first-child, #qSubSmc > div:first-child { flex-direction: column !important; align-items: stretch !important; padding: 10px !important; }
+      #qSubQuote > div:first-child > *, #qSubPrice > div:first-child > *, #qSubSmc > div:first-child > * { width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; margin-left: 0 !important; }
+      #qSubQuote > div:first-child > span[style*="flex:1"], #qSubPrice > div:first-child > span[style*="flex:1"], #qSubSmc > div:first-child > span[style*="flex:1"] { display: none !important; }
+      /* 견적 결과·카트 표: 자체 가로 스크롤 */
+      #qResults, #qCart { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    }
   </style>
 </head>
 <body>
