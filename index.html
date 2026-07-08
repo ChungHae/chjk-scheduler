@@ -4926,10 +4926,11 @@ function reloadState() {
         var _rowRate=(_buyRate&&_taE)?1:_buyRate;
         var _lry=(r.extra&&r.extra['LRY확판(개당)']!=null&&r.extra['LRY확판(개당)']!=='')?Number(r.extra['LRY확판(개당)']):null;
         var _directBuy=(r.buy!=null&&Number(r.buy)>0)?Number(r.buy):null;
-        var _buyNum=null; if(!blocked){ if(_directBuy!=null) _buyNum=_directBuy; else if(_lry!=null&&!isNaN(_lry)) _buyNum=_lry; else if(_rowRate) _buyNum=Math.ceil(Number(r.ega||0)*_rowRate); else if(_isCDC&&Number(r.ega||0)>0) _buyNum=Number(r.ega||0); }
+        var _buyNum=null; if(!blocked){ if(_directBuy!=null) _buyNum=_directBuy; else if(_lry!=null&&!isNaN(_lry)) _buyNum=_lry; else if(_rowRate) _buyNum=Math.ceil(Number(r.ega||0)*_rowRate); }  // CDC 매입가 빈칸이면 자동채움 안 함
         var buyCell=(_buyNum!=null)?fmt(_buyNum):'';
         var _hasBuy=(_buyNum!=null); var _egaP=Number(r.ega)||0;
-        var _buyG=null; if(!blocked){ if(_hasBuy) _buyG=_buyNum; else if(_egaP>0) _buyG=Math.ceil((_egaP*(1-_priceDcRate/100))/10)*10; }
+        var _effDc=_isCDC?0:_priceDcRate;
+        var _buyG=null; if(!blocked){ if(_hasBuy) _buyG=_buyNum; else if(_egaP>0) _buyG=Math.ceil((_egaP*(1-_effDc/100))/10)*10; }
         var _sellG=(_buyG!=null&&_priceMarginRate<100)?Math.ceil((_buyG/(1-_priceMarginRate/100))/10)*10:null;
         _priceCalcRows.push({i:_ix, buyNum:_buyNum, hasBuy:_hasBuy, blocked:blocked, ega:_egaP});
         var _ega=Number(r.ega)||0; var _base=_rowRate?Math.ceil(_ega*_rowRate):_ega; var _sh=(!blocked&&_ega>0);
