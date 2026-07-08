@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="app-build" content="20260708-1">
   <title>업무 관리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12935,6 +12936,29 @@ function reloadState() {
   checkFirstRun();          // 팀원 있으면 첫 실행 프로필 안내
   switchPage('personal');   // 기본 탭을 개인일정으로 표시
   initAuth();               // 로그인 초기화 (버튼 이벤트 + 세션 복원)
+})();
+</script>
+<script>
+/* 자동 최신본 확인: 새 버전이 배포되면 안전한 시점에 자동 새로고침 (대기 0초) */
+(function(){
+  var meta=document.querySelector('meta[name="app-build"]');
+  var running=meta?meta.content:''; if(!running) return;
+  function safeReload(ver){
+    var ae=document.activeElement;
+    var typing=ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'||ae.isContentEditable);
+    if(document.hidden||!typing){ location.replace(location.pathname+'?_u='+encodeURIComponent(ver)); }
+    else { document.addEventListener('visibilitychange',function h(){ if(document.hidden){ document.removeEventListener('visibilitychange',h); location.replace(location.pathname+'?_u='+encodeURIComponent(ver)); } }); }
+  }
+  function check(){
+    try{
+      fetch('index.html?bust='+Date.now(),{cache:'no-store',headers:{'Range':'bytes=0-4095'}})
+        .then(function(r){return r.text();})
+        .then(function(t){ var m=t.match(/name="app-build"\s+content="([^"]+)"/); if(m&&m[1]&&m[1]!==running) safeReload(m[1]); })
+        .catch(function(){});
+    }catch(e){}
+  }
+  setTimeout(check,4000);
+  setInterval(check,300000);
 })();
 </script>
 </body>
