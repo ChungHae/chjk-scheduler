@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="20260709-1">
+  <meta name="app-build" content="20260709-12">
   <title>업무 관리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1605,6 +1605,10 @@
       #pageFiles > div:first-child { flex-wrap:wrap !important; }
       #pageFiles > div:first-child > span[style*="flex:1"] { display:none !important; }
       #fileUploadControls { width:100%; }
+      /* 작은 화면: 파일명·분류 라벨, 분류 필터, 자료업로드 버튼 숨김 */
+      #pageFiles .fl-lbl-name, #pageFiles .fl-lbl-cat, #pageFiles #fileFilterCat, #pageFiles #fileUploadControls { display:none !important; }
+      /* 거래처 초성(자음/알파벳) 필터 가운데 정렬 */
+      #pageFiles .cho-idx { justify-content:center !important; }
       #fileSearch { flex:1 1 100% !important; }
       /* 업체별 일정: 1열 */
       #bizPageList { grid-template-columns: 1fr !important; }
@@ -1627,6 +1631,24 @@
       /* 재고/매입처: 절반폭 바 → 풀폭, 3열 → 스택 */
       #pageInventory [style*="max-width:50%"], #pagePurchase [style*="max-width:50%"] { max-width:100% !important; flex-basis:100% !important; }
       #invColL, #invColM, #invColR { flex:1 1 100% !important; }
+      /* 매입처: 검색창 풀폭 + 추가·엑셀 버튼 반반 한 줄 전체 */
+      #pagePurchase > div:first-child > div:first-child { flex: 1 1 100% !important; max-width: 100% !important; min-width: 0 !important; }
+      #purchaseSearch { flex: 1 1 100% !important; width: 100% !important; }
+      #purchaseAddBtn, #purchaseExcelBtn { flex: 1 1 0 !important; width: auto !important; min-width: 0 !important; }
+      /* 재고: 검색창 풀폭 + 엑셀 업로드 숨김 + 버튼 2×2 반반 배치 */
+      #pageInventory > div:first-child > div:first-child { flex: 1 1 100% !important; max-width: 100% !important; min-width: 0 !important; }
+      #invSearch { flex: 1 1 100% !important; width: 100% !important; order: 1; }
+      #invUploadBtn { display: none !important; }
+      #invAddBtn { order: 2; }
+      #invUseBtn { order: 3; }
+      #invLogBtn { order: 4; }
+      #invExcelBtn { order: 5; }
+      #invAddBtn, #invUseBtn, #invLogBtn, #invExcelBtn { flex: 1 1 calc(50% - 4px) !important; width: auto !important; min-width: 0 !important; }
+      /* 재고 표: DC 구매가·마진 판매가 열 숨김 (셀 유지·폭 0으로 접어 열 밀림 방지) */
+      #pageInventory colgroup col:nth-child(5), #pageInventory colgroup col:nth-child(6) { width: 0 !important; }
+      #pageInventory thead th:nth-child(5), #pageInventory tbody td:nth-child(5), #pageInventory thead th:nth-child(6), #pageInventory tbody td:nth-child(6) { width: 0 !important; max-width: 0 !important; padding: 0 !important; border-left: none !important; border-right: none !important; overflow: hidden !important; }
+      #pageInventory thead th:nth-child(5) > *, #pageInventory thead th:nth-child(6) > * { display: none !important; }
+      #pageInventory tbody td:nth-child(5), #pageInventory tbody td:nth-child(6) { font-size: 0 !important; color: transparent !important; }
     }
     /* ── 초소형 (≤480px) ── */
     @media (max-width: 480px) {
@@ -1646,6 +1668,9 @@
       #qSubPrice > div:first-child, #qSubQuote > div:first-child { padding: 10px !important; gap: 6px !important; }
       /* 입금매칭 요약: 카드/그래프는 이미 auto-fit → 여백만 */
       #misuSummaryWrap { margin-bottom: 12px !important; }
+      /* 미수 요약: 총미수액 1줄 전폭, 미수거래처·장기미수 / 서울·화성 각 2개씩 */
+      #misuSummaryGrid { grid-template-columns: 1fr 1fr !important; }
+      #misuSummaryGrid > :first-child { grid-column: 1 / -1 !important; }
       /* 넓은 데이터 표: 가로 스크롤 컨테이너가 화면을 넘지 않도록 */
       .page-section > div[style*="overflow-x:auto"], .page-section [style*="overflow-x:auto"] { max-width: 100%; }
     }
@@ -1715,6 +1740,10 @@
       #qSubQuote th, #qSubQuote td, #qSubSmc th, #qSubSmc td, #qSubPrice th, #qSubPrice td { padding: 5px 5px !important; }
       #qSubQuote table, #qResults table { width: 100% !important; }
       #qSubQuote .qm-spec, #qResults .qm-spec { white-space: normal !important; word-break: break-all !important; }
+      /* 가격확인 표: 작은 화면에서 No·단위·수량범위·박스·DC구매가·마진판매가 숨김 */
+      #qSubPrice .pc-h { display: none !important; }
+      #qSubPrice .pc-legend { display: none !important; }
+      #qSubPrice th, #qSubPrice td { white-space: normal !important; word-break: break-all !important; }
       /* 견적 목록(장바구니) 표: 고정 레이아웃 + 열별 폭 → 테두리 꽉 채움, 빈 스페이서열 제거 */
       #qCart table { table-layout: fixed !important; }
       #qCart colgroup { display: none !important; }
@@ -1830,9 +1859,9 @@
   <div id="pageFiles" class="page-section">
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:nowrap;margin-bottom:16px;overflow-x:auto">
       <div style="display:flex;gap:8px;flex:1;max-width:100%;min-width:300px;align-items:center;flex-wrap:wrap;padding:12px;background:#f7f9fc;border:1px solid #e5e5e5;border-radius:10px;box-sizing:border-box">
-      <span style="font-size:13px;font-weight:700;color:#14305c;white-space:nowrap">파일명</span>
+      <span class="fl-lbl-name" style="font-size:13px;font-weight:700;color:#14305c;white-space:nowrap">파일명</span>
       <input id="fileSearch" type="text" placeholder="🔍 파일명 검색" oninput="renderFilesPage()" style="flex:0 0 360px;max-width:100%;box-sizing:border-box;height:34px;padding:6px 10px;border:1.5px solid #e5e5e5;border-radius:8px;font-size:13px;font-family:inherit;background:#fff">
-      <span style="font-size:12px;color:#888;white-space:nowrap;flex-shrink:0">분류</span>
+      <span class="fl-lbl-cat" style="font-size:12px;color:#888;white-space:nowrap;flex-shrink:0">분류</span>
       <select id="fileFilterCat" onchange="renderFilesPage()" style="width:130px;flex-shrink:0;padding:6px 10px;border:1.5px solid #e5e5e5;border-radius:7px;font-size:13px;font-family:inherit;background:white"></select>
       <span id="fileUploadControls" style="display:flex;gap:8px;align-items:center;flex-shrink:0"><button class="btn btn-primary" onclick="openFileUploadModal()" style="cursor:pointer;margin:0;white-space:nowrap;flex-shrink:0">📤 자료 업로드</button></span>
       </div>
@@ -5052,6 +5081,22 @@ function reloadState() {
   }
   window.priceSetDc=function(v){ var n=parseFloat(String(v).replace(/[^0-9.\-]/g,'')); _priceDcRate=isNaN(n)?0:n; _pcRecalc(); };
   window.priceSetMargin=function(v){ var n=parseFloat(String(v).replace(/[^0-9.\-]/g,'')); _priceMarginRate=isNaN(n)?0:n; _pcRecalc(); };
+  function _pcFitStatusCells(){
+    var small=window.innerWidth<=700;
+    var box=document.getElementById('priceResult'); if(!box) return;
+    Array.prototype.forEach.call(box.querySelectorAll('td.pc-st'), function(td){
+      var sp=td.querySelector('.pc-st-txt'); if(!sp) return;
+      if(!small){ sp.style.fontSize=''; td.style.whiteSpace=''; return; }
+      td.style.whiteSpace='nowrap'; sp.style.whiteSpace='nowrap'; sp.style.fontSize='';
+      var cs=getComputedStyle(td);
+      var avail=td.clientWidth - parseFloat(cs.paddingLeft||0) - parseFloat(cs.paddingRight||0);
+      if(avail<=0) return;
+      var fs=13, guard=0;
+      while(sp.scrollWidth>avail && fs>7 && guard<40){ fs-=0.5; sp.style.fontSize=fs+'px'; guard++; }
+    });
+  }
+  window._pcFitStatusCells=_pcFitStatusCells;
+  window.addEventListener('resize', (function(){ var t; return function(){ clearTimeout(t); t=setTimeout(function(){ var pg=document.getElementById('qSubPrice'); if(pg && pg.offsetParent!==null){ try{ _pcFitStatusCells(); }catch(_e){} } }, 160); }; })());
   function priceRenderResult(){
     var box=document.getElementById('priceResult'); if(!box) return;
     var makers=priceMakers||[];
@@ -5063,13 +5108,13 @@ function reloadState() {
     if(raw){ for(var i=0;i<_priceRows.length;i++){ var r=_priceRows[i]; var _ok=_priceExact?(_qNorm(r.spec)===q):(_qNorm(r.spec).indexOf(q)>=0); if(_ok){ matched.push(r); if(matched.length>=2000) break; } } }
     var mn=function(qr){ return parseInt(String(qr||'').split('~')[0].replace(/[^0-9]/g,''))||0; };
     var fmt=function(n){ return (n==null||n==='')?'-':Math.round(Number(n)).toLocaleString(); };
-    var th=function(t,ra,w,ex){ return '<th style="padding:8px 12px;text-align:center;border:1px solid #24467d;white-space:nowrap;background:#1B3A6B;color:#fff;font-size:12.5px;font-weight:700'+(w?';width:'+w:'')+(ex||'')+'">'+t+'</th>'; };
-    var head='<tr>'+th('No.',0,'64px')+th('규격',0,'330px')+th('대리점가 (E가)',1,'116px')+th('매입가',1,'116px')+th('단위',0,'56px')+th('수량범위',0,'116px')+th('상태',0,'116px')+th('박스<br>(포장단위)',1,'90px')
+    var th=function(t,ra,w,ex,cls){ return '<th class="'+(cls||'')+'" style="padding:8px 12px;text-align:center;border:1px solid #24467d;white-space:nowrap;background:#1B3A6B;color:#fff;font-size:12.5px;font-weight:700'+(w?';width:'+w:'')+(ex||'')+'">'+t+'</th>'; };
+    var head='<tr>'+th('No.',0,'64px','','pc-h')+th('규격',0,'330px')+th('대리점가<br>(E가)',1,'116px')+th('매입가',1,'116px')+th('단위',0,'56px','','pc-h')+th('수량범위',0,'116px','','pc-h')+th('상태',0,'116px')+th('박스<br>(포장단위)',1,'90px','','pc-h')
       +(function(){ var _dcDis=(_isCDC||_buyRate>0); var _inS='width:46px;padding:2px 4px;border-radius:5px;border:1px solid #7f9bc4;text-align:right;font-size:12px;font-family:inherit;';
-        return '<th style="padding:6px 10px;text-align:center;border:1px solid #24467d;white-space:nowrap;background:#1B3A6B;color:#fff;font-size:12px;font-weight:700;width:126px"><div>DC 구매가</div><div style="margin-top:3px;font-weight:500"><input value="'+(_dcDis?0:_priceDcRate)+'" '+(_dcDis?'disabled':'oninput="priceSetDc(this.value)"')+' style="'+_inS+(_dcDis?'background:#e5e7eb;color:#9ca3af':'background:#fff;color:#1B3A6B')+'"> %</div></th>'
-          +'<th style="padding:6px 10px;text-align:center;border:1px solid #24467d;white-space:nowrap;background:#1B3A6B;color:#fff;font-size:12px;font-weight:700;width:126px"><div>마진 판매가</div><div style="margin-top:3px;font-weight:500"><input value="'+_priceMarginRate+'" oninput="priceSetMargin(this.value)" style="'+_inS+'background:#fff;color:#0e7490"> %</div></th>'; })()
+        return '<th class="pc-h" style="padding:6px 10px;text-align:center;border:1px solid #24467d;white-space:nowrap;background:#1B3A6B;color:#fff;font-size:12px;font-weight:700;width:126px"><div>DC 구매가</div><div style="margin-top:3px;font-weight:500"><input value="'+(_dcDis?0:_priceDcRate)+'" '+(_dcDis?'disabled':'oninput="priceSetDc(this.value)"')+' style="'+_inS+(_dcDis?'background:#e5e7eb;color:#9ca3af':'background:#fff;color:#1B3A6B')+'"> %</div></th>'
+          +'<th class="pc-h" style="padding:6px 10px;text-align:center;border:1px solid #24467d;white-space:nowrap;background:#1B3A6B;color:#fff;font-size:12px;font-weight:700;width:126px"><div>마진 판매가</div><div style="margin-top:3px;font-weight:500"><input value="'+_priceMarginRate+'" oninput="priceSetMargin(this.value)" style="'+_inS+'background:#fff;color:#0e7490"> %</div></th>'; })()
       +'</tr>';
-    var td=function(v,ra,extra){ return '<td style="padding:6.5px 12px;text-align:'+(ra?'right':'left')+';border:1px solid #eef2f7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'+(extra||'')+'">'+v+'</td>'; };
+    var td=function(v,ra,extra,cls){ return '<td class="'+(cls||'')+'" style="padding:6.5px 12px;text-align:'+(ra?'right':'left')+';border:1px solid #eef2f7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'+(extra||'')+'">'+v+'</td>'; };
     var rows;
     if(!raw){ rows='<tr><td colspan="10" style="padding:34px 12px;text-align:center;color:#bbb;font-size:13px;border:1px solid #eef2f7">규격(품번)을 입력하면 결과가 표시됩니다.</td></tr>'; }
     else if(!matched.length){ rows='<tr><td colspan="10" style="padding:34px 12px;text-align:center;color:#bbb;font-size:13px;border:1px solid #eef2f7">일치하는 규격이 없습니다.</td></tr>'; }
@@ -5092,16 +5137,16 @@ function reloadState() {
         _priceCalcRows.push({i:_ix, buyNum:_buyNum, hasBuy:_hasBuy, blocked:blocked, ega:_egaP});
         var _ega=Number(r.ega)||0; var _base=_rowRate?Math.ceil(_ega*_rowRate):_ega; var _sh=(!blocked&&_ega>0);
         return '<tr style="'+(blocked?'background:#fef5f5':'')+'">'
-          +td(String(_pp*20+_ix+1),0,'text-align:center')
+          +td(String(_pp*20+_ix+1),0,'text-align:center','pc-h')
           +td('<span title="'+esc(r.spec)+'">'+esc(r.spec)+'</span>')
           +td(egaCell,1)
           +td(buyCell,1)
-          +td(r.unit?esc(r.unit):'',0,'text-align:center')
-          +td(r.qr?esc(r.qr):'',0,'text-align:center')
-          +td(r.st?esc(r.st):'',0,'text-align:center')
-          +td((function(){ var _bx=(r.box==null)?'':String(r.box).trim(); if(_bx===''||_bx==='0'||/^0\s*pcs$/i.test(_bx)) return ''; return isNaN(Number(_bx))?esc(_bx):fmt(_bx); })(),0,'text-align:center')
-          +'<td id="pbuy_'+_ix+'" title="'+(_hasBuy?'DC 0% 고정 (구매가=매입가)':'')+'" style="padding:6.5px 12px;text-align:right;border:1px solid #eef2f7;white-space:nowrap;color:#1B3A6B;font-weight:700;'+(_hasBuy?'background:#e8eef7;':'')+'">'+(_buyG!=null?fmt(_buyG):'')+'</td>'
-          +'<td id="psell_'+_ix+'" style="padding:6.5px 12px;text-align:right;border:1px solid #eef2f7;white-space:nowrap;color:#0e7490;font-weight:700">'+(_sellG!=null?fmt(_sellG):'')+'</td>'
+          +td(r.unit?esc(r.unit):'',0,'text-align:center','pc-h')
+          +td(r.qr?esc(r.qr):'',0,'text-align:center','pc-h')
+          +td(r.st?('<span class="pc-st-txt" style="display:inline-block;max-width:100%">'+esc(r.st)+'</span>'):'',0,'text-align:center','pc-st')
+          +td((function(){ var _bx=(r.box==null)?'':String(r.box).trim(); if(_bx===''||_bx==='0'||/^0\s*pcs$/i.test(_bx)) return ''; return isNaN(Number(_bx))?esc(_bx):fmt(_bx); })(),0,'text-align:center','pc-h')
+          +'<td class="pc-h" id="pbuy_'+_ix+'" title="'+(_hasBuy?'DC 0% 고정 (구매가=매입가)':'')+'" style="padding:6.5px 12px;text-align:right;border:1px solid #eef2f7;white-space:nowrap;color:#1B3A6B;font-weight:700;'+(_hasBuy?'background:#e8eef7;':'')+'">'+(_buyG!=null?fmt(_buyG):'')+'</td>'
+          +'<td class="pc-h" id="psell_'+_ix+'" style="padding:6.5px 12px;text-align:right;border:1px solid #eef2f7;white-space:nowrap;color:#0e7490;font-weight:700">'+(_sellG!=null?fmt(_sellG):'')+'</td>'
           +'</tr>';
       }).join('');
     }
@@ -5117,7 +5162,8 @@ function reloadState() {
       _pgHtml='<span style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;justify-content:center">'+_arr.join('')+'</span>';
     }
     var footer=raw?('<div style="position:relative;margin-top:8px;min-height:26px;display:flex;align-items:center;justify-content:center">'+_pgHtml+'<span style="position:absolute;right:2px;top:50%;transform:translateY(-50%);font-size:12px;color:#9ca3af;white-space:nowrap">총 '+matched.length+'건'+(_pages>1?(' · '+(_pricePage+1)+'/'+_pages+' 페이지'):'')+'</span></div>'):'';
-    box.innerHTML='<div style="text-align:center"><div style="display:inline-block;max-width:100%;vertical-align:top"><div style="display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:6px;flex-wrap:wrap"><div style="font-size:11px;color:#6b7280;white-space:nowrap;text-align:left">📅 <b style="color:#334155">가격표 갱신일</b> &nbsp;&nbsp;CDC : 2026.06.15 &nbsp;/&nbsp; NITTA MOORE : 2026.05.15</div><div style="text-align:right;font-size:11px;color:#6b7280;white-space:nowrap;overflow-x:auto"><span style="display:inline-block;width:11px;height:11px;background:#e8eef7;border:1px solid #cdd8e6;border-radius:3px;vertical-align:-1px;margin-right:4px"></span>DC 0% 고정=매입가 · <b style="color:#1B3A6B">DC 구매가</b>=올림(대리점가×(1−DC%),10원) · <b style="color:#0e7490">마진 판매가</b>=올림(구매가÷(1−마진%),10원)</div></div><div style="border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08)"><div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:13px;width:100%;min-width:1256px;table-layout:fixed"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div></div>'+footer+'</div></div>';
+    box.innerHTML='<div style="text-align:center"><div style="display:inline-block;max-width:100%;vertical-align:top"><div class="pc-legend" style="display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:6px;flex-wrap:wrap"><div style="font-size:11px;color:#6b7280;white-space:nowrap;text-align:left">📅 <b style="color:#334155">가격표 갱신일</b> &nbsp;&nbsp;CDC : 2026.06.15 &nbsp;/&nbsp; NITTA MOORE : 2026.05.15</div><div style="text-align:right;font-size:11px;color:#6b7280;white-space:nowrap;overflow-x:auto"><span style="display:inline-block;width:11px;height:11px;background:#e8eef7;border:1px solid #cdd8e6;border-radius:3px;vertical-align:-1px;margin-right:4px"></span>DC 0% 고정=매입가 · <b style="color:#1B3A6B">DC 구매가</b>=올림(대리점가×(1−DC%),10원) · <b style="color:#0e7490">마진 판매가</b>=올림(구매가÷(1−마진%),10원)</div></div><div style="border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08)"><div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:13px;width:100%;min-width:1256px;table-layout:fixed"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div></div>'+footer+'</div></div>';
+    try{ _pcFitStatusCells(); }catch(_e){}
   }
   window.priceOpenUpload=function(){ if(!_guardW()) return;
     if(!_isAdmin()){ showInfoModal('🔒 권한','가격표 업로드는 관리자만 가능합니다.'); return; }
@@ -9097,7 +9143,7 @@ function reloadState() {
       return `
       <tr data-name="${esc(item.name)}" style="border-bottom:1px solid #f3f4f6;background:${idx%2===0?'white':'#fafafa'};cursor:pointer">
         <td style="padding:7px 8px;text-align:center;font-size:11px;font-weight:600;color:#6b7280;white-space:nowrap;border:1px solid #eef2f7">${esc(item.region||'서울')}</td>
-        <td style="padding:7px 12px;text-align:center;font-size:13px;color:#1a1a1a;border:1px solid #eef2f7">${esc(item.name)}</td>
+        <td class="inv-spec" style="padding:7px 12px;text-align:center;font-size:13px;color:#1a1a1a;border:1px solid #eef2f7"><span class="inv-spec-txt" style="display:inline-block;max-width:100%">${esc(item.name)}</span></td>
         <td style="padding:7px 8px;text-align:center;font-weight:600;border:1px solid #eef2f7;color:${item.qty>=10?'#dc2626':item.qty>=5?'#3a5d8f':'#374151'}">${item.qty}</td>
         <td style="padding:7px 12px;text-align:right;color:#6b7280;border:1px solid #eef2f7">${fmt(item.normal)}</td>
         <td id="invbuy_${rid}" style="padding:7px 12px;text-align:right;color:#1B3A6B;font-weight:700;border:1px solid #eef2f7">${_b!=null?fmt(_b):'-'}</td>
@@ -9126,8 +9172,29 @@ function reloadState() {
     [bodyL, bodyM, bodyR].forEach(function(b){ if(!b) return; Array.prototype.forEach.call(b.querySelectorAll('tr[data-name]'), function(tr){ tr.onclick = function(){ openInvItem(tr.dataset.name); }; }); });
     if (totalEl) totalEl.innerHTML = '';
     if (count) count.textContent = q ? `${filtered.length} / ${ALL.length}개 품목` : `총 ${ALL.length}개 품목`;
+    try{ _invFitSpecCells(); }catch(_e){}
   }
   // 인라인 oninput 에서 호출되도록 전역 노출
+  function _invFitSpecCells(){
+    var small = window.innerWidth <= 700;
+    ['invBodyL','invBodyM','invBodyR'].forEach(function(bid){
+      var b=document.getElementById(bid); if(!b) return;
+      Array.prototype.forEach.call(b.querySelectorAll('td.inv-spec'), function(td){
+        var sp=td.querySelector('.inv-spec-txt'); if(!sp) return;
+        if(!small){ sp.style.fontSize=''; td.style.whiteSpace=''; return; }
+        td.style.whiteSpace='nowrap';
+        sp.style.whiteSpace='nowrap';
+        sp.style.fontSize='';
+        var cs=getComputedStyle(td);
+        var avail=td.clientWidth - parseFloat(cs.paddingLeft||0) - parseFloat(cs.paddingRight||0);
+        if(avail<=0) return;
+        var fs=13, guard=0;
+        while(sp.scrollWidth>avail && fs>8 && guard<40){ fs-=0.5; sp.style.fontSize=fs+'px'; guard++; }
+      });
+    });
+  }
+  window._invFitSpecCells=_invFitSpecCells;
+  window.addEventListener('resize', (function(){ var t; return function(){ clearTimeout(t); t=setTimeout(function(){ var pg=document.getElementById('pageInventory'); if(pg && pg.offsetParent!==null){ try{ _invFitSpecCells(); }catch(_e){} } }, 160); }; })());
   window.renderInventoryPage = renderInventoryPage;
   window.calcUnitPrice = function(){
     function roundUp10(x){ x = Math.round(x*1e6)/1e6; return x>0 ? Math.ceil(x/10)*10 : 0; }
