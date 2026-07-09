@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="20260708-24">
+  <meta name="app-build" content="20260709-1">
   <title>업무 관리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12762,6 +12762,7 @@ function reloadState() {
     _authUser = { id, name: u.name || id, role: u.role || 'user' };
     sessionStorage.setItem('sched_auth', JSON.stringify(_authUser));
     _authReveal();
+    try{ fbConnect({ dbUrl: _DEFAULT_FB_URL }); }catch(_rc){}
   }
   function _authRenderChip(){
     if(!_authUser) return;
@@ -12853,6 +12854,7 @@ function reloadState() {
       _authUser = { id, name: acc[id].name || id, role: acc[id].role || 'user' };
       sessionStorage.setItem('sched_auth', JSON.stringify(_authUser));
       _authReveal();
+      try{ fbConnect({ dbUrl: _DEFAULT_FB_URL }); }catch(_rc){}
     } else {
       showInfoModal('알림', '비밀번호가 변경되었습니다.');
     }
