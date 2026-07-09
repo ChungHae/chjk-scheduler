@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="20260708-21">
+  <meta name="app-build" content="20260708-24">
   <title>업무 관리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1612,6 +1612,18 @@
       #pageBiz .biz-filter-bar { width: 100% !important; min-width: 0 !important; }
       #pageBiz .biz-filter-bar input { flex: 1 1 100% !important; }
       #pageBiz .biz-filter-bar select { flex: 1 1 40% !important; min-width: 0; }
+      /* 개인일정: 작은 화면은 달력 대신 '오늘 일정' 뷰 */
+      #personalTodayMobile { display: block !important; margin-bottom: 12px; }
+      #personalWeekView, #personalListView, #personalCalNav { display: none !important; }
+      /* 개인일정 컨트롤바: 1줄=잔여연차(전폭), 2줄=연차현황·연차등록, 3줄=일정등록·업체관리 */
+      #pagePersonal > div:first-child { flex-wrap: wrap !important; gap: 6px !important; }
+      #personalVacBadge, #vacRemainBadge { order: 1 !important; flex: 1 1 100% !important; justify-content: center !important; box-sizing: border-box; }
+      #btnVacAdmin { order: 2 !important; }
+      #btnVacationApply { order: 3 !important; }
+      #btnEntryAdd { order: 4 !important; }
+      #btnClientMgr { order: 5 !important; }
+      #btnAssignSuggest { order: 6 !important; flex: 1 1 100% !important; box-sizing: border-box; text-align: center; }
+      #btnVacAdmin, #btnVacationApply, #btnEntryAdd, #btnClientMgr { flex: 1 1 45% !important; box-sizing: border-box; text-align: center; }
       /* 재고/매입처: 절반폭 바 → 풀폭, 3열 → 스택 */
       #pageInventory [style*="max-width:50%"], #pagePurchase [style*="max-width:50%"] { max-width:100% !important; flex-basis:100% !important; }
       #invColL, #invColM, #invColR { flex:1 1 100% !important; }
@@ -1936,6 +1948,8 @@
       </div>
       <div id="assignSuggestList" style="padding:10px 14px;display:flex;flex-direction:column;gap:5px;max-height:320px;overflow-y:auto"></div>
     </div>
+    <!-- 오늘 일정 (작은 화면 전용) -->
+    <div id="personalTodayMobile" style="display:none"></div>
     <!-- 월간 달력 (cal 모드 전용) -->
     <div id="personalWeekView" style="display:none;flex-direction:column;gap:10px"></div>
 
@@ -5492,7 +5506,7 @@ function reloadState() {
     var who=(typeof _authUser!=='undefined'&&_authUser&&_authUser.name)?_authUser.name:'';
     var vn=_qCart[0].vname||''; var vid=_qCart[0].vid||'';
     var ex=quoteSaved.find(function(x){ return x.id===_qLoadedId; });
-    if(ex){ ex.title=_qQuoteNo; ex.vname=vn; ex.vid=vid; ex.count=_qCart.length; ex.total=supply; ex.nego=_qNego; ex.memo=_qMemo; ex.savedBy=who; ex.cols=JSON.parse(JSON.stringify(_qCols||[])); }
+    if(ex){ ex.title=_qQuoteNo; ex.vname=vn; ex.vid=vid; ex.count=_qCart.length; ex.total=supply; ex.nego=_qNego; ex.memo=_qMemo; if(!ex.savedBy) ex.savedBy=who; ex.cols=JSON.parse(JSON.stringify(_qCols||[])); }
     else { quoteSaved.unshift({id:_qLoadedId, title:_qQuoteNo, vname:vn, vid:vid, count:_qCart.length, total:supply, nego:_qNego, memo:_qMemo, savedBy:who, savedAt:Date.now(), cols:JSON.parse(JSON.stringify(_qCols||[]))}); }
     try{ await _qsBlobPut(_qLoadedId, items); }catch(e){}
     saveAll();
@@ -10937,6 +10951,22 @@ function reloadState() {
   }
 
   // 리스트 뷰 렌더 — 활성(진행 중) 업무만 표시
+  function renderPersonalTodayMobile(selId){
+    var el = document.getElementById('personalTodayMobile'); if(!el) return;
+    var m = members.find(function(x){return x.id===selId;});
+    if(!m){ el.innerHTML=''; return; }
+    var today = new Date();
+    var DAY_KO = ['일','월','화','수','목','금','토'];
+    var dstr = (today.getMonth()+1)+'월 '+today.getDate()+'일 ('+DAY_KO[today.getDay()]+')';
+    var inner = '';
+    try{ inner = weekCellInner(m, today); }catch(_e){ inner=''; }
+    var isEmpty = !inner || inner.indexOf('cell-empty')>=0;
+    el.innerHTML =
+      '<div style="font-size:16px;font-weight:800;color:#14305c;margin-bottom:10px">📅 오늘 · '+dstr+'</div>'
+      +'<div onclick="openEntry(\''+m.id+'\',\''+dk(today)+'\')" style="background:#fff;border:1.5px solid #e5e9f0;border-radius:12px;padding:14px;min-height:80px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.05)">'
+      + (isEmpty ? '<div style="color:#9ca3af;font-size:13px;text-align:center;padding:16px 0">오늘 등록된 일정이 없습니다.<br>여기를 눌러 오늘 일정을 추가하세요.</div>' : '<div class="wk-rec-row" style="height:auto;overflow:visible">'+inner+'</div><div style="font-size:11px;color:#9ca3af;text-align:right;margin-top:8px">눌러서 추가/수정</div>')
+      +'</div>';
+  }
   function renderPersonalListView(selId) {
     const catSel = document.getElementById('plCat');
     if (catSel && !catSel._inited) {
@@ -11334,6 +11364,7 @@ function reloadState() {
 
     // 보기 모드 적용 + 리스트 렌더
     applyPersonalViewMode();
+    try{ renderPersonalTodayMobile(selId); }catch(_e){}
     if (personalViewMode === 'list' && !_calVacOnly) {
       renderPersonalListView(selId);
       renderAssignSuggestPanel(selId);
