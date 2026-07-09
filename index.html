@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="20260708-19">
+  <meta name="app-build" content="20260708-21">
   <title>업무 관리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1225,10 +1225,10 @@
     .wk-mem-row.weekend .wk-mem-col { background:#fafafa; }
     .wk-rec { padding:5px 12px; cursor:pointer; vertical-align:middle; }
     .wk-rec:hover { background:#f4f8fe; }
-    .wk-rec-row { display:flex; flex-direction:column; align-items:flex-start; justify-content:safe center; gap:4px; height:62px; overflow-y:auto; }
+    .wk-rec-row { display:flex; flex-direction:column; align-items:flex-start; justify-content:safe center; gap:4px; height:62px; overflow:hidden; }
     .wk-period { display:flex; align-items:flex-start; gap:6px; }
-    .wk-tasks { display:flex; flex-wrap:wrap; gap:3px 10px; align-items:center; flex:1; min-width:0; }
-    .wk-task-biz { color:#2f5288; font-weight:700; }
+    .wk-tasks { display:flex; flex-direction:column; gap:2px; align-items:stretch; flex:1; min-width:0; }
+    .wk-task-biz { color:#2f5288; font-weight:700; flex:0 0 auto; white-space:nowrap; }
     .wk-memo { padding:6px 10px; cursor:pointer; vertical-align:middle; border-right:1px solid #e9edf2; width:16%; }
     .wk-memo:hover { background:#f4f8fe; }
     .wk-memo-row { display:flex; flex-direction:column; gap:3px; align-items:stretch; height:62px; overflow:hidden; justify-content:safe center; }
@@ -1245,7 +1245,9 @@
     .wk-period-lbl { font-size:10px; font-weight:700; color:#4a6c99; background:#eef2f8; border-radius:4px; padding:1px 7px; align-self:flex-start; }
     .wk-bizgrp { display:flex; flex-direction:column; gap:1px; padding-left:8px; margin-top:1px; }
     .wk-biz { font-size:11px; font-weight:700; color:#2f5288; }
-    .wk-task { font-size:11.5px; color:#374151; display:inline-flex; align-items:center; gap:4px; line-height:1.4; }
+    .wk-task { font-size:11.5px; color:#374151; display:flex; align-items:center; gap:4px; line-height:1.4; min-width:0; max-width:100%; }
+    .wk-task-title { flex:1 1 auto; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .wk-more { font-size:11px; color:#9ca3af; font-weight:700; padding-left:2px; }
     .wk-task.done { color:#9ca3af; text-decoration:line-through; }
     .wk-task-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
     .wk-col-head { font-size:14px; font-weight:800; color:#14305c; padding:8px 13px; background:#f7f9fc; border:1px solid #e5e5e5; border-bottom:none; border-radius:10px 10px 0 0; }
@@ -1606,6 +1608,10 @@
       #fileSearch { flex:1 1 100% !important; }
       /* 업체별 일정: 1열 */
       #bizPageList { grid-template-columns: 1fr !important; }
+      /* 업체별 일정 거래처 검색창 전폭 */
+      #pageBiz .biz-filter-bar { width: 100% !important; min-width: 0 !important; }
+      #pageBiz .biz-filter-bar input { flex: 1 1 100% !important; }
+      #pageBiz .biz-filter-bar select { flex: 1 1 40% !important; min-width: 0; }
       /* 재고/매입처: 절반폭 바 → 풀폭, 3열 → 스택 */
       #pageInventory [style*="max-width:50%"], #pagePurchase [style*="max-width:50%"] { max-width:100% !important; flex-basis:100% !important; }
       #invColL, #invColM, #invColR { flex:1 1 100% !important; }
@@ -7636,16 +7642,22 @@ function reloadState() {
           if (daySched.length) {
             const _byP = { '오전':[], '오후':[], '종일':[] };
             daySched.forEach(s => { const _p=_periodOf(s.time); (_byP[_p]=_byP[_p]||[]).push(s); });
+            const _lim = daySched.length <= 3 ? 3 : 2; let _shownT = 0, _clipT = false;
             ['종일','오전','오후'].forEach(_p => {
+              if (_clipT) return;
               const _arr=_byP[_p]; if(!_arr||!_arr.length) return;
-              tb += `<div class="wk-period"><span class="wk-period-lbl">${_p}</span><div class="wk-tasks">`;
-              _arr.forEach(s => {
+              let _ph = '';
+              for (let _ti=0; _ti<_arr.length; _ti++) {
+                if (_shownT >= _lim) { _clipT = true; break; }
+                const s = _arr[_ti];
                 const cc = CAT_COLOR[s.category] || '#9ca3af';
                 const _biz = s.bizName ? `<span class="wk-task-biz">[${esc(s.bizName)}]</span> ` : '';
-                tb += `<span class="wk-task ${s.done?'done':''}"><span class="wk-task-dot" style="background:${s.done?'#aac4e6':cc}"></span>${_biz}${esc(s.title)}</span>`;
-              });
-              tb += `</div></div>`;
+                _ph += `<span class="wk-task ${s.done?'done':''}"><span class="wk-task-dot" style="background:${s.done?'#aac4e6':cc}"></span>${_biz}<span class="wk-task-title">${esc(s.title)}</span></span>`;
+                _shownT++;
+              }
+              if (_ph) tb += `<div class="wk-period"><span class="wk-period-lbl">${_p}</span><div class="wk-tasks">${_ph}</div></div>`;
             });
+            if (daySched.length > _shownT) tb += `<div class="wk-more">… 외 ${daySched.length - _shownT}건</div>`;
           }
           // 기존 데이터 하위 호환 표시 (projects/plans)
           if (!daySched.length) {
