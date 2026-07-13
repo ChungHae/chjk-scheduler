@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="stage-20260710-1">
+  <meta name="app-build" content="stage-20260710-2">
   <title>업무 관리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -3024,6 +3024,10 @@
 
   let _fbDbUrl = null;
   const _FB_PATH = _IS_STAGE ? 'teamdata_stage' : 'teamdata_test';
+  /* 계정·비밀번호·접근 허용목록은 스테이징에서도 정식과 공유한다.
+     (같은 직원이 같은 비번으로 로그인하고, Firebase 규칙의 허용목록도 한 곳에 모여 있어야 함)
+     업무 데이터(견적·가격·SMC·일정)만 _FB_PATH 로 분리된다. */
+  const _AUTH_BASE = 'teamdata_test';
   let _fbPollTimer = null;
   let _fbLastUpdatedAt = 0;
   let myMemberId = localStorage.getItem('sched_my_id') || '';
@@ -6538,8 +6542,8 @@ function reloadState() {
     try{
       var uid = firebase.auth().currentUser && firebase.auth().currentUser.uid;
       if(uid){
-        await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_authorized/${uid}.json`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(true)});
-        if(id) await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_authmap/${encodeURIComponent(String(id))}.json`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(uid)});
+        await _fbFetch(`${_fbDbUrl}/${_AUTH_BASE}_authorized/${uid}.json`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(true)});
+        if(id) await _fbFetch(`${_fbDbUrl}/${_AUTH_BASE}_authmap/${encodeURIComponent(String(id))}.json`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(uid)});
       }
     }catch(e){}
   }
@@ -6551,8 +6555,8 @@ function reloadState() {
       sec = firebase.initializeApp(_FB_CFG, appName);
       var cred = await sec.auth().createUserWithEmailAndPassword(email, pwHash);
       var uid = cred.user.uid;
-      await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_authorized/${uid}.json`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(true)});
-      await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_authmap/${encodeURIComponent(String(id))}.json`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(uid)});
+      await _fbFetch(`${_fbDbUrl}/${_AUTH_BASE}_authorized/${uid}.json`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(true)});
+      await _fbFetch(`${_fbDbUrl}/${_AUTH_BASE}_authmap/${encodeURIComponent(String(id))}.json`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(uid)});
       try{ await sec.auth().signOut(); }catch(_){}
     }catch(e){ /* email-already-in-use = 기존 계정, 이미 등록됨 */ }
     finally{ if(sec){ try{ await sec.delete(); }catch(_){} } }
@@ -6561,11 +6565,11 @@ function reloadState() {
   async function _fbRevokeAccount(id){
     if(!_fbAuthReady || !_fbDbUrl || !id) return;
     try{
-      var rr = await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_authmap/${encodeURIComponent(String(id))}.json`);
+      var rr = await _fbFetch(`${_fbDbUrl}/${_AUTH_BASE}_authmap/${encodeURIComponent(String(id))}.json`);
       var uid = rr.ok ? await rr.json() : null;
       if(uid){
-        await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_authorized/${uid}.json`, {method:'DELETE'});
-        await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_authmap/${encodeURIComponent(String(id))}.json`, {method:'DELETE'});
+        await _fbFetch(`${_fbDbUrl}/${_AUTH_BASE}_authorized/${uid}.json`, {method:'DELETE'});
+        await _fbFetch(`${_fbDbUrl}/${_AUTH_BASE}_authmap/${encodeURIComponent(String(id))}.json`, {method:'DELETE'});
       }
     }catch(e){}
   }
@@ -12728,7 +12732,7 @@ function reloadState() {
 
   /* ═════════════ 로그인 / 계정 관리 (개인별 ID) ═════════════ */
   const _AUTH_URL  = _DEFAULT_FB_URL;
-  const _AUTH_PATH = _FB_PATH + '_accounts';
+  const _AUTH_PATH = _AUTH_BASE + '_accounts';
   let _authUser = null;
   const _ADMIN_NAMES = ['chjk']; // chjk = 마스터 관리자(이름/아이디 기반 보장). 그 외는 저장된 권한을 따름
   function _isAdmin(){ return !!(_authUser && (_authUser.role==='admin' || _ADMIN_NAMES.indexOf((_authUser.name||'').trim())>=0)); }
