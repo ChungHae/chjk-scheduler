@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="stage-20260710-9">
+  <meta name="app-build" content="stage-20260710-10">
   <title>업무 관리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -4513,7 +4513,18 @@ function reloadState() {
     var rows=await _qBlobGet(id); _qRows=Array.isArray(rows)?rows:[];
     try{ await _ensurePriceSyncMap(); _applyPriceSyncToRows(_qRows); }catch(_e){}
     var sp=document.getElementById('qSpec'); if(sp) sp.value='';
+
+    // 거래처가 바뀌면 견적번호를 그 거래처 기준으로 다시 만든다 (불러온 저장 견적은 유지)
+    var _isSaved = _qLoadedId && quoteSaved.some(function(x){ return x.id===_qLoadedId; });
+    if(!_isSaved){
+      var _cartVid = _qCart.length ? _qCart[0].vid : null;
+      if(_cartVid !== id){ _qQuoteNo=null; _qLoadedId=null; _qCartSave(); }
+    }
+
     renderQResults(); renderQCart();
+
+    // 빈 목록이면 규격줄을 한 줄 만들고 바로 규격칸에 커서를 둔다
+    if(!_qCart.length && !_isViewer()){ _qAddManualRowNow(); }
   };
   window.qVendorKey = function(e){
     if(e.key!=='Enter' && e.key!=='Tab') return;
@@ -5871,7 +5882,7 @@ function reloadState() {
   }
   function _qEnsureQuoteNo(){
     if(!_qCart.length) return;
-    if(!_qQuoteNo){ _qQuoteNo=_qGenQuoteNo(_qCart[0].vname||'견적'); if(!_qLoadedId) _qLoadedId='q_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); _qCartSave(); }
+    if(!_qQuoteNo){ _qQuoteNo=_qGenQuoteNo(_qVName(_qCurId)||_qCart[0].vname||'견적'); if(!_qLoadedId) _qLoadedId='q_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); _qCartSave(); }
   }
   async function _qPersistQuote(){
     if(!_qCart.length) return;
@@ -6258,7 +6269,23 @@ function reloadState() {
     setTimeout(function(){ var rows=document.querySelectorAll('#qCart tbody tr'); var last=rows[rows.length-1]; if(last){ var inp=last.querySelector('input[data-mf="spec"]'); if(inp){ inp.focus(); inp.scrollIntoView({block:'center'}); } } },40);
   };
   window.qCartFieldNoRender = function(i, field, val){ if(!_qCart[i]) return; _qCart[i][field]=String(val==null?'':val); _qCartSave(); };
-  window.qCartField = function(i, field, val){ if(!_qCart[i]) return; var v=String(val==null?'':val).trim(); if(v===''){ _qCart[i][field]=null; } else { var num=Number(v.replace(/,/g,'')); _qCart[i][field]=isNaN(num)?null:num; } _qCartSave(); _qLedgerWriteBack(i); renderQCart(); };
+  window.qCartField = function(i, field, val){
+    var c=_qCart[i]; if(!c) return;
+    var v=String(val==null?'':val).trim();
+    var num=null;
+    if(v!==''){ var n0=Number(v.replace(/,/g,'')); num=isNaN(n0)?null:n0; }
+    if(field==='buy'){
+      // 구매가를 바꾸면 기존 마진율을 유지하도록 판매가를 다시 계산한다
+      var ob=(c.buy!=null&&c.buy!=='')?Number(c.buy):null;
+      var os=(c.sell!=null&&c.sell!=='')?Number(c.sell):null;
+      var mg=(ob!=null&&os!=null&&os>0)?(1-ob/os):null;
+      c.buy=num;
+      if(num!=null && mg!=null && mg<1) c.sell=_qCalcSell(num, mg);
+    } else {
+      c[field]=num;   // 판매가·E가는 그대로. 마진율·DC율·금액은 표시 시 자동 역산된다.
+    }
+    _qCartSave(); _qLedgerWriteBack(i); renderQCart();
+  };
   window.qCartOnce = function(i, on){ if(!_qCart[i]) return; _qCart[i].once=!!on; _qCartSave(); renderQCart(); };
   window.qCartCommit = function(i){ _qLedgerWriteBack(i); };
 
@@ -6306,7 +6333,7 @@ function reloadState() {
     var b=document.getElementById('qcsBox');
     if(!b){
       b=document.createElement('div'); b.id='qcsBox';
-      b.style.cssText='position:absolute;z-index:100099;background:#fff;border:1.5px solid #cdd8e6;border-radius:8px;box-shadow:0 8px 24px rgba(15,23,42,.16);max-height:270px;overflow-y:auto;display:none';
+      b.style.cssText='position:absolute;z-index:100099;background:#fff;border:1.5px solid #cdd8e6;border-radius:8px;box-shadow:0 8px 24px rgba(15,23,42,.16);max-height:172px;overflow-y:auto;display:none';   // 약 5줄 = 172px, 나머지는 스크롤
       document.body.appendChild(b);
       document.addEventListener('mousedown', function(e){
         if(b.style.display==='none') return;
@@ -6342,12 +6369,13 @@ function reloadState() {
       }
       return;
     }
-    var list=_qResolveMatches(q).slice(0,12);
+    var list=_qResolveMatches(q).slice(0,200);   // 5줄까지만 보이고 나머지는 스크롤
     _qcsCur=list; _qcsSel=-1;
     if(!list.length){ _qcsShow(el,'<div style="padding:10px 12px;font-size:12px;color:#bbb">일치하는 규격이 없습니다. (그대로 두면 새 규격으로 등록됩니다)</div>'); return; }
     var html=list.map(function(vw,ix){
       var r=vw.r, b=vw.badge;
-      var badge = b ? (' <span style="'+((b.kind==='cheap')?'background:#dbeafe;border:1px solid #bfdbfe;color:#1d4ed8':'background:#fef3c7;border:1px solid #fde68a;color:#b45309')+';font-size:10px;font-weight:700;border-radius:4px;padding:0 4px">'+esc(b.text)+'</span>') : '';
+      var _bt = (b && b.kind==='cheap') ? ('이 거래처 원장에 없거나 더 비쌉니다. '+(b.text||'')+' 원장의 구매가가 더 저렴합니다.') : ('이 거래처 원장에 없는 규격입니다. 등록된 거래처: '+((b&&b.title)||''));
+      var badge = b ? (' <span title="'+esc(_bt)+'" style="'+((b.kind==='cheap')?'background:#dbeafe;border:1px solid #bfdbfe;color:#1d4ed8':'background:#fef3c7;border:1px solid #fde68a;color:#b45309')+';font-size:10px;font-weight:700;border-radius:4px;padding:0 4px;cursor:help">'+esc(b.text)+'</span>') : '';
       var brand=(r.info&&r.info.maker)?('<span style="color:#94a3b8;font-size:11px;margin-left:5px">'+esc(r.info.maker)+'</span>'):'';
       return '<div class="qcs-it" data-ix="'+ix+'" onclick="qCartSpecPick('+i+','+ix+')" style="padding:7px 11px;cursor:pointer;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;gap:12px;align-items:center">'
         +'<span style="font-weight:700;color:#14305c;font-size:12.5px;white-space:nowrap">'+esc(r.spec)+badge+brand+'</span>'
@@ -6359,15 +6387,29 @@ function reloadState() {
     var b=document.getElementById('qcsBox'); if(!b) return;
     Array.prototype.forEach.call(b.querySelectorAll('.qcs-it'), function(e,ix){ e.style.background=(ix===_qcsSel)?'#f4f8fe':'#fff'; });
   }
+  function _qFocusSpec(i){
+    var trs=document.querySelectorAll('#qCart tbody tr');
+    var tr=trs[i]; if(!tr) return;
+    var inp=tr.querySelector('input[data-mf="spec"]');
+    if(inp){ inp.focus(); try{ inp.select(); }catch(_e){} try{ inp.scrollIntoView({block:'nearest'}); }catch(_e){} }
+  }
+  function _qCartNextRow(i){
+    if(i>=_qCart.length-1){ _qAddManualRowNow(); }             // 마지막 줄 → 새 줄 추가(커서 자동 이동)
+    else { setTimeout(function(){ _qFocusSpec(i+1); }, 30); }  // 아니면 다음 줄 규격칸으로
+  }
   window.qCartSpecKey = function(ev, i){
     var b=document.getElementById('qcsBox');
-    if(!b || b.style.display==='none' || !_qcsCur.length) return;
-    if(ev.key==='ArrowDown'){ ev.preventDefault(); _qcsSel=Math.min(_qcsSel+1,_qcsCur.length-1); _qcsHi(); }
-    else if(ev.key==='ArrowUp'){ ev.preventDefault(); _qcsSel=Math.max(_qcsSel-1,0); _qcsHi(); }
-    else if(ev.key==='Enter'){ ev.preventDefault(); qCartSpecPick(i, _qcsSel>=0?_qcsSel:0); }
-    else if(ev.key==='Escape'){ _qcsHide(); }
+    var open = !!(b && b.style.display!=='none' && _qcsCur.length);
+    if(ev.key==='ArrowDown'){ if(open){ ev.preventDefault(); _qcsSel=Math.min(_qcsSel+1,_qcsCur.length-1); _qcsHi(); } return; }
+    if(ev.key==='ArrowUp'){ if(open){ ev.preventDefault(); _qcsSel=Math.max(_qcsSel-1,0); _qcsHi(); } return; }
+    if(ev.key==='Escape'){ _qcsHide(); return; }
+    if(ev.key==='Enter'){
+      ev.preventDefault();
+      if(open){ qCartSpecPick(i, _qcsSel>=0?_qcsSel:0, true); }   // 후보 선택 후 다음 줄로
+      else { _qcsHide(); _qCartNextRow(i); }                      // 후보 없으면 그대로 다음 줄로
+    }
   };
-  window.qCartSpecPick = function(i, ix){
+  window.qCartSpecPick = function(i, ix, advance){
     var vw=_qcsCur[ix]; if(!vw) return;
     var c=_qCart[i]; if(!c) return;
     var r=vw.r;
@@ -6378,6 +6420,7 @@ function reloadState() {
     c.disc=r.disc||''; c.eta=r.eta||'';
     _qCartSave(); _qcsHide(); renderQCart();
     _qLedgerWriteBack(i);   // 일회성이 아니면 현재 거래처 원장에도 등록·갱신
+    if(advance) _qCartNextRow(i);
   };
   window._qNumInput = function(el){ var d=String(el.value||'').replace(/[^\d]/g,''); el.value = d?Number(d).toLocaleString():''; };
   window.openQAddModal = function(){ if(!_guardW()) return; _qOpenSpecModal('add', null); };
