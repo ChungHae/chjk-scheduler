@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="stage-20260710-4">
+  <meta name="app-build" content="stage-20260710-5">
   <title>업무 관리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -4116,11 +4116,16 @@ function reloadState() {
   var _qBlobCache = Object.create(null);
   function _qBlobCacheClear(){ _qBlobCache = Object.create(null); }
   var _priceBlobCache = Object.create(null);
-  async function _priceBlobPut(id, rows){ if(_isViewer()) return; if(!_fbDbUrl) throw new Error('동기화 연결 필요'); await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_price/${id}.json`, {method:'PUT', body:JSON.stringify(rows)}); try{ _priceBlobCache[id]=JSON.parse(JSON.stringify(rows)); }catch(e){ delete _priceBlobCache[id]; } }
+  async function _fbPutOk(url, body, what){
+    var res = await _fbFetch(url, {method:'PUT', body:JSON.stringify(body)});
+    if(!res || !res.ok){ var st=res?res.status:'네트워크'; throw new Error((what||'저장')+' 실패 (HTTP '+st+')'); }
+    return res;
+  }
+  async function _priceBlobPut(id, rows){ if(_isViewer()) return; if(!_fbDbUrl) throw new Error('동기화 연결 필요'); await _fbPutOk(`${_fbDbUrl}/${_FB_PATH}_price/${id}.json`, rows, '가격표'); try{ _priceBlobCache[id]=JSON.parse(JSON.stringify(rows)); }catch(e){ delete _priceBlobCache[id]; } }
   async function _priceBlobGet(id){ if(!_fbDbUrl) return null; if(id in _priceBlobCache){ try{ return JSON.parse(JSON.stringify(_priceBlobCache[id])); }catch(e){} } try{ const r=await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_price/${id}.json`); if(!r.ok) return null; const d=await r.json(); if(d!=null){ try{ _priceBlobCache[id]=JSON.parse(JSON.stringify(d)); }catch(e){} } return d; }catch(e){ return null; } }
   async function _priceBlobDel(id){ if(_isViewer()) return; delete _priceBlobCache[id]; if(!_fbDbUrl) return; try{ await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_price/${id}.json`, {method:'DELETE'}); }catch(e){} }
   var _smcBlobCache = Object.create(null);
-  async function _smcBlobPut(id, data){ if(_isViewer()) return; if(!_fbDbUrl) throw new Error('동기화 연결 필요'); await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_smc/${id}.json`, {method:'PUT', body:JSON.stringify(data)}); try{ _smcBlobCache[id]=JSON.parse(JSON.stringify(data)); }catch(e){ delete _smcBlobCache[id]; } }
+  async function _smcBlobPut(id, data){ if(_isViewer()) return; if(!_fbDbUrl) throw new Error('동기화 연결 필요'); await _fbPutOk(`${_fbDbUrl}/${_FB_PATH}_smc/${id}.json`, data, 'SMC'); try{ _smcBlobCache[id]=JSON.parse(JSON.stringify(data)); }catch(e){ delete _smcBlobCache[id]; } }
   async function _smcBlobGet(id){ if(!_fbDbUrl) return null; if(id in _smcBlobCache){ try{ return JSON.parse(JSON.stringify(_smcBlobCache[id])); }catch(e){} } try{ const r=await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_smc/${id}.json`); if(!r.ok) return null; const d=await r.json(); if(d!=null){ try{ _smcBlobCache[id]=JSON.parse(JSON.stringify(d)); }catch(e){} } return d; }catch(e){ return null; } }
   async function _smcBlobDel(id){ if(_isViewer()) return; delete _smcBlobCache[id]; if(!_fbDbUrl) return; try{ await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_smc/${id}.json`, {method:'DELETE'}); }catch(e){} }
   // ─ 가격표(SMC·CDC) E가 → 모든 거래처 원장 실시간 연동 (읽을 때 오버레이) ─
@@ -4134,7 +4139,7 @@ function reloadState() {
   }
   async function _ensurePriceSyncMap(force){ if(force||!_priceSyncReady||!_priceSyncMap){ try{ await _buildPriceSyncMap(); }catch(e){} } return _priceSyncMap; }
   function _applyPriceSyncToRows(rows){ if(!_priceSyncMap||!Array.isArray(rows)) return; rows.forEach(function(r){ if(!r||r.spec==null) return; var e=_priceSyncMap[_pKey(r.spec)]; if(e!=null){ r.e=e; if('dc' in r) delete r.dc; } }); }
-  async function _qBlobPut(id, rows){ if(_isViewer()) return; if(!_fbDbUrl) throw new Error('동기화 연결 필요'); await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_quote/${id}.json`, {method:'PUT', body:JSON.stringify(rows)}); try{ _qBlobCache[id] = JSON.parse(JSON.stringify(rows)); }catch(e){ delete _qBlobCache[id]; } }
+  async function _qBlobPut(id, rows){ if(_isViewer()) return; if(!_fbDbUrl) throw new Error('동기화 연결 필요'); await _fbPutOk(`${_fbDbUrl}/${_FB_PATH}_quote/${id}.json`, rows, '원장'); try{ _qBlobCache[id] = JSON.parse(JSON.stringify(rows)); }catch(e){ delete _qBlobCache[id]; } }
   async function _qBlobGet(id){ if(!_fbDbUrl) return null; if(id in _qBlobCache){ try{ return JSON.parse(JSON.stringify(_qBlobCache[id])); }catch(e){} } try{ const r=await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_quote/${id}.json`); if(!r.ok) return null; const d=await r.json(); if(d!=null){ try{ _qBlobCache[id]=JSON.parse(JSON.stringify(d)); }catch(e){} } return d; }catch(e){ return null; } }
   async function _qBlobDel(id){ if(_isViewer()) return; delete _qBlobCache[id]; if(!_fbDbUrl) return; try{ await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_quote/${id}.json`, {method:'DELETE'}); }catch(e){} }
   function _qFmt(n){ return (n==null||n==='')?'-':Math.round(Number(n)).toLocaleString(); }
@@ -5638,7 +5643,7 @@ function reloadState() {
     document.body.appendChild(wrap);
     if(_printMode){ try{ _qPrintDoc(wrap.innerHTML); }catch(_pe){} try{ wrap.remove(); }catch(_e){} return; }
   }
-  async function _qsBlobPut(id, items){ if(_isViewer()) return; if(!_fbDbUrl) throw new Error('동기화 연결 필요'); await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_qsaved/${id}.json`, {method:'PUT', body:JSON.stringify(items)}); }
+  async function _qsBlobPut(id, items){ if(_isViewer()) return; if(!_fbDbUrl) throw new Error('동기화 연결 필요'); await _fbPutOk(`${_fbDbUrl}/${_FB_PATH}_qsaved/${id}.json`, items, '저장견적'); }
   async function _qsBlobGet(id){ if(!_fbDbUrl) return null; try{ const r=await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_qsaved/${id}.json`); if(!r.ok) return null; return await r.json(); }catch(e){ return null; } }
   async function _qsBlobDel(id){ if(!_fbDbUrl) return; try{ await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_qsaved/${id}.json`, {method:'DELETE'}); }catch(e){} }
   function _qPrompt(title, label, defVal, onOk){
@@ -6711,7 +6716,13 @@ function reloadState() {
     try{
       var main = _fullBackupMain();
       var blobs = { quote:{}, price:{}, smc:{}, qsaved:{} };
-      for(var v of (quoteVendors||[])){ try{ var b=await _qBlobGet(v.id); if(b!=null) blobs.quote[v.id]=b; }catch(e){} }
+      var _missQ=[];
+      for(var v of (quoteVendors||[])){
+        var b=null; try{ b=await _qBlobGet(v.id); }catch(e){}
+        if(b==null){ try{ b=await _qBlobGet(v.id); }catch(e){} }   // 1회 재시도
+        if(b!=null) blobs.quote[v.id]=b;
+        else if((v.count||0)>0) _missQ.push(v.name||v.id);          // 규격이 있는데 못 읽음 = 진짜 실패
+      }
       for(var mk of (priceMakers||[])){ try{ var b2=await _priceBlobGet(mk.id); if(b2!=null) blobs.price[mk.id]=b2; }catch(e){} }
       for(var sm of (smcIndex||[])){ try{ var b3=await _smcBlobGet(sm.id); if(b3!=null) blobs.smc[sm.id]=b3; }catch(e){} }
       for(var qs of (quoteSaved||[])){ try{ var b4=await _qsBlobGet(qs.id); if(b4!=null) blobs.qsaved[qs.id]=b4; }catch(e){} }
@@ -6720,7 +6731,13 @@ function reloadState() {
       var url = URL.createObjectURL(blob); var a = document.createElement('a');
       a.href = url; a.download = 'chjk-full-backup-'+new Date().toISOString().slice(0,10)+'.json';
       a.click(); URL.revokeObjectURL(url);
-      showInfoModal('💾 전체 백업 완료', '재고·견적 원장·가격표·SMC·매입처·미수금·거래처·일정 등\n전체 데이터를 파일로 저장했습니다.\n\n※ 자료실 파일 원본과 계정 정보는 제외됩니다.');
+      if(_missQ.length){
+        showInfoModal('⚠️ 백업 완료 (일부 누락)',
+          '파일은 저장했지만 아래 거래처의 원장을 읽지 못해 백업에서 빠졌습니다.\n다시 백업하거나, 해당 거래처는 원장 엑셀로 따로 받아두세요.\n\n'
+          + _missQ.slice(0,15).join('\n') + (_missQ.length>15?('\n… 외 '+(_missQ.length-15)+'곳'):''));
+      } else {
+        showInfoModal('💾 전체 백업 완료', '재고·견적 원장·가격표·SMC·매입처·미수금·거래처·일정 등\n전체 데이터를 파일로 저장했습니다.\n\n※ 자료실 파일 원본과 계정 정보는 제외됩니다.');
+      }
     }catch(e){ showInfoModal('백업 실패', String(e&&e.message||e)); }
     finally{ btn.textContent=_lbl; btn.disabled=false; }
   });
@@ -6739,13 +6756,23 @@ function reloadState() {
             Object.keys(data.main).forEach(function(k){ save(k, data.main[k]); });
             reloadState(); applyConfig();
             var bl = data.blobs||{};
-            for(var id in (bl.quote||{})){ try{ await _qBlobPut(id, bl.quote[id]); }catch(_){} }
-            for(var id2 in (bl.price||{})){ try{ await _priceBlobPut(id2, bl.price[id2]); }catch(_){} }
-            for(var id3 in (bl.smc||{})){ try{ await _smcBlobPut(id3, bl.smc[id3]); }catch(_){} }
-            for(var id4 in (bl.qsaved||{})){ try{ await _qsBlobPut(id4, bl.qsaved[id4]); }catch(_){} }
+            var _rFail=[];
+            var _vName=function(id){ var v=(quoteVendors||[]).find(function(x){return x.id===id;}); return v&&v.name?v.name:id; };
+            var _try=async function(fn, label){ try{ await fn(); }catch(e1){ try{ await fn(); }catch(e2){ _rFail.push(label+' — '+(e2&&e2.message||e2)); } } };
+            for(var id in (bl.quote||{})){ await _try(function(){ return _qBlobPut(id, bl.quote[id]); }, '원장/'+_vName(id)); }
+            for(var id2 in (bl.price||{})){ await _try(function(){ return _priceBlobPut(id2, bl.price[id2]); }, '가격표/'+id2); }
+            for(var id3 in (bl.smc||{})){ await _try(function(){ return _smcBlobPut(id3, bl.smc[id3]); }, 'SMC/'+id3); }
+            for(var id4 in (bl.qsaved||{})){ await _try(function(){ return _qsBlobPut(id4, bl.qsaved[id4]); }, '저장견적/'+id4); }
             saveAll(); if(typeof doFbSave==='function'){ try{ await doFbSave(); }catch(_){} }
             render();
-            showInfoModal('📂 전체 복원 완료', '복원이 끝났습니다. Ctrl+F5로 새로고침하면 모두 반영됩니다.');
+            if(_rFail.length){
+              showInfoModal('⚠️ 복원 완료 (일부 실패)',
+                _rFail.length+'건이 저장되지 않았습니다. 아래 항목은 다시 복원하거나 엑셀로 개별 업로드하세요.\n\n'
+                + _rFail.slice(0,15).join('\n') + (_rFail.length>15?('\n… 외 '+(_rFail.length-15)+'건'):'')
+                + '\n\n나머지는 정상 복원됐습니다. Ctrl+F5로 새로고침하세요.');
+            } else {
+              showInfoModal('📂 전체 복원 완료', '복원이 끝났습니다. Ctrl+F5로 새로고침하면 모두 반영됩니다.');
+            }
           }catch(err){ showInfoModal('복원 실패', String(err&&err.message||err)); }
         }, '전체 복원', '#dc2626');
       } else if (data && data.members && data.entries){
