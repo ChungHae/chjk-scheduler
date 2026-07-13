@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="stage-20260710-5">
+  <meta name="app-build" content="stage-20260710-6">
   <title>업무 관리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2160,6 +2160,7 @@
       <button class="btn" id="qXlsxBtn" onclick="qOpenXlsxUpload()" style="display:none;width:132px;box-sizing:border-box;text-align:center;padding:6px 4px;font-size:12px;white-space:nowrap;font-weight:600;border:1.5px solid #16a34a;color:#16a34a">📤 원장 업로드</button>
       <button class="btn" id="qXlsxDlBtn" onclick="qOpenXlsxDownload()" style="display:none;width:132px;box-sizing:border-box;text-align:center;padding:6px 4px;font-size:12px;white-space:nowrap;font-weight:600;border:1.5px solid #1B3A6B;color:#1B3A6B">⬇ 원장 다운로드</button>
       <button class="btn" id="qBrandFillBtn" onclick="qBrandAutoFill()" style="display:none;width:150px;box-sizing:border-box;text-align:center;padding:6px 4px;font-size:12px;white-space:nowrap;font-weight:600;border:1.5px solid #7c3aed;color:#7c3aed">🏷 브랜드 자동채우기</button>
+      <button class="btn" id="qBrandDelBtn" onclick="qBrandRemove()" style="display:none;width:132px;box-sizing:border-box;text-align:center;padding:6px 4px;font-size:12px;white-space:nowrap;font-weight:600;border:1.5px solid #dc2626;color:#dc2626">🧹 브랜드 제거</button>
       <button class="btn" id="qLoadBtn" onclick="qOpenLoad()" style="width:132px;box-sizing:border-box;text-align:center;padding:6px 4px;font-size:12px;white-space:nowrap;font-weight:600;border:1.5px solid #1a1a1a;color:#1a1a1a">📂 견적 불러오기</button>
       <button class="btn" id="qSaveBtn" onclick="qSaveQuote()" style="width:132px;box-sizing:border-box;text-align:center;padding:6px 4px;font-size:12px;white-space:nowrap;font-weight:600;border:1.5px solid #1a1a1a;color:#1a1a1a">💾 견적 저장하기</button>
     </div>
@@ -4153,6 +4154,7 @@ function reloadState() {
     var xb=document.getElementById('qXlsxBtn'); if(xb) xb.style.display='';
     var xdb=document.getElementById('qXlsxDlBtn'); if(xdb) xdb.style.display='';
     var bfb=document.getElementById('qBrandFillBtn'); if(bfb) bfb.style.display=admin?'':'none';
+    var bdb=document.getElementById('qBrandDelBtn'); if(bdb) bdb.style.display=admin?'':'none';
     if(_qCurId){ var v=quoteVendors.find(x=>x.id===_qCurId); if(v) inp.value=v.name; }
     var res=document.getElementById('qResults');
     if(!quoteVendors.length){ res.innerHTML='<div style="text-align:center;padding:60px 20px;color:#bbb;font-size:14px">등록된 원장이 없습니다.</div>'; }
@@ -4409,6 +4411,94 @@ function reloadState() {
       _qbfShow(false);
       showInfoModal('🏷 브랜드 자동 채우기','실패: '+(e&&e.message||String(e)));
     }
+  };
+
+  // ─ 브랜드 일괄 제거: 특정 브랜드를 전체 원장에서 지움 (자동채우기 되돌리기용) ─
+  window.qBrandRemove = async function(){
+    if(!_guardW()) return;
+    if(!_isAdmin()){ showInfoModal('🔒 권한','브랜드 제거는 관리자만 가능합니다.'); return; }
+    if(!_fbDbUrl){ showInfoModal('☁️ 동기화 필요','팀 동기화 연결이 필요합니다.'); return; }
+    if(!(quoteVendors||[]).length){ showInfoModal('🧹 브랜드 제거','등록된 원장이 없습니다.'); return; }
+
+    _qbfShow(true);
+    var cache={}, counts={};
+    try{
+      for(var j=0;j<quoteVendors.length;j++){
+        var v=quoteVendors[j];
+        _qbfMsg('원장 읽는 중… ('+(j+1)+'/'+quoteVendors.length+')\n'+(v.name||''));
+        var rows=null; try{ rows=await _qBlobGet(v.id); }catch(_e){}
+        if(!Array.isArray(rows)) continue;
+        cache[v.id]=rows;
+        rows.forEach(function(r){
+          var b=(r&&r.info&&r.info.maker)?String(r.info.maker).trim():'';
+          if(b) counts[b]=(counts[b]||0)+1;
+        });
+      }
+    }catch(e){ _qbfShow(false); showInfoModal('🧹 브랜드 제거','실패: '+(e&&e.message||String(e))); return; }
+    _qbfShow(false);
+
+    var brands=Object.keys(counts).sort(function(a,b){ return counts[b]-counts[a]; });
+    if(!brands.length){ showInfoModal('🧹 브랜드 제거','입력된 브랜드가 없습니다.'); return; }
+
+    // 브랜드 선택 모달
+    var ov=document.getElementById('qbdOverlay');
+    if(!ov){
+      ov=document.createElement('div'); ov.id='qbdOverlay';
+      ov.style.cssText='position:fixed;inset:0;z-index:100098;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px';
+      document.body.appendChild(ov);
+    }
+    ov.innerHTML='<div style="width:100%;max-width:420px;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 14px 44px rgba(27,58,107,.25)">'
+      +'<div style="padding:16px 20px;border-bottom:2px solid #dc2626;font-size:15px;font-weight:700;color:#dc2626">🧹 브랜드 제거</div>'
+      +'<div style="padding:16px 20px">'
+      +'<div style="font-size:12.5px;color:#6b7280;line-height:1.7;margin-bottom:12px">제거할 브랜드를 고르세요. 전체 원장에서 그 브랜드 값만 지웁니다.<br>규격·가격 등 다른 자료는 건드리지 않습니다.</div>'
+      +'<div style="display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto">'
+      + brands.map(function(b){
+          return '<button class="btn" onclick="_qBrandDoRemove('+JSON.stringify(b).replace(/"/g,'&quot;')+')" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:9px 12px;font-size:13px;border:1.5px solid #e5e7eb;background:#fff;border-radius:8px;cursor:pointer">'
+               +'<span style="font-weight:700;color:#14305c">'+esc(b)+'</span><span style="color:#9ca3af;font-size:12px">'+counts[b]+'건</span></button>';
+        }).join('')
+      +'</div></div>'
+      +'<div style="padding:12px 20px 18px;text-align:right"><button class="btn" onclick="document.getElementById(\'qbdOverlay\').style.display=\'none\'" style="padding:7px 16px;font-size:13px">닫기</button></div>'
+      +'</div>';
+    ov.style.display='flex';
+    _qbdCache=cache;
+  };
+  var _qbdCache=null;
+  window._qBrandDoRemove = function(brand){
+    var ov=document.getElementById('qbdOverlay'); if(ov) ov.style.display='none';
+    var cache=_qbdCache||{};
+    var plan=[], total=0;
+    (quoteVendors||[]).forEach(function(v){
+      var rows=cache[v.id]; if(!Array.isArray(rows)) return;
+      var n=0;
+      rows.forEach(function(r){ if(r&&r.info&&String(r.info.maker||'').trim()===brand) n++; });
+      if(n>0){ plan.push({id:v.id, name:v.name||'', rows:rows, n:n}); total+=n; }
+    });
+    if(!total){ showInfoModal('🧹 브랜드 제거','"'+brand+'" 브랜드가 있는 행이 없습니다.'); return; }
+    var detail=plan.slice(0,12).map(function(x){ return '· '+x.name+' : '+x.n+'건'; }).join('\n');
+    if(plan.length>12) detail+='\n… 외 '+(plan.length-12)+'곳';
+
+    showConfirmModal('🧹 브랜드 제거',
+      '"'+brand+'" 브랜드를 전체 원장에서 지웁니다.\n(브랜드 값만 비웁니다. 규격·가격은 그대로)\n\n대상: '+total+'건 ('+plan.length+'개 거래처)\n\n'+detail,
+      function(){
+        (async function(){
+          _qbfShow(true);
+          var done=0, fail=0;
+          for(var k=0;k<plan.length;k++){
+            var p=plan[k];
+            _qbfMsg('저장 중… ('+(k+1)+'/'+plan.length+')\n'+p.name);
+            p.rows.forEach(function(r){
+              if(!r||!r.info) return;
+              if(String(r.info.maker||'').trim()!==brand) return;
+              delete r.info.maker;
+              if(!Object.keys(r.info).length) delete r.info;   // 빈 info 는 정리
+            });
+            try{ await _qBlobPut(p.id, p.rows); done++; }catch(_e){ fail++; }
+          }
+          _qbfShow(false);
+          showInfoModal('🧹 완료', '"'+brand+'" 브랜드를 '+done+'개 거래처에서 지웠습니다. (총 '+total+'건)'+(fail?('\n\n저장 실패: '+fail+'곳'):''));
+          if(_qCurId){ try{ await selectQVendor(_qCurId); }catch(_e){} }
+        })();
+      }, '제거', '#dc2626');
   };
 
   window.selectQVendor = async function(id){
