@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="stage-20260710-10">
+  <meta name="app-build" content="stage-20260710-13">
   <title>업무 관리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -4503,7 +4503,31 @@ function reloadState() {
       }, '제거', '#dc2626');
   };
 
+  // 작성 중인 내용이 있는가 (빈 규격줄만 있으면 '없음'으로 본다)
+  function _qCartHasContent(){
+    return (_qCart||[]).some(function(c){
+      if(!c) return false;
+      return String(c.spec||'').trim()!=='' || String(c.name||'').trim()!=='' ||
+             (c.buy!=null&&c.buy!=='') || (c.sell!=null&&c.sell!=='') || (c.e!=null&&c.e!=='');
+    });
+  }
   window.selectQVendor = async function(id){
+    var cartVid = _qCart.length ? _qCart[0].vid : null;
+    var clear = (cartVid !== id);       // 거래처가 바뀌면 견적 목록을 비운다
+    if(clear && _qCartHasContent()){
+      var dd0=document.getElementById('qVendorDropdown'); if(dd0) dd0.style.display='none';
+      var inp0=document.getElementById('qVendorSearch'); if(inp0) inp0.value=_qVName(cartVid);   // 취소하면 원래 거래처 유지
+      showConfirmModal('🧾 거래처 변경',
+        '작성 중인 견적이 있습니다.\n비우고 "'+esc(_qVName(id))+'"(으)로 새로 시작할까요?\n\n엔터: 새로 시작 · ESC: 취소',
+        function(){ _qSelectVendorNow(id, true); }, '비우고 새로 시작', '#dc2626');
+      return;
+    }
+    await _qSelectVendorNow(id, clear);
+  };
+  async function _qSelectVendorNow(id, clear){
+    if(clear){   // 견적 목록·견적번호 전부 초기화
+      _qCart=[]; _qQuoteNo=null; _qLoadedId=null; _qNego=null; _qMemo=''; _qCols=[]; _qCartSave();
+    }
     _qCurId=id; _qRows=[];
     var v=quoteVendors.find(x=>x.id===id);
     var inp=document.getElementById('qVendorSearch'); if(inp&&v) inp.value=v.name;
@@ -4514,18 +4538,11 @@ function reloadState() {
     try{ await _ensurePriceSyncMap(); _applyPriceSyncToRows(_qRows); }catch(_e){}
     var sp=document.getElementById('qSpec'); if(sp) sp.value='';
 
-    // 거래처가 바뀌면 견적번호를 그 거래처 기준으로 다시 만든다 (불러온 저장 견적은 유지)
-    var _isSaved = _qLoadedId && quoteSaved.some(function(x){ return x.id===_qLoadedId; });
-    if(!_isSaved){
-      var _cartVid = _qCart.length ? _qCart[0].vid : null;
-      if(_cartVid !== id){ _qQuoteNo=null; _qLoadedId=null; _qCartSave(); }
-    }
-
     renderQResults(); renderQCart();
 
     // 빈 목록이면 규격줄을 한 줄 만들고 바로 규격칸에 커서를 둔다
     if(!_qCart.length && !_isViewer()){ _qAddManualRowNow(); }
-  };
+  }
   window.qVendorKey = function(e){
     if(e.key!=='Enter' && e.key!=='Tab') return;
     var inp=document.getElementById('qVendorSearch'); var q=_qNorm(inp.value); if(!q) return;
@@ -5888,6 +5905,7 @@ function reloadState() {
     if(!_qCart.length) return;
     _qEnsureQuoteNo();
     if(!_fbDbUrl) return;
+    try{ await _qFlushLedgerFromCart(); }catch(_le){}   // 견적이 저장될 때만 원장(구매가·판매가) 갱신
     var items=JSON.parse(JSON.stringify(_qCart));
     var supply=0; _qCart.forEach(function(c){ var qy=Number(c.qty)||1; if(c.sell!=null&&c.sell!=='') supply+=Number(c.sell)*qy; });
     var who=(typeof _authUser!=='undefined'&&_authUser&&_authUser.name)?_authUser.name:'';
@@ -6284,32 +6302,26 @@ function reloadState() {
     } else {
       c[field]=num;   // 판매가·E가는 그대로. 마진율·DC율·금액은 표시 시 자동 역산된다.
     }
-    _qCartSave(); _qLedgerWriteBack(i); renderQCart();
+    _qCartSave(); renderQCart();
   };
   window.qCartOnce = function(i, on){ if(!_qCart[i]) return; _qCart[i].once=!!on; _qCartSave(); renderQCart(); };
-  window.qCartCommit = function(i){ _qLedgerWriteBack(i); };
+  window.qCartCommit = function(i){ /* 원장 반영은 견적 저장 시점에만 (일괄) */ };
 
-  // ─ 견적목록 편집 → 원장(마스터 단가) 갱신. '일회성' 체크된 행은 원장을 건드리지 않는다. ─
-  var _qWbTimer=null, _qWbPend={};
-  function _qLedgerWriteBack(i){
-    var c=_qCart[i]; if(!c) return;
-    if(c.once) return;                 // 일회성 → 이 견적에만 적용
-    if(!_qCurId || _isViewer()) return;
-    if(!String(c.spec||'').trim()) return;
-    _qWbPend[i]=1;
-    if(_qWbTimer) clearTimeout(_qWbTimer);
-    _qWbTimer=setTimeout(function(){ _qWbFlush(); }, 600);
-  }
-  async function _qWbFlush(){
-    var idxs=Object.keys(_qWbPend); _qWbPend={};
-    if(!idxs.length || !_qCurId) return;
+  // ─ 견적목록 편집 → 원장(마스터 단가) 갱신 ────────────────────────────
+  // 편집하는 즉시 반영하지 않는다. '견적 저장하기' 또는 '견적 다운로드'로
+  // 견적이 실제로 저장되는 시점(_qPersistQuote)에만 일괄 반영한다.
+  // '일회성' 체크된 행은 어떤 경우에도 원장을 건드리지 않는다.
+  async function _qFlushLedgerFromCart(){
+    if(!_qCurId || _isViewer() || !_fbDbUrl) return;
+    var cartVid=_qCart.length ? _qCart[0].vid : '';
+    if(!cartVid || cartVid!==_qCurId) return;   // 현재 선택한 거래처의 원장만 갱신
     var changed=false;
-    idxs.forEach(function(ix){
-      var c=_qCart[Number(ix)]; if(!c || c.once) return;
+    _qCart.forEach(function(c){
+      if(!c || c.once) return;                 // 일회성 → 이 견적에만 적용
       var k=_qNorm(c.spec); if(!k) return;
       var row=_qRows.find(function(r){ return _qNorm(r.spec)===k; });
       var hasData=(c.buy!=null&&c.buy!=='')||(c.sell!=null&&c.sell!=='')||(c.e!=null&&c.e!=='');
-      if(!row && !hasData) return;     // 값 없는 부분 입력은 원장에 등록하지 않음
+      if(!row && !hasData) return;              // 값 없는 부분 입력은 원장에 등록하지 않음
       if(!row){ row={spec:c.spec}; _qRows.push(row); }
       row.spec=c.spec;
       row.name=c.name||'';
@@ -6324,7 +6336,7 @@ function reloadState() {
       await _qBlobPut(_qCurId, _qRows);
       var v=quoteVendors.find(function(x){ return x.id===_qCurId; });
       if(v){ v.count=_qRows.length; saveAll(); }
-    }catch(e){ showInfoModal('원장 저장 실패', (e&&e.message||String(e))+'\n\n견적 목록의 값은 그대로 유지됩니다.'); }
+    }catch(e){ showInfoModal('원장 저장 실패', (e&&e.message||String(e))+'\n\n견적 자체는 저장됩니다.'); }
   }
 
   // ─ 견적목록 규격 자동완성 (통합 검색 규칙 + SMC 불변 조건 그대로 적용) ─
@@ -6419,7 +6431,6 @@ function reloadState() {
     c.sell=(r.sell!=null&&r.sell!=='')?Number(r.sell):null;
     c.disc=r.disc||''; c.eta=r.eta||'';
     _qCartSave(); _qcsHide(); renderQCart();
-    _qLedgerWriteBack(i);   // 일회성이 아니면 현재 거래처 원장에도 등록·갱신
     if(advance) _qCartNextRow(i);
   };
   window._qNumInput = function(el){ var d=String(el.value||'').replace(/[^\d]/g,''); el.value = d?Number(d).toLocaleString():''; };
