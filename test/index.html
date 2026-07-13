@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="stage-20260710-7">
+  <meta name="app-build" content="stage-20260710-8">
   <title>업무 관리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -4534,8 +4534,27 @@ function reloadState() {
   // ─ 통합 검색: 전체 거래처 원장 인덱스 ─────────────────────────
   var _qAllIdx=null, _qAllReady=false, _qAllLoading=false;
   var _qForeignRows=[];   // 이번 검색에 표시된 타거래처 행 (담기·정보 조회용)
+  var _qSmcSet=null;      // SMC 규격 집합 (SMC 가격표 기준)
+  // ── 불변 조건: SMC 규격은 '현재 거래처에 등록된 것'만 노출한다. 타 거래처 원장에서 끌어오지 않는다. ──
+  async function _qBuildSmcSet(){
+    var set={};
+    var mks=(priceMakers||[]).filter(function(m){ return String(m.name||'').toUpperCase().indexOf('SMC')>=0; });
+    for(var i=0;i<mks.length;i++){
+      var rows=null; try{ rows=await _priceBlobGet(mks[i].id); }catch(_e){}
+      if(!Array.isArray(rows)) continue;
+      rows.forEach(function(r){ var k=_qNorm(r&&r.spec); if(k) set[k]=1; });
+    }
+    _qSmcSet=set; return set;
+  }
+  function _qIsSmc(r, key){
+    var mk=String((r&&r.info&&r.info.maker)||'').toUpperCase();
+    if(mk.indexOf('SMC')>=0) return true;                 // 브랜드가 SMC
+    if(_qSmcSet && key && _qSmcSet[key]) return true;     // 브랜드가 비어 있어도 SMC 가격표에 있으면 SMC
+    return false;
+  }
   async function _qBuildAllIdx(){
     var idx={};
+    try{ await _qBuildSmcSet(); }catch(_e){}
     for(var i=0;i<(quoteVendors||[]).length;i++){
       var v=quoteVendors[i];
       var rows=null; try{ rows=await _qBlobGet(v.id); }catch(_e){}
@@ -4612,6 +4631,15 @@ function reloadState() {
     keys.forEach(function(k){
       var own=ownByKey[k]||[];
       var others=(_qAllIdx[k]||[]).filter(function(e){ return e.vid!==_qCurId; });
+
+      // ── SMC 불변 조건 ──────────────────────────────────────
+      // SMC 규격은 현재 거래처 원장에 등록된 것만 보여준다.
+      // 타 거래처에만 있으면 아예 표시하지 않고, 타 거래처가 더 싸도 대체하지 않는다.
+      var _smc = own.some(function(r){ return _qIsSmc(r,k); }) || others.some(function(e){ return _qIsSmc(e.r,k); });
+      if(_smc){
+        if(own.length){ view.push({r:_qCheapest(own).item||own[0], badge:null}); }
+        return;
+      }
 
       if(own.length && !others.length){                       // 내 원장에만 → 그대로
         view.push({r:_qCheapest(own).item||own[0], badge:null});
