@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="stage-20260710-2">
+  <meta name="app-build" content="stage-20260710-3">
   <title>업무 관리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -4155,7 +4155,7 @@ function reloadState() {
   window.renderEstimatePage = renderEstimatePage;
 
   function _qBuildLedgerWs(rows){
-      var aoa=[['규격','품명','E가 (기준가)','DC율','구매가','마진율','판매가','예상 납기','메이커','구매처','구매링크','비고']];
+      var aoa=[['규격','품명','E가 (기준가)','DC율','구매가','마진율','판매가','예상 납기','브랜드','구매처','구매링크','비고']];
       rows.forEach(function(r){
         var dc=_qDcOf(r.e,r.buy); var hasSell=(r.sell!=null&&r.sell!=='');
         var mg=hasSell?_qMarginOf(r.buy,r.sell):null;
@@ -4353,10 +4353,11 @@ function reloadState() {
       if(r.disc){ if(/[가-힣]/.test(r.disc)){ sellCell='<span style="color:#dc2626;font-weight:700">'+esc(r.disc)+'</span>'; } else { var alt=String(r.disc).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); sellCell='<span style="color:#dc2626;font-weight:700">단종/변경</span> <span style="color:#9ca3af">→</span> <a onclick="qResearch(\''+alt+'\')" style="color:#1B3A6B;font-weight:700;cursor:pointer;text-decoration:underline">'+esc(r.disc)+'</a>'; } }
       else { sellCell=_qFmt(r.sell); }
       var addBtn='<button onclick="qAddToCart(\''+r._rid+'\')" title="견적에 추가" style="border:none;background:#1B3A6B;color:#fff;border-radius:6px;font-size:12px;padding:3px 8px;cursor:pointer;white-space:nowrap">＋ 추가</button>';
-      var infoBtn=(r.info&&Object.keys(r.info).length)?('<button class="qm-h" onclick="qShowInfo(\''+r._rid+'\')" title="추가 정보 (메이커·구매처·구매링크·비고)" style="border:1px solid #cdd8e6;background:#eef4fb;color:#1B3A6B;border-radius:6px;font-size:12px;padding:3px 7px;cursor:pointer;margin-right:3px">ℹ️</button>'):'';
+      var infoBtn=(r.info&&Object.keys(r.info).length)?('<button class="qm-h" onclick="qShowInfo(\''+r._rid+'\')" title="추가 정보 (브랜드·구매처·구매링크·비고)" style="border:1px solid #cdd8e6;background:#eef4fb;color:#1B3A6B;border-radius:6px;font-size:12px;padding:3px 7px;cursor:pointer;margin-right:3px">ℹ️</button>'):'';
       var actAdmin = true ? (' <button onclick="qEditRow(\''+r._rid+'\')" title="수정" style="border:1px solid #e5e5e5;background:#fff;border-radius:6px;font-size:11px;padding:3px 7px;cursor:pointer">✏️</button> <button onclick="qDelRow(\''+r._rid+'\')" title="삭제" style="border:1px solid #fecaca;background:#fff5f5;border-radius:6px;font-size:11px;padding:3px 7px;cursor:pointer;color:#dc2626">🗑</button>') : '';
       return `<tr style="border-bottom:1px solid #eef2f7">
         <td class="qm-h" style="padding:8px 10px;color:#6b7280">${esc(r.name||'')}</td>
+        <td class="qm-h qm-brand" style="padding:8px 10px;white-space:nowrap">${(r.info&&r.info.maker)?('<span style="color:#14305c;font-weight:600">'+esc(r.info.maker)+'</span>'):'<span style="color:#cbd5e1">미입력</span>'}</td>
         <td class="qm-spec" style="padding:8px 10px;font-weight:700;color:#14305c;white-space:nowrap">${esc(r.spec)}</td>
         <td style="padding:8px 10px;text-align:right;color:#6b7280">${_qFmt(r.e)}</td>
         <td class="qm-h" style="padding:8px 10px;text-align:right;font-weight:700;color:#2f5288">${_qFmt(r.buy)}</td>
@@ -4367,9 +4368,9 @@ function reloadState() {
         <td style="padding:6px 10px;text-align:center;white-space:nowrap">${infoBtn}${addBtn}${actAdmin}</td>
       </tr>`;
     }).join('');
-    res.innerHTML=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;min-width:860px">
+    res.innerHTML=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;min-width:950px">
       <thead><tr style="background:#1B3A6B;color:#fff">
-        <th class="qm-h" style="padding:8px 10px;text-align:left">품명</th><th style="padding:8px 10px;text-align:left;white-space:nowrap">규격</th>
+        <th class="qm-h" style="padding:8px 10px;text-align:left">품명</th><th class="qm-h" style="padding:8px 10px;text-align:left;white-space:nowrap">브랜드</th><th style="padding:8px 10px;text-align:left;white-space:nowrap">규격</th>
         <th style="padding:8px 10px;text-align:right">E가</th><th class="qm-h" style="padding:8px 10px;text-align:right">구매가</th>
         <th style="padding:8px 10px;text-align:right">판매가</th><th class="qm-h" style="padding:8px 10px;text-align:right">DC율</th>
         <th class="qm-h" style="padding:8px 10px;text-align:right">마진율</th><th class="qm-h" style="padding:8px 10px;text-align:center;white-space:nowrap">예상납기</th><th style="padding:8px 10px;text-align:center">담기</th>
@@ -4443,7 +4444,7 @@ function reloadState() {
       return '<div style="display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid #f0f3f7"><span style="flex:0 0 70px;font-size:12px;color:#8a94a6;font-weight:700">'+label+'</span><span style="flex:1;min-width:0"><a href="'+esc(url)+'" target="_blank" rel="noopener" style="display:inline-block;background:#1B3A6B;color:#fff;border-radius:7px;font-size:12px;font-weight:700;padding:6px 14px;cursor:pointer;text-decoration:none">🔗 바로가기</a></span></div>';
     };
     var _pl=i.link||i.makerUrl||i.srcUrl||'';
-    var body=line('메이커',i.maker)+line('구매처',i.src)+linkRow('구매링크',_pl)+line('비고',i.remark);
+    var body=line('브랜드',i.maker)+line('구매처',i.src)+linkRow('구매링크',_pl)+line('비고',i.remark);
     if(!body) body='<div style="color:#bbb;font-size:12px;padding:10px 0">추가 정보가 없습니다.</div>';
     var ov=document.getElementById('qInfoOverlay');
     if(!ov){ ov=document.createElement('div'); ov.id='qInfoOverlay'; ov.style.cssText='position:fixed;inset:0;z-index:100096;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px'; document.body.appendChild(ov); ov.addEventListener('click',function(e){ if(e.target===ov) ov.style.display='none'; }); }
@@ -5827,7 +5828,7 @@ function reloadState() {
       var cName=_m?('<input value="'+esc(c.name||'')+'" oninput="qCartFieldNoRender('+i+',\'name\',this.value)" style="'+_iC+'">'):esc(c.name||'');
       var cSpec=(_m?('<input data-mf="spec" value="'+esc(c.spec||'')+'" oninput="qCartFieldNoRender('+i+',\'spec\',this.value)" style="'+_iC+'">'):esc(c.spec))+(c.changed?' <span style="font-size:9px;color:#dc2626;font-weight:700;background:#fef2f2;border:1px solid #fecaca;border-radius:4px;padding:1px 4px;white-space:nowrap;vertical-align:middle">단종/변경</span>':'');
       var cEta=_m?('<input value="'+esc(c.eta||'')+'" oninput="qCartFieldNoRender('+i+',\'eta\',this.value)" style="'+_iC+'">'):(c.eta?esc(c.eta):'-');
-      var cInfo=_cartInfo[_qRowKey(c.spec)]?('<button onclick="qShowInfoSpec('+i+')" title="추가 정보 (메이커·구매처·구매링크·비고)" style="border:1px solid #cdd8e6;background:#eef4fb;color:#1B3A6B;border-radius:5px;font-size:11px;line-height:1;padding:2px 3px;cursor:pointer">ℹ️</button>'):'<span style="color:#d5dbe3">·</span>';
+      var cInfo=_cartInfo[_qRowKey(c.spec)]?('<button onclick="qShowInfoSpec('+i+')" title="추가 정보 (브랜드·구매처·구매링크·비고)" style="border:1px solid #cdd8e6;background:#eef4fb;color:#1B3A6B;border-radius:5px;font-size:11px;line-height:1;padding:2px 3px;cursor:pointer">ℹ️</button>'):'<span style="color:#d5dbe3">·</span>';
       var cE=_m?('<input value="'+(c.e!=null?_qFmt(c.e):'')+'" inputmode="numeric" oninput="_qNumInput(this)" onchange="qCartField('+i+',\'e\',this.value)" style="'+_iR+'">'):_qFmt(c.e);
       var cBuy=_m?('<input value="'+(c.buy!=null?_qFmt(c.buy):'')+'" inputmode="numeric" oninput="_qNumInput(this)" onchange="qCartField('+i+',\'buy\',this.value)" style="'+_iR+'">'):_qFmt(c.buy);
       var cSell=_m?('<input value="'+(c.sell!=null?_qFmt(c.sell):'')+'" inputmode="numeric" oninput="_qNumInput(this)" onchange="qCartField('+i+',\'sell\',this.value)" style="'+_iR+'">'):sellTxt;
@@ -5989,7 +5990,7 @@ function reloadState() {
       +'<div style="font-size:11px;color:#9ca3af">구매가·판매가 ↔ DC율·마진율은 서로 자동 계산됩니다.</div>'
       +'<div><div style="font-size:12px;color:#888;margin-bottom:4px">예상납기</div><input id="qsEta" value="'+esc(eta)+'" placeholder="예: 재고 있음 (3일 예상)" style="'+inS+'"></div>'
       +'<div style="border-top:1px solid #eef2f7;padding-top:11px;font-size:11px;color:#8a94a6;font-weight:700">🔗 추가 정보 (선택 · 작성 화면 ℹ️로만 표시, 견적서엔 미노출)</div>'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><div style="font-size:12px;color:#888;margin-bottom:4px">메이커</div><input id="qsMaker" value="'+esc(info.maker||'')+'" style="'+inS+'"></div><div><div style="font-size:12px;color:#888;margin-bottom:4px">구매처</div><input id="qsSrc" value="'+esc(info.src||'')+'" style="'+inS+'"></div></div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><div style="font-size:12px;color:#888;margin-bottom:4px">브랜드</div><input id="qsMaker" value="'+esc(info.maker||'')+'" style="'+inS+'"></div><div><div style="font-size:12px;color:#888;margin-bottom:4px">구매처</div><input id="qsSrc" value="'+esc(info.src||'')+'" style="'+inS+'"></div></div>'
       +'<div><div style="font-size:12px;color:#888;margin-bottom:4px">구매 링크 (URL)</div><input id="qsLink" value="'+esc(info.link||'')+'" placeholder="https://..." style="'+inS+'"></div>'
       +'<div><div style="font-size:12px;color:#888;margin-bottom:4px">비고</div><input id="qsRemark" value="'+esc(info.remark||'')+'" style="'+inS+'"></div>'
       +'<div style="border-top:1px solid #eef2f7;padding-top:11px"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#14305c;font-weight:600"><input type="checkbox" id="qsDisc" '+(isDisc?'checked':'')+' onchange="qsToggleDisc()" style="width:16px;height:16px">🚫 이 규격은 단종/변경됨</label><div id="qsDiscBox" style="display:'+(isDisc?'':'none')+';margin-top:9px"><div style="font-size:12px;color:#888;margin-bottom:4px">대체 규격 (있으면 입력 · 비우면 "단종")</div><input id="qsDiscVal" value="'+esc(discVal)+'" placeholder="예: 대체 품번" style="'+inS+'"></div></div>'
