@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="stage-20260710-6">
+  <meta name="app-build" content="stage-20260710-7">
   <title>업무 관리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -4140,7 +4140,7 @@ function reloadState() {
   }
   async function _ensurePriceSyncMap(force){ if(force||!_priceSyncReady||!_priceSyncMap){ try{ await _buildPriceSyncMap(); }catch(e){} } return _priceSyncMap; }
   function _applyPriceSyncToRows(rows){ if(!_priceSyncMap||!Array.isArray(rows)) return; rows.forEach(function(r){ if(!r||r.spec==null) return; var e=_priceSyncMap[_pKey(r.spec)]; if(e!=null){ r.e=e; if('dc' in r) delete r.dc; } }); }
-  async function _qBlobPut(id, rows){ if(_isViewer()) return; if(!_fbDbUrl) throw new Error('동기화 연결 필요'); await _fbPutOk(`${_fbDbUrl}/${_FB_PATH}_quote/${id}.json`, rows, '원장'); try{ _qBlobCache[id] = JSON.parse(JSON.stringify(rows)); }catch(e){ delete _qBlobCache[id]; } }
+  async function _qBlobPut(id, rows){ if(_isViewer()) return; if(!_fbDbUrl) throw new Error('동기화 연결 필요'); await _fbPutOk(`${_fbDbUrl}/${_FB_PATH}_quote/${id}.json`, rows, '원장'); try{ _qBlobCache[id] = JSON.parse(JSON.stringify(rows)); }catch(e){ delete _qBlobCache[id]; } try{ _qInvalidateAllIdx(); }catch(e){} }
   async function _qBlobGet(id){ if(!_fbDbUrl) return null; if(id in _qBlobCache){ try{ return JSON.parse(JSON.stringify(_qBlobCache[id])); }catch(e){} } try{ const r=await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_quote/${id}.json`); if(!r.ok) return null; const d=await r.json(); if(d!=null){ try{ _qBlobCache[id]=JSON.parse(JSON.stringify(d)); }catch(e){} } return d; }catch(e){ return null; } }
   async function _qBlobDel(id){ if(_isViewer()) return; delete _qBlobCache[id]; if(!_fbDbUrl) return; try{ await _fbFetch(`${_fbDbUrl}/${_FB_PATH}_quote/${id}.json`, {method:'DELETE'}); }catch(e){} }
   function _qFmt(n){ return (n==null||n==='')?'-':Math.round(Number(n)).toLocaleString(); }
@@ -4531,38 +4531,121 @@ function reloadState() {
     if(dd && inp && e.target!==inp && !dd.contains(e.target)) dd.style.display='none';
   });
 
+  // ─ 통합 검색: 전체 거래처 원장 인덱스 ─────────────────────────
+  var _qAllIdx=null, _qAllReady=false, _qAllLoading=false;
+  var _qForeignRows=[];   // 이번 검색에 표시된 타거래처 행 (담기·정보 조회용)
+  async function _qBuildAllIdx(){
+    var idx={};
+    for(var i=0;i<(quoteVendors||[]).length;i++){
+      var v=quoteVendors[i];
+      var rows=null; try{ rows=await _qBlobGet(v.id); }catch(_e){}
+      if(!Array.isArray(rows)) continue;
+      try{ _applyPriceSyncToRows(rows); }catch(_e){}
+      rows.forEach(function(r){
+        if(!r||r.spec==null) return;
+        var k=_qNorm(r.spec); if(!k) return;
+        (idx[k]=idx[k]||[]).push({vid:v.id, vname:v.name||'', r:r});
+      });
+    }
+    _qAllIdx=idx; _qAllReady=true; return idx;
+  }
+  async function _qEnsureAllIdx(){ if(!_qAllReady||!_qAllIdx){ await _qBuildAllIdx(); } return _qAllIdx; }
+  function _qInvalidateAllIdx(){ _qAllReady=false; _qAllIdx=null; }
+  function _qBuyNum(r){ if(!r||r.buy==null||r.buy==='') return null; var n=Number(r.buy); return (isFinite(n)&&n>0)?n:null; }
+  function _qCheapest(arr){   // 구매가 최저 항목 (구매가 없으면 후순위)
+    var best=null, bv=null;
+    arr.forEach(function(x){
+      var v=_qBuyNum(x.r!==undefined?x.r:x);
+      if(v==null) return;
+      if(bv==null || v<bv){ bv=v; best=x; }
+    });
+    return {item: best || arr[0] || null, buy: bv};
+  }
+
+  function _qResultRowHtml(r, badgeHtml, foreign){
+    var dc=(r.dc!=null&&r.dc!=='')?Number(r.dc):_qDcOf(r.e,r.buy);
+    var mg=r.disc?null:((r.margin!=null&&r.margin!=='')?Number(r.margin):_qMarginOf(r.buy,r.sell));
+    var sellCell;
+    if(r.disc){ if(/[가-힣]/.test(r.disc)){ sellCell='<span style="color:#dc2626;font-weight:700">'+esc(r.disc)+'</span>'; } else { var alt=String(r.disc).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); sellCell='<span style="color:#dc2626;font-weight:700">단종/변경</span> <span style="color:#9ca3af">→</span> <a onclick="qResearch(\''+alt+'\')" style="color:#1B3A6B;font-weight:700;cursor:pointer;text-decoration:underline">'+esc(r.disc)+'</a>'; } }
+    else { sellCell=_qFmt(r.sell); }
+    var addBtn='<button onclick="qAddToCart(\''+r._rid+'\')" title="견적에 추가" style="border:none;background:#1B3A6B;color:#fff;border-radius:6px;font-size:12px;padding:3px 8px;cursor:pointer;white-space:nowrap">＋ 추가</button>';
+    var infoBtn=(r.info&&Object.keys(r.info).length)?('<button class="qm-h" onclick="qShowInfo(\''+r._rid+'\')" title="추가 정보 (브랜드·구매처·구매링크·비고)" style="border:1px solid #cdd8e6;background:#eef4fb;color:#1B3A6B;border-radius:6px;font-size:12px;padding:3px 7px;cursor:pointer;margin-right:3px">ℹ️</button>'):'';
+    // 타 거래처 원장의 행은 여기서 수정·삭제하지 않는다 (다른 거래처 자료를 건드리게 되므로)
+    var actAdmin = foreign ? '' : (' <button onclick="qEditRow(\''+r._rid+'\')" title="수정" style="border:1px solid #e5e5e5;background:#fff;border-radius:6px;font-size:11px;padding:3px 7px;cursor:pointer">✏️</button> <button onclick="qDelRow(\''+r._rid+'\')" title="삭제" style="border:1px solid #fecaca;background:#fff5f5;border-radius:6px;font-size:11px;padding:3px 7px;cursor:pointer;color:#dc2626">🗑</button>');
+    return `<tr style="border-bottom:1px solid #eef2f7${foreign?';background:#fcfdff':''}">
+      <td class="qm-h" style="padding:8px 10px;color:#6b7280">${esc(r.name||'')}</td>
+      <td class="qm-h qm-brand" style="padding:8px 10px;white-space:nowrap">${(r.info&&r.info.maker)?('<span style="color:#14305c;font-weight:600">'+esc(r.info.maker)+'</span>'):'<span style="color:#cbd5e1">미입력</span>'}</td>
+      <td class="qm-spec" style="padding:8px 10px;font-weight:700;color:#14305c;white-space:nowrap">${esc(r.spec)}${badgeHtml||''}</td>
+      <td style="padding:8px 10px;text-align:right;color:#6b7280">${_qFmt(r.e)}</td>
+      <td class="qm-h" style="padding:8px 10px;text-align:right;font-weight:700;color:#2f5288">${_qFmt(r.buy)}</td>
+      <td style="padding:8px 10px;text-align:${r.disc?'left':'right'};font-weight:700;color:#1B3A6B">${sellCell}</td>
+      <td class="qm-h" style="padding:8px 10px;text-align:right;color:#0d9488">${_qPct(dc)}</td>
+      <td class="qm-h" style="padding:8px 10px;text-align:right;color:#e08a1e">${r.disc?'-':_qPct(mg)}</td>
+      <td class="qm-h" style="padding:8px 10px;text-align:center;color:#6b7280;white-space:nowrap">${r.eta?esc(r.eta):'-'}</td>
+      <td style="padding:6px 10px;text-align:center;white-space:nowrap">${infoBtn}${addBtn}${actAdmin}</td>
+    </tr>`;
+  }
   window.renderQResults = function(){
     var res=document.getElementById('qResults'); if(!res||!_qCurId) return;
     var admin=_isAdmin();
     var q=_qNorm(document.getElementById('qSpec').value);
-    if(!_qRows.length){ res.innerHTML='<div style="text-align:center;padding:30px;color:#bbb;font-size:13px">이 거래처의 원장 데이터가 없습니다.</div>'; return; }
     if(!q){ res.innerHTML='<div style="text-align:center;padding:22px;color:#bbb;font-size:13px">규격(품번)을 입력해 검색한 뒤 <b style="color:#1B3A6B">＋ 추가</b>로 견적에 담으세요. (Enter 시 단일 일치 자동 추가)</div>'; return; }
+    if(!_qAllReady){
+      res.innerHTML='<div style="text-align:center;padding:30px;color:#888;font-size:13px">전체 원장 불러오는 중…</div>';
+      if(!_qAllLoading){ _qAllLoading=true; _qEnsureAllIdx().then(function(){ _qAllLoading=false; renderQResults(); }).catch(function(){ _qAllLoading=false; }); }
+      return;
+    }
     _qRows.forEach(function(r){ if(!r._rid) r._rid='q'+(_qRidSeq++); });
-    var list=_qRows.filter(function(r){ return _qNorm(r.spec).indexOf(q)>=0; });
-    var totalN=list.length; list=list.slice(0,300);
-    if(!list.length){ res.innerHTML='<div style="text-align:center;padding:30px;color:#bbb;font-size:13px">일치하는 규격이 없습니다.</div>'; return; }
-    var body=list.map(function(r){
-      var dc=(r.dc!=null&&r.dc!=='')?Number(r.dc):_qDcOf(r.e,r.buy);
-      var mg=r.disc?null:((r.margin!=null&&r.margin!=='')?Number(r.margin):_qMarginOf(r.buy,r.sell));
-      var sellCell;
-      if(r.disc){ if(/[가-힣]/.test(r.disc)){ sellCell='<span style="color:#dc2626;font-weight:700">'+esc(r.disc)+'</span>'; } else { var alt=String(r.disc).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); sellCell='<span style="color:#dc2626;font-weight:700">단종/변경</span> <span style="color:#9ca3af">→</span> <a onclick="qResearch(\''+alt+'\')" style="color:#1B3A6B;font-weight:700;cursor:pointer;text-decoration:underline">'+esc(r.disc)+'</a>'; } }
-      else { sellCell=_qFmt(r.sell); }
-      var addBtn='<button onclick="qAddToCart(\''+r._rid+'\')" title="견적에 추가" style="border:none;background:#1B3A6B;color:#fff;border-radius:6px;font-size:12px;padding:3px 8px;cursor:pointer;white-space:nowrap">＋ 추가</button>';
-      var infoBtn=(r.info&&Object.keys(r.info).length)?('<button class="qm-h" onclick="qShowInfo(\''+r._rid+'\')" title="추가 정보 (브랜드·구매처·구매링크·비고)" style="border:1px solid #cdd8e6;background:#eef4fb;color:#1B3A6B;border-radius:6px;font-size:12px;padding:3px 7px;cursor:pointer;margin-right:3px">ℹ️</button>'):'';
-      var actAdmin = true ? (' <button onclick="qEditRow(\''+r._rid+'\')" title="수정" style="border:1px solid #e5e5e5;background:#fff;border-radius:6px;font-size:11px;padding:3px 7px;cursor:pointer">✏️</button> <button onclick="qDelRow(\''+r._rid+'\')" title="삭제" style="border:1px solid #fecaca;background:#fff5f5;border-radius:6px;font-size:11px;padding:3px 7px;cursor:pointer;color:#dc2626">🗑</button>') : '';
-      return `<tr style="border-bottom:1px solid #eef2f7">
-        <td class="qm-h" style="padding:8px 10px;color:#6b7280">${esc(r.name||'')}</td>
-        <td class="qm-h qm-brand" style="padding:8px 10px;white-space:nowrap">${(r.info&&r.info.maker)?('<span style="color:#14305c;font-weight:600">'+esc(r.info.maker)+'</span>'):'<span style="color:#cbd5e1">미입력</span>'}</td>
-        <td class="qm-spec" style="padding:8px 10px;font-weight:700;color:#14305c;white-space:nowrap">${esc(r.spec)}</td>
-        <td style="padding:8px 10px;text-align:right;color:#6b7280">${_qFmt(r.e)}</td>
-        <td class="qm-h" style="padding:8px 10px;text-align:right;font-weight:700;color:#2f5288">${_qFmt(r.buy)}</td>
-        <td style="padding:8px 10px;text-align:${r.disc?'left':'right'};font-weight:700;color:#1B3A6B">${sellCell}</td>
-        <td class="qm-h" style="padding:8px 10px;text-align:right;color:#0d9488">${_qPct(dc)}</td>
-        <td class="qm-h" style="padding:8px 10px;text-align:right;color:#e08a1e">${r.disc?'-':_qPct(mg)}</td>
-        <td class="qm-h" style="padding:8px 10px;text-align:center;color:#6b7280;white-space:nowrap">${r.eta?esc(r.eta):'-'}</td>
-        <td style="padding:6px 10px;text-align:center;white-space:nowrap">${infoBtn}${addBtn}${actAdmin}</td>
-      </tr>`;
+
+    // 내 원장(현재 거래처) 키맵 — 수정/삭제가 되도록 _qRows 객체를 그대로 쓴다
+    var ownByKey={};
+    _qRows.forEach(function(r){ var k=_qNorm(r.spec); if(!k) return; (ownByKey[k]=ownByKey[k]||[]).push(r); });
+
+    // 검색어에 걸리는 모든 규격 키 (내 원장 + 타 거래처)
+    var keySet={};
+    Object.keys(ownByKey).forEach(function(k){ if(k.indexOf(q)>=0) keySet[k]=1; });
+    Object.keys(_qAllIdx||{}).forEach(function(k){ if(k.indexOf(q)>=0) keySet[k]=1; });
+    var keys=Object.keys(keySet).sort();
+
+    _qForeignRows=[];
+    var view=[];
+    keys.forEach(function(k){
+      var own=ownByKey[k]||[];
+      var others=(_qAllIdx[k]||[]).filter(function(e){ return e.vid!==_qCurId; });
+
+      if(own.length && !others.length){                       // 내 원장에만 → 그대로
+        view.push({r:_qCheapest(own).item||own[0], badge:null});
+        return;
+      }
+      if(!own.length && others.length){                       // 타 거래처에만 → '타업체'
+        var pick=_qCheapest(others).item; if(!pick) return;
+        view.push({r:pick.r, badge:{text:'타업체', title:pick.vname, kind:'other'}, foreign:true});
+        return;
+      }
+      if(own.length && others.length){                        // 양쪽 다 → 구매가 저렴한 쪽
+        var ob=_qCheapest(own), tb=_qCheapest(others);
+        if(tb.buy!=null && (ob.buy==null || tb.buy<ob.buy)){  // 타 거래처가 더 저렴 → 거래처명 표시
+          view.push({r:tb.item.r, badge:{text:tb.item.vname||'타업체', title:'구매가 더 저렴: '+(tb.item.vname||''), kind:'cheap'}, foreign:true});
+        } else {                                              // 내 원장이 저렴(또는 동일) → 그대로
+          view.push({r:ob.item||own[0], badge:null});
+        }
+      }
+    });
+
+    var totalN=view.length; view=view.slice(0,300);
+    if(!view.length){ res.innerHTML='<div style="text-align:center;padding:30px;color:#bbb;font-size:13px">일치하는 규격이 없습니다.</div>'; return; }
+
+    var body=view.map(function(vw){
+      var r=vw.r, badge=vw.badge, foreign=!!vw.foreign;
+      if(foreign){ if(!r._rid) r._rid='f'+(_qRidSeq++); _qForeignRows.push(r); }
+      var badgeHtml='';
+      if(badge){
+        var bg=(badge.kind==='cheap')?'background:#dbeafe;border:1px solid #bfdbfe;color:#1d4ed8':'background:#fef3c7;border:1px solid #fde68a;color:#b45309';
+        badgeHtml=' <span title="'+esc(badge.title||'')+'" style="'+bg+';font-size:10.5px;font-weight:700;border-radius:5px;padding:1px 5px;white-space:nowrap;vertical-align:1px">'+esc(badge.text)+'</span>';
+      }
+      return _qResultRowHtml(r, badgeHtml, foreign);
     }).join('');
+
     res.innerHTML=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;min-width:950px">
       <thead><tr style="background:#1B3A6B;color:#fff">
         <th class="qm-h" style="padding:8px 10px;text-align:left">품명</th><th class="qm-h" style="padding:8px 10px;text-align:left;white-space:nowrap">브랜드</th><th style="padding:8px 10px;text-align:left;white-space:nowrap">규격</th>
@@ -4611,8 +4694,9 @@ function reloadState() {
     if(ex){ _qShowDupChoice(r, ex); }
     else { _qPushCartNew(r); }
   }
+  function _qFindViewRow(rid){ return _qRows.find(function(x){return x._rid===rid;}) || (_qForeignRows||[]).find(function(x){return x._rid===rid;}) || null; }
   window.qAddToCart = function(rid){ if(!_guardW()) return;
-    var r=_qRows.find(function(x){return x._rid===rid;}); if(!r) return;
+    var r=_qFindViewRow(rid); if(!r) return;
     if(_qCart.length && _qCart[0].vid !== _qCurId){
       showConfirmModal('🧾 거래처 변경', '견적 목록에 이미 "'+esc(_qCart[0].vname)+'" 거래처가 담겨 있습니다. 견적 목록을 모두 비우고 "'+esc(_qVName(_qCurId))+'"(으)로 새로 시작할까요?', function(){ _qCart=[]; _qLoadedId=null; _qQuoteNo=null; _qNego=null; _qMemo=''; _qPushCart(r); }, '비우고 시작', '#dc2626');
       return;
@@ -4620,7 +4704,7 @@ function reloadState() {
     _qPushCart(r);
   };
   window.qShowInfo = function(rid){
-    var r=_qRows.find(function(x){return x._rid===rid;}); if(!r||!r.info) return;
+    var r=_qFindViewRow(rid); if(!r||!r.info) return;
     _qInfoPopup(r.info, r.spec);
   };
   window.qShowInfoSpec = function(idx){
