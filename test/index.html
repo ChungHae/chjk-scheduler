@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="stage-20260710-3">
+  <meta name="app-build" content="stage-20260710-4">
   <title>업무 관리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2159,6 +2159,7 @@
       <button class="btn" id="qAddBtn" onclick="openQAddModal()" style="display:none;font-size:12px;white-space:nowrap">＋ 규격 추가</button>
       <button class="btn" id="qXlsxBtn" onclick="qOpenXlsxUpload()" style="display:none;width:132px;box-sizing:border-box;text-align:center;padding:6px 4px;font-size:12px;white-space:nowrap;font-weight:600;border:1.5px solid #16a34a;color:#16a34a">📤 원장 업로드</button>
       <button class="btn" id="qXlsxDlBtn" onclick="qOpenXlsxDownload()" style="display:none;width:132px;box-sizing:border-box;text-align:center;padding:6px 4px;font-size:12px;white-space:nowrap;font-weight:600;border:1.5px solid #1B3A6B;color:#1B3A6B">⬇ 원장 다운로드</button>
+      <button class="btn" id="qBrandFillBtn" onclick="qBrandAutoFill()" style="display:none;width:150px;box-sizing:border-box;text-align:center;padding:6px 4px;font-size:12px;white-space:nowrap;font-weight:600;border:1.5px solid #7c3aed;color:#7c3aed">🏷 브랜드 자동채우기</button>
       <button class="btn" id="qLoadBtn" onclick="qOpenLoad()" style="width:132px;box-sizing:border-box;text-align:center;padding:6px 4px;font-size:12px;white-space:nowrap;font-weight:600;border:1.5px solid #1a1a1a;color:#1a1a1a">📂 견적 불러오기</button>
       <button class="btn" id="qSaveBtn" onclick="qSaveQuote()" style="width:132px;box-sizing:border-box;text-align:center;padding:6px 4px;font-size:12px;white-space:nowrap;font-weight:600;border:1.5px solid #1a1a1a;color:#1a1a1a">💾 견적 저장하기</button>
     </div>
@@ -4146,6 +4147,7 @@ function reloadState() {
     var ab=document.getElementById('qAddBtn'); if(ab) ab.style.display=(_qCurId)?'':'none';
     var xb=document.getElementById('qXlsxBtn'); if(xb) xb.style.display='';
     var xdb=document.getElementById('qXlsxDlBtn'); if(xdb) xdb.style.display='';
+    var bfb=document.getElementById('qBrandFillBtn'); if(bfb) bfb.style.display=admin?'':'none';
     if(_qCurId){ var v=quoteVendors.find(x=>x.id===_qCurId); if(v) inp.value=v.name; }
     var res=document.getElementById('qResults');
     if(!quoteVendors.length){ res.innerHTML='<div style="text-align:center;padding:60px 20px;color:#bbb;font-size:14px">등록된 원장이 없습니다.</div>'; }
@@ -4306,6 +4308,104 @@ function reloadState() {
       saveAll(); if(typeof doFbSave==='function') doFbSave(); renderEstimatePage();
     }, '삭제', '#dc2626');
   };
+  // ─ 브랜드 자동 채우기: 가격표(메이커별) 규격 ↔ 원장 규격 매칭 → 빈 브랜드만 채움 ─
+  function _qbfShow(show){
+    var ov=document.getElementById('qbfOverlay');
+    if(!ov){
+      ov=document.createElement('div'); ov.id='qbfOverlay';
+      ov.style.cssText='position:fixed;inset:0;z-index:100097;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px';
+      ov.innerHTML='<div style="width:100%;max-width:400px;background:#fff;border-radius:14px;padding:20px 22px;box-shadow:0 14px 44px rgba(27,58,107,.25);text-align:center">'
+        +'<div style="font-size:15px;font-weight:700;color:#1B3A6B;margin-bottom:10px">🏷 브랜드 자동 채우기</div>'
+        +'<div id="qbfMsg" style="font-size:13px;color:#475569;line-height:1.6">준비 중…</div></div>';
+      document.body.appendChild(ov);
+    }
+    ov.style.display = show ? 'flex' : 'none';
+    return ov;
+  }
+  function _qbfMsg(t){ var e=document.getElementById('qbfMsg'); if(e) e.textContent=t; }
+
+  window.qBrandAutoFill = async function(){
+    if(!_guardW()) return;
+    if(!_isAdmin()){ showInfoModal('🔒 권한','브랜드 자동 채우기는 관리자만 가능합니다.'); return; }
+    if(!_fbDbUrl){ showInfoModal('☁️ 동기화 필요','팀 동기화 연결이 필요합니다.'); return; }
+    if(!(priceMakers||[]).length){ showInfoModal('🏷 브랜드 자동 채우기','등록된 가격표(메이커)가 없습니다.\n\n"가격 확인" 탭에서 가격표를 먼저 올려주세요.'); return; }
+    if(!(quoteVendors||[]).length){ showInfoModal('🏷 브랜드 자동 채우기','등록된 원장이 없습니다.'); return; }
+
+    _qbfShow(true);
+    try{
+      // (1) 규격 → 브랜드 맵. 같은 규격이 여러 브랜드에 있으면 '모호'로 보고 건너뛴다(오배정 방지).
+      var owner={}, ambig={};
+      for(var i=0;i<priceMakers.length;i++){
+        var m=priceMakers[i];
+        _qbfMsg('가격표 읽는 중… ('+(i+1)+'/'+priceMakers.length+')\n'+(m.name||''));
+        var prows=null; try{ prows=await _priceBlobGet(m.id); }catch(_e){}
+        if(!Array.isArray(prows)) continue;
+        var mn=String(m.name||'').trim(); if(!mn) continue;
+        prows.forEach(function(r){
+          var k=_qNorm(r&&r.spec); if(!k) return;
+          if(!(k in owner)) owner[k]=mn;
+          else if(owner[k]!==mn) ambig[k]=1;
+        });
+      }
+      Object.keys(ambig).forEach(function(k){ delete owner[k]; });
+
+      // (2) 전체 원장 훑어 채울 대상 집계
+      var plan=[], tFill=0, tHave=0, tNone=0, tAmb=0;
+      for(var j=0;j<quoteVendors.length;j++){
+        var v=quoteVendors[j];
+        _qbfMsg('원장 읽는 중… ('+(j+1)+'/'+quoteVendors.length+')\n'+(v.name||''));
+        var rows=null; try{ rows=await _qBlobGet(v.id); }catch(_e){}
+        if(!Array.isArray(rows)) continue;
+        var n=0;
+        rows.forEach(function(r){
+          if(!r) return;
+          if(r.info && r.info.maker && String(r.info.maker).trim()){ tHave++; return; }
+          var k=_qNorm(r.spec);
+          if(!k){ tNone++; return; }
+          if(k in ambig){ tAmb++; return; }
+          if(owner[k]) n++; else tNone++;
+        });
+        if(n>0){ plan.push({id:v.id, name:v.name||'', rows:rows, n:n}); tFill+=n; }
+      }
+      _qbfShow(false);
+
+      var stat='\n\n· 이미 브랜드 있음: '+tHave+'건 (그대로 둠)'
+              +'\n· 가격표에 없는 규격: '+tNone+'건 (수동 입력 필요)'
+              +'\n· 여러 브랜드에 중복돼 건너뜀: '+tAmb+'건';
+      if(!tFill){ showInfoModal('🏷 브랜드 자동 채우기','자동으로 채울 수 있는 규격이 없습니다.'+stat); return; }
+
+      var detail=plan.slice(0,12).map(function(x){ return '· '+x.name+' : '+x.n+'건'; }).join('\n');
+      if(plan.length>12) detail+='\n… 외 '+(plan.length-12)+'곳';
+
+      showConfirmModal('🏷 브랜드 자동 채우기',
+        '가격표와 규격이 일치하는 행의 브랜드를 채웁니다.\n이미 브랜드가 있는 행은 건드리지 않습니다.\n\n채울 행: '+tFill+'건 ('+plan.length+'개 거래처)\n\n'+detail+stat,
+        function(){
+          (async function(){
+            _qbfShow(true);
+            var done=0, fail=0;
+            for(var k=0;k<plan.length;k++){
+              var p=plan[k];
+              _qbfMsg('저장 중… ('+(k+1)+'/'+plan.length+')\n'+p.name);
+              p.rows.forEach(function(r){
+                if(!r) return;
+                if(r.info && r.info.maker && String(r.info.maker).trim()) return;
+                var kk=_qNorm(r.spec); if(!kk || (kk in ambig)) return;
+                var b=owner[kk]; if(!b) return;
+                r.info = r.info || {}; r.info.maker = b;
+              });
+              try{ await _qBlobPut(p.id, p.rows); done++; }catch(_e){ fail++; }
+            }
+            _qbfShow(false);
+            showInfoModal('🏷 완료', done+'개 거래처 원장에 브랜드를 채웠습니다. (총 '+tFill+'건)'+(fail?('\n\n저장 실패: '+fail+'곳'):''));
+            if(_qCurId){ try{ await selectQVendor(_qCurId); }catch(_e){} }
+          })();
+        }, '채우기', '#7c3aed');
+    }catch(e){
+      _qbfShow(false);
+      showInfoModal('🏷 브랜드 자동 채우기','실패: '+(e&&e.message||String(e)));
+    }
+  };
+
   window.selectQVendor = async function(id){
     _qCurId=id; _qRows=[];
     var v=quoteVendors.find(x=>x.id===id);
