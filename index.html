@@ -5123,12 +5123,19 @@ function reloadState() {
       _priceCalcRows=[];
       rows=matched.slice(_pp*20,_pp*20+20).map(function(r,_ix){
         var blocked=/차단/.test(String(r.st||''));   // 상태열에 '차단'/'차단품' 단어가 있을 때만 차단
-        var egaCell=blocked?'차단':((r.ega!=null&&Number(r.ega)>0)?fmt(r.ega):'');
         var _spU=String(r.spec||'').trim().toUpperCase(); var _taE=(_spU.indexOf('TA-1-')===0||_spU.indexOf('TA-4-')===0||_spU.indexOf('TA-5-')===0);
         var _rowRate=(_buyRate&&_taE)?1:_buyRate;
         var _lry=(r.extra&&r.extra['LRY확판(개당)']!=null&&r.extra['LRY확판(개당)']!=='')?Number(r.extra['LRY확판(개당)']):null;
         var _directBuy=(r.buy!=null&&Number(r.buy)>0)?Number(r.buy):null;
-        var _buyNum=null; if(!blocked){ if(_directBuy!=null) _buyNum=_directBuy; else if(_lry!=null&&!isNaN(_lry)) _buyNum=_lry; else if(_rowRate) _buyNum=Math.ceil(Number(r.ega||0)*_rowRate); }  // CDC 매입가 빈칸이면 자동채움 안 함
+        var _egaRaw=(r.ega!=null&&r.ega!=='')?Number(r.ega):null;   // 데이터의 '대리점가' 열 값 (NITTA는 실제로 매입가)
+        var _egaShow=_egaRaw;                                       // 실제 표시할 대리점가
+        var _buyNum=null;
+        if(!blocked){
+          if(_directBuy!=null) _buyNum=_directBuy;
+          else if(_lry!=null&&!isNaN(_lry)) _buyNum=_lry;
+          else if(_rowRate){ _buyNum=(_egaRaw!=null)?_egaRaw:null; if(_egaRaw!=null&&_rowRate>0) _egaShow=Math.ceil(_egaRaw/_rowRate); }  // NITTA: 대리점가 열 값=매입가 → 매입가=값, 대리점가=역산(÷0.57, 1원 올림)
+        }
+        var egaCell=blocked?'차단':((_egaShow!=null&&_egaShow>0)?fmt(_egaShow):'');
         var buyCell=(_buyNum!=null)?fmt(_buyNum):'';
         var _hasBuy=(_buyNum!=null); var _egaP=Number(r.ega)||0;
         var _effDc=_isCDC?0:_priceDcRate;
