@@ -6392,7 +6392,7 @@ function reloadState() {
       var cVname=esc(c.vname);
       var cName=_m?('<input class="qc-in qc-fit" data-mf="name" autocomplete="off" value="'+esc(c.name||'')+'" oninput="qCartNameInput('+i+',this)" onchange="qCartCommit('+i+')" onkeydown="qCartNameKey(event,'+i+')" style="'+_iC+'">'):esc(c.name||'');
       var cSpec=(_m?('<input class="qc-in" data-mf="spec" autocomplete="off" placeholder="'+(_lockInput?'거래처를 먼저 선택하세요':'규격 입력')+'" value="'+esc(c.spec||'')+'" oninput="qCartSpecInput('+i+',this)" onchange="qCartCommit('+i+')" onkeydown="qCartSpecKey(event,'+i+')" style="'+_iC+'">'):esc(c.spec))+((c.changed||_hasDisc)?' <span style="font-size:9px;color:#dc2626;font-weight:700;background:#fef2f2;border:1px solid #fecaca;border-radius:4px;padding:1px 4px;white-space:nowrap;vertical-align:middle">단종/변경</span>':'');
-      var cEta=_m?('<input class="qc-in qc-fit" value="'+esc(c.eta||'')+'" oninput="qCartFieldNoRender('+i+',\'eta\',this.value)" onchange="qCartCommit('+i+')" onkeydown="qCartGridKey(event,this)" style="'+_iC+'">'):(c.eta?esc(c.eta):'-');
+      var cEta=_m?('<input class="qc-in qc-fit" data-mf="eta" autocomplete="off" value="'+esc(c.eta||'')+'" oninput="qCartEtaInput('+i+',this)" onchange="qCartCommit('+i+')" onkeydown="qCartEtaKey(event,'+i+')" style="'+_iC+'">'):(c.eta?esc(c.eta):'-');
       var cOnce='<label title="켜면 이 견적에만 적용됩니다 (원장을 바꾸지 않음)" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer"><input type="checkbox" '+(c.once?'checked':'')+' onchange="qCartOnce('+i+',this.checked)" style="width:13px;height:13px;margin:0;cursor:pointer"></label>';
       var cInfo=_cartInfo[_qRowKey(c.spec)]?('<button onclick="qShowInfoSpec('+i+')" title="추가 정보 (브랜드·구매처·구매링크·비고)" style="border:none;background:none;color:#1B3A6B;font-size:11px;line-height:1;padding:2px 3px;cursor:pointer">ℹ️</button>'):'<span style="color:#d5dbe3">·</span>';
       var cE=_m?('<input class="qc-in" value="'+(c.e!=null?_qFmt(c.e):'')+'" inputmode="numeric" oninput="_qNumInput(this)" onchange="qCartField('+i+',\'e\',this.value)" onkeydown="qCartGridKey(event,this)" style="'+_iR+'">'):_qFmt(c.e);
@@ -7269,7 +7269,7 @@ function reloadState() {
       document.addEventListener('mousedown', function(e){
         if(b.style.display==='none') return;
         if(b.contains(e.target)) return;
-        if(e.target && e.target.getAttribute && (e.target.getAttribute('data-mf')==='spec'||e.target.getAttribute('data-mf')==='name')) return;
+        if(e.target && e.target.getAttribute && (e.target.getAttribute('data-mf')==='spec'||e.target.getAttribute('data-mf')==='name'||e.target.getAttribute('data-mf')==='eta')) return;
         b.style.display='none';
       });
     }
@@ -7549,6 +7549,69 @@ function reloadState() {
       if(ev.key==='ArrowDown'){ ev.preventDefault(); _qcsSel=Math.min(_qcsSel+1,_qcsCur.length-1); _qcsHi(); return; }
       if(ev.key==='ArrowUp'){   ev.preventDefault(); _qcsSel=Math.max(_qcsSel-1,0); _qcsHi(); return; }
       if(ev.key==='Enter'){     ev.preventDefault(); qCartNamePick(i, _qcsSel>=0?_qcsSel:0); return; }
+    }
+    qCartGridKey(ev, ev.target);
+  };
+  // ─ 예상납기 자동완성: 원장에 등록된 납기값들만 중복 제거·접두 우선으로 보여주고, 선택 시 '예상납기칸'만 채운다 ─
+  function _qResolveEtaMatches(q){
+    var set={}, pre=[], sub=[];
+    var keys=Object.keys(_qAllIdx||{});
+    for(var ki=0; ki<keys.length; ki++){
+      var arr=_qAllIdx[keys[ki]]||[];
+      for(var z=0; z<arr.length; z++){
+        var et=arr[z] && arr[z].r && arr[z].r.eta;
+        if(et==null) continue;
+        et=String(et).trim(); if(!et) continue;
+        var ek=_qNorm(et);
+        var p=ek.indexOf(q);
+        if(p<0) continue;
+        if(set[ek]) continue; set[ek]=1;
+        (p===0?pre:sub).push(et);
+      }
+    }
+    pre.sort(function(a,b){ return String(a).localeCompare(String(b)); });
+    sub.sort(function(a,b){ return String(a).localeCompare(String(b)); });
+    return pre.concat(sub);
+  }
+  window.qCartEtaInput = function(i, el){
+    qCartFieldNoRender(i,'eta',el.value);
+    var q=_qNorm(el.value);
+    if(!q){ _qcsHide(); return; }
+    if(!_qAllReady){
+      _qcsShow(el,'<div style="padding:10px 12px;font-size:12px;color:#888">전체 원장 불러오는 중…</div>');
+      if(!_qAllLoading){
+        _qAllLoading=true;
+        _qEnsureAllIdx().then(function(){
+          _qAllLoading=false;
+          var cur=document.activeElement;
+          if(cur && cur.getAttribute && cur.getAttribute('data-mf')==='eta') qCartEtaInput(i, cur);
+        }).catch(function(){ _qAllLoading=false; });
+      }
+      return;
+    }
+    var list=_qResolveEtaMatches(q).slice(0,200);
+    _qcsCur=list; _qcsSel=-1;
+    if(!list.length){ _qcsShow(el,'<div style="padding:10px 12px;font-size:12px;color:#bbb">일치하는 납기가 없습니다. (그대로 두면 입력한 대로 등록됩니다)</div>'); return; }
+    var html=list.map(function(et,ix){
+      return '<div class="qcs-it" data-ix="'+ix+'" onclick="qCartEtaPick('+i+','+ix+')" style="padding:9px 14px;cursor:pointer;border-bottom:1px solid #edf1f5" onmouseover="this.style.background=\'#f4f6f9\'" onmouseout="this.style.background=\'#fff\'">'
+        +'<span style="font-size:13px;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(et)+'</span></div>';
+    }).join('');
+    _qcsShow(el, html);
+  };
+  window.qCartEtaPick = function(i, ix){
+    var et=_qcsCur[ix]; if(et==null) return;
+    var c=_qCart[i]; if(!c) return;
+    c.eta=et;                     // 예상납기칸만 채운다
+    _qCartSave(); _qcsHide(); renderQCart();
+  };
+  window.qCartEtaKey = function(ev, i){
+    var b=document.getElementById('qcsBox');
+    var open = !!(b && b.style.display!=='none' && _qcsCur.length);
+    if(ev.key==='Escape'){ _qcsHide(); return; }
+    if(open){
+      if(ev.key==='ArrowDown'){ ev.preventDefault(); _qcsSel=Math.min(_qcsSel+1,_qcsCur.length-1); _qcsHi(); return; }
+      if(ev.key==='ArrowUp'){   ev.preventDefault(); _qcsSel=Math.max(_qcsSel-1,0); _qcsHi(); return; }
+      if(ev.key==='Enter'){     ev.preventDefault(); qCartEtaPick(i, _qcsSel>=0?_qcsSel:0); return; }
     }
     qCartGridKey(ev, ev.target);
   };
