@@ -3822,7 +3822,7 @@ function reloadState() {
   function openAddClient(name, input, editOrig, editBiz, onDone){
     var isEdit=!!editOrig;
     var ov=document.getElementById('addClientOverlay');
-    if(!ov){ ov=document.createElement('div'); ov.id='addClientOverlay'; ov.style.cssText='position:fixed;inset:0;z-index:2000001;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px'; document.body.appendChild(ov); ov.addEventListener('click',function(e){ if(e.target===ov) ov.style.display='none'; }); }
+    if(!ov){ ov=document.createElement('div'); ov.id='addClientOverlay'; ov.style.cssText='position:fixed;inset:0;z-index:2000001;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px'; document.body.appendChild(ov); }
     ov.innerHTML='<div style="width:100%;max-width:380px;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 14px 44px rgba(27,58,107,.22)">'
       +'<div style="padding:16px 20px;border-bottom:2px solid #1B3A6B;display:flex;justify-content:space-between;align-items:center"><span style="font-size:16px;font-weight:700;color:#1B3A6B">'+(isEdit?'거래처 수정':'신규 업체 추가')+'</span><button class="btn" onclick="document.getElementById(\'addClientOverlay\').style.display=\'none\'" style="padding:4px 10px">닫기</button></div>'
       +'<div style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">'
@@ -3862,7 +3862,11 @@ function reloadState() {
       if(typeof _refreshClientMgr==='function') _refreshClientMgr();
       if(input){ input.value=nm; try{ input.dispatchEvent(new Event('change')); }catch(_){} try{ input.focus(); }catch(_){} }
       if(typeof onDone==='function'){ try{ onDone(nm); }catch(_){} }
+      if(!isEdit){ try{ showInfoModal('알림', '추가되었습니다.'); }catch(_){} }
     };
+    var _acEnter=function(e){ if(e.key==='Enter'){ e.preventDefault(); var _b=document.getElementById('acNewSave'); if(_b) _b.click(); } };
+    var _nn=document.getElementById('acNewName'); if(_nn) _nn.addEventListener('keydown',_acEnter);
+    var _nb=document.getElementById('acNewBiz'); if(_nb) _nb.addEventListener('keydown',_acEnter);
   }
   document.addEventListener('input', function(e){ var t=e.target; if(t && t.classList && t.classList.contains('client-ac')) _acShow(t); });
   document.addEventListener('focusin', function(e){ var t=e.target; if(t && t.classList && t.classList.contains('client-ac')) _acShow(t); });
@@ -3981,7 +3985,6 @@ function reloadState() {
       ov=document.createElement('div'); ov.id='clientMgrOverlay';
       ov.style.cssText='position:fixed;inset:0;z-index:100040;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px';
       document.body.appendChild(ov);
-      ov.addEventListener('click', function(e){ if(e.target===ov) ov.style.display='none'; });
     }
     ov.innerHTML='<div style="width:100%;max-width:640px;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 14px 44px rgba(27,58,107,.22);max-height:84vh;display:flex;flex-direction:column">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:2px solid #1B3A6B"><span style="font-size:16px;font-weight:700;color:#1B3A6B">업체 관리</span><button class="btn" onclick="document.getElementById(\'clientMgrOverlay\').style.display=\'none\'" style="padding:4px 10px">닫기</button></div>'
@@ -6387,7 +6390,7 @@ function reloadState() {
       var _iC='text-align:center';
       var _iR='text-align:right';
       var cVname=esc(c.vname);
-      var cName=_m?('<input class="qc-in qc-fit" value="'+esc(c.name||'')+'" oninput="qCartFieldNoRender('+i+',\'name\',this.value)" onchange="qCartCommit('+i+')" onkeydown="qCartGridKey(event,this)" style="'+_iC+'">'):esc(c.name||'');
+      var cName=_m?('<input class="qc-in qc-fit" data-mf="name" autocomplete="off" value="'+esc(c.name||'')+'" oninput="qCartNameInput('+i+',this)" onchange="qCartCommit('+i+')" onkeydown="qCartNameKey(event,'+i+')" style="'+_iC+'">'):esc(c.name||'');
       var cSpec=(_m?('<input class="qc-in" data-mf="spec" autocomplete="off" placeholder="'+(_lockInput?'거래처를 먼저 선택하세요':'규격 입력')+'" value="'+esc(c.spec||'')+'" oninput="qCartSpecInput('+i+',this)" onchange="qCartCommit('+i+')" onkeydown="qCartSpecKey(event,'+i+')" style="'+_iC+'">'):esc(c.spec))+((c.changed||_hasDisc)?' <span style="font-size:9px;color:#dc2626;font-weight:700;background:#fef2f2;border:1px solid #fecaca;border-radius:4px;padding:1px 4px;white-space:nowrap;vertical-align:middle">단종/변경</span>':'');
       var cEta=_m?('<input class="qc-in qc-fit" value="'+esc(c.eta||'')+'" oninput="qCartFieldNoRender('+i+',\'eta\',this.value)" onchange="qCartCommit('+i+')" onkeydown="qCartGridKey(event,this)" style="'+_iC+'">'):(c.eta?esc(c.eta):'-');
       var cOnce='<label title="켜면 이 견적에만 적용됩니다 (원장을 바꾸지 않음)" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer"><input type="checkbox" '+(c.once?'checked':'')+' onchange="qCartOnce('+i+',this.checked)" style="width:13px;height:13px;margin:0;cursor:pointer"></label>';
@@ -7266,7 +7269,7 @@ function reloadState() {
       document.addEventListener('mousedown', function(e){
         if(b.style.display==='none') return;
         if(b.contains(e.target)) return;
-        if(e.target && e.target.getAttribute && e.target.getAttribute('data-mf')==='spec') return;
+        if(e.target && e.target.getAttribute && (e.target.getAttribute('data-mf')==='spec'||e.target.getAttribute('data-mf')==='name')) return;
         b.style.display='none';
       });
     }
@@ -7485,6 +7488,69 @@ function reloadState() {
     c.disc=r.disc||''; c.eta=r.eta||'';
     _qCartSave(); _qcsHide(); renderQCart();
     if(advance) _qCartNextRow(i);
+  };
+  // ─ 품목(이름) 자동완성: 원장에 등록된 품목명들만 중복 제거해 필터로 보여주고, 선택 시 '품목칸'만 채운다 ─
+  function _qResolveNameMatches(q){
+    var set={}, pre=[], sub=[];
+    var keys=Object.keys(_qAllIdx||{});
+    for(var ki=0; ki<keys.length; ki++){
+      var arr=_qAllIdx[keys[ki]]||[];
+      for(var z=0; z<arr.length; z++){
+        var nm=arr[z] && arr[z].r && arr[z].r.name;
+        if(nm==null) continue;
+        nm=String(nm).trim(); if(!nm) continue;
+        var nk=_qNorm(nm);
+        var p=nk.indexOf(q);
+        if(p<0) continue;
+        if(set[nk]) continue; set[nk]=1;   // 같은 품목명은 한 번만
+        (p===0?pre:sub).push(nm);          // 시작(접두) 일치 우선
+      }
+    }
+    pre.sort(function(a,b){ return String(a).localeCompare(String(b)); });
+    sub.sort(function(a,b){ return String(a).localeCompare(String(b)); });
+    return pre.concat(sub);
+  }
+  window.qCartNameInput = function(i, el){
+    qCartFieldNoRender(i,'name',el.value);
+    var q=_qNorm(el.value);
+    if(!q){ _qcsHide(); return; }
+    if(!_qAllReady){
+      _qcsShow(el,'<div style="padding:10px 12px;font-size:12px;color:#888">전체 원장 불러오는 중…</div>');
+      if(!_qAllLoading){
+        _qAllLoading=true;
+        _qEnsureAllIdx().then(function(){
+          _qAllLoading=false;
+          var cur=document.activeElement;
+          if(cur && cur.getAttribute && cur.getAttribute('data-mf')==='name') qCartNameInput(i, cur);
+        }).catch(function(){ _qAllLoading=false; });
+      }
+      return;
+    }
+    var list=_qResolveNameMatches(q).slice(0,200);
+    _qcsCur=list; _qcsSel=-1;
+    if(!list.length){ _qcsShow(el,'<div style="padding:10px 12px;font-size:12px;color:#bbb">일치하는 품목이 없습니다. (그대로 두면 입력한 대로 등록됩니다)</div>'); return; }
+    var html=list.map(function(nm,ix){
+      return '<div class="qcs-it" data-ix="'+ix+'" onclick="qCartNamePick('+i+','+ix+')" style="padding:9px 14px;cursor:pointer;border-bottom:1px solid #edf1f5" onmouseover="this.style.background=\'#f4f6f9\'" onmouseout="this.style.background=\'#fff\'">'
+        +'<span style="font-size:13px;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(nm)+'</span></div>';
+    }).join('');
+    _qcsShow(el, html);
+  };
+  window.qCartNamePick = function(i, ix){
+    var nm=_qcsCur[ix]; if(nm==null) return;
+    var c=_qCart[i]; if(!c) return;
+    c.name=nm;                    // 품목칸만 채운다 (규격·가격 등은 건드리지 않음)
+    _qCartSave(); _qcsHide(); renderQCart();
+  };
+  window.qCartNameKey = function(ev, i){
+    var b=document.getElementById('qcsBox');
+    var open = !!(b && b.style.display!=='none' && _qcsCur.length);
+    if(ev.key==='Escape'){ _qcsHide(); return; }
+    if(open){
+      if(ev.key==='ArrowDown'){ ev.preventDefault(); _qcsSel=Math.min(_qcsSel+1,_qcsCur.length-1); _qcsHi(); return; }
+      if(ev.key==='ArrowUp'){   ev.preventDefault(); _qcsSel=Math.max(_qcsSel-1,0); _qcsHi(); return; }
+      if(ev.key==='Enter'){     ev.preventDefault(); qCartNamePick(i, _qcsSel>=0?_qcsSel:0); return; }
+    }
+    qCartGridKey(ev, ev.target);
   };
   window._qNumInput = function(el){ var d=String(el.value||'').replace(/[^\d]/g,''); el.value = d?Number(d).toLocaleString():''; };
   window.openQAddModal = function(){ if(!_guardW()) return; _qOpenSpecModal('add', null); };
@@ -12203,7 +12269,7 @@ function reloadState() {
     if(!ov){
       ov = document.createElement('div');
       ov.id = 'confirmOverlay';
-      ov.style.cssText = 'position:fixed;inset:0;z-index:100095;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px';
+      ov.style.cssText = 'position:fixed;inset:0;z-index:2000100;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px';
       document.body.appendChild(ov);
       ov.addEventListener('click', function(e){ if(e.target===ov) ov.style.display='none'; });
     }
@@ -12312,11 +12378,11 @@ function reloadState() {
     let ov = document.getElementById('infoOverlay');
     if(!ov){
       ov = document.createElement('div'); ov.id='infoOverlay';
-      ov.style.cssText='position:fixed;inset:0;z-index:100096;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px';
+      ov.style.cssText='position:fixed;inset:0;z-index:2000110;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px';
       document.body.appendChild(ov);
       ov.addEventListener('click', function(e){ if(e.target===ov) ov.style.display='none'; });
     }
-    ov.style.zIndex='100096';
+    ov.style.zIndex='2000110';
     ov.innerHTML = '<div style="width:100%;max-width:380px;background:#fff;border:1px solid #c8d2de;border-radius:0;overflow:hidden">'
       + '<div style="padding:9px 14px;border-bottom:1px solid #c8d2de;background:#f4f6f9;display:flex;align-items:center;gap:8px"><span style="width:3px;height:15px;background:#1a1a1a"></span><span style="font-size:13.5px;font-weight:700;color:#1a1a1a">' + title + '</span></div>'
       + '<div style="padding:16px 14px;font-size:13px;color:#374151;line-height:1.65;white-space:pre-wrap">' + message + '</div>'
@@ -12337,11 +12403,11 @@ function reloadState() {
     let ov = document.getElementById('promptOverlay');
     if(!ov){
       ov = document.createElement('div'); ov.id='promptOverlay';
-      ov.style.cssText='position:fixed;inset:0;z-index:100097;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px';
+      ov.style.cssText='position:fixed;inset:0;z-index:2000105;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px';
       document.body.appendChild(ov);
       ov.addEventListener('click', function(e){ if(e.target===ov){ ov.style.display='none'; if(ov._pk){ document.removeEventListener('keydown', ov._pk); ov._pk=null; } } });
     }
-    ov.style.zIndex='100097';
+    ov.style.zIndex='2000105';
     ov.innerHTML = '<div style="width:100%;max-width:400px;background:#fff;border:1px solid #c8d2de;border-radius:0;overflow:hidden">'
       + '<div style="padding:9px 14px;border-bottom:1px solid #c8d2de;background:#f4f6f9;display:flex;align-items:center;gap:8px"><span style="width:3px;height:15px;background:#1a1a1a"></span><span style="font-size:13.5px;font-weight:700;color:#1a1a1a">' + title + '</span></div>'
       + (message ? '<div style="padding:14px 14px 2px;font-size:13px;color:#374151;line-height:1.65;white-space:pre-wrap">' + message + '</div>' : '')
