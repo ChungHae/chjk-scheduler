@@ -6109,7 +6109,7 @@ function reloadState() {
         else { var _inp=document.getElementById('qVendorSearch'); if(_inp) _inp.value=_vnm; renderQResults(); renderQCart(); }
       }).catch(function(e){ showInfoModal('알림', '불러오기 실패: '+e.message); });
     };
-    if(_qCart.length){ showConfirmModal('견적 불러오기', '현재 견적 목록을 "'+esc(meta.title)+'"(으)로 교체할까요?', doLoad, '불러오기', '#1B3A6B'); }
+    if(_qCart.length){ showConfirmModal('견적 불러오기', '"'+esc(meta.title)+'" 견적을 불러올까요?\n(현재 작성 중인 내용은 사라집니다)', doLoad, '불러오기', '#1B3A6B'); }
     else doLoad();
   };
   window.qDelSaved = function(id){ if(!_guardW()) return;
