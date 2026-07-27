@@ -5969,7 +5969,7 @@ function reloadState() {
     return prefix+String(maxSeq+1).padStart(2,'0');
   }
   function _qEnsureQuoteNo(){
-    if(!_qCart.length) return;
+    if(!_qCartHasContent()) return;   // 빈 작성줄만 있을 땐 번호 발급 안 함 (저장 후 초기화 상태 유지)
     if(!_qQuoteYmd) _qQuoteYmd=_qTodayYmd();
     if(!_qQuoteNo){ _qQuoteNo=_qGenQuoteNo(_qVName(_qCurId)||_qCart[0].vname||'견적', _qQuoteYmd); if(!_qLoadedId) _qLoadedId='q_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); _qCartSave(); }
   }
@@ -6260,7 +6260,7 @@ function reloadState() {
     var m=document.getElementById('qColCtxMenu');
     if(!m){
       m=document.createElement('div'); m.id='qColCtxMenu';
-      m.style.cssText='position:fixed;z-index:100099;background:#fff;border:1px solid #cdd8e6;border-radius:8px;box-shadow:0 8px 24px rgba(15,23,42,.16);padding:4px;display:none;min-width:172px;font-family:inherit';
+      m.style.cssText='position:fixed;z-index:100099;background:#fff;border:1px solid #c8d2de;border-top:2px solid #1B3A6B;border-radius:0;box-shadow:0 8px 24px rgba(15,23,42,.16);padding:4px;display:none;min-width:172px;font-family:inherit';
       document.body.appendChild(m);
       document.addEventListener('click', function(e){ if(!m.contains(e.target)) m.style.display='none'; });
       document.addEventListener('contextmenu', function(e){ if(!e.target.closest || !e.target.closest('.qcart-tbl thead th')) m.style.display='none'; });
@@ -6277,7 +6277,7 @@ function reloadState() {
     var rm=document.getElementById('qCartCtxMenu'); if(rm) rm.style.display='none';
     var isCx=(key.indexOf('cx:')===0);
     var m=_qColCtx();
-    var it=function(txt,onclick,color){ return '<div onclick="event.stopPropagation();'+onclick+'" style="padding:8px 12px;font-size:13px;cursor:pointer;border-radius:5px;color:'+(color||'#1a1a1a')+';white-space:nowrap" onmouseover="this.style.background=\'#f4f6f9\'" onmouseout="this.style.background=\'#fff\'">'+txt+'</div>'; };
+    var it=function(txt,onclick,color){ return '<div onclick="event.stopPropagation();'+onclick+'" style="padding:8px 12px;font-size:13px;cursor:pointer;border-radius:0;color:'+(color||'#1a1a1a')+';white-space:nowrap" onmouseover="this.style.background=\'#eef4fb\'" onmouseout="this.style.background=\'#fff\'">'+txt+'</div>'; };
     var html=it('◀ 왼쪽에 열 삽입','qColMenuInput(\''+key+'\',\'L\')')
       +it('오른쪽에 열 삽입 ▶','qColMenuInput(\''+key+'\',\'R\')');
     html+='<div style="height:1px;background:#eef1f4;margin:4px 6px"></div>';
@@ -6293,8 +6293,8 @@ function reloadState() {
     m.innerHTML='<div style="padding:8px 10px;min-width:196px">'
       +'<div style="font-size:12px;color:#6b7280;margin-bottom:6px">새 열 제목 ('+(side==='L'?'왼쪽':'오른쪽')+')</div>'
       +'<div style="display:flex;gap:6px">'
-      +'<input id="qColMenuTitle" placeholder="예: 비고, 브랜드" onkeydown="if(event.key===\'Enter\'){qColMenuAdd(\''+key+'\',\''+side+'\');}else if(event.key===\'Escape\'){var x=document.getElementById(\'qColCtxMenu\');if(x)x.style.display=\'none\';}" style="flex:1;min-width:0;box-sizing:border-box;padding:6px 9px;border:1px solid #cdd8e6;border-radius:6px;font-size:13px;font-family:inherit;outline:none">'
-      +'<button onclick="event.stopPropagation();qColMenuAdd(\''+key+'\',\''+side+'\')" style="padding:6px 12px;font-size:13px;font-family:inherit;background:#334155;color:#fff;border:1px solid #334155;border-radius:6px;cursor:pointer;white-space:nowrap">추가</button>'
+      +'<input id="qColMenuTitle" placeholder="예: 비고, 브랜드" onkeydown="if(event.key===\'Enter\'){qColMenuAdd(\''+key+'\',\''+side+'\');}else if(event.key===\'Escape\'){var x=document.getElementById(\'qColCtxMenu\');if(x)x.style.display=\'none\';}" style="flex:1;min-width:0;box-sizing:border-box;padding:6px 9px;border:1px solid #c8d2de;border-radius:0;font-size:13px;font-family:inherit;outline:none">'
+      +'<button onclick="event.stopPropagation();qColMenuAdd(\''+key+'\',\''+side+'\')" style="padding:6px 12px;font-size:13px;font-family:inherit;background:#1B3A6B;color:#fff;border:1px solid #1B3A6B;border-radius:0;cursor:pointer;white-space:nowrap">추가</button>'
       +'</div></div>';
     m.style.display='block';
     setTimeout(function(){ var el=document.getElementById('qColMenuTitle'); if(el) el.focus(); },20);
@@ -7164,7 +7164,7 @@ function reloadState() {
     var m=document.getElementById('qCartCtxMenu');
     if(!m){
       m=document.createElement('div'); m.id='qCartCtxMenu';
-      m.style.cssText='position:fixed;z-index:100098;background:#fff;border:1px solid #cdd8e6;border-radius:8px;box-shadow:0 8px 24px rgba(15,23,42,.16);padding:4px;display:none;min-width:158px;font-family:inherit';
+      m.style.cssText='position:fixed;z-index:100098;background:#fff;border:1px solid #c8d2de;border-top:2px solid #1B3A6B;border-radius:0;box-shadow:0 8px 24px rgba(15,23,42,.16);padding:4px;display:none;min-width:158px;font-family:inherit';
       document.body.appendChild(m);
       document.addEventListener('click', function(){ m.style.display='none'; });
       document.addEventListener('contextmenu', function(e){ if(!e.target.closest || !e.target.closest('#qCart tbody tr')) m.style.display='none'; });
@@ -7179,7 +7179,7 @@ function reloadState() {
     var _vs=!!(_qCurId && (typeof quoteVendors!=='undefined'&&quoteVendors) && quoteVendors.find(function(v){return v.id===_qCurId;}));
     if(!_vs && !_qCartHasContent()){ var _rm0=document.getElementById('qCartCtxMenu'); if(_rm0) _rm0.style.display='none'; return; }
     var m=_qCartCtxMenu();
-    var it=function(txt,onclick,color){ return '<div onclick="'+onclick+'" style="padding:8px 12px;font-size:13px;cursor:pointer;border-radius:5px;color:'+(color||'#1a1a1a')+';white-space:nowrap" onmouseover="this.style.background=\'#f4f6f9\'" onmouseout="this.style.background=\'#fff\'">'+txt+'</div>'; };
+    var it=function(txt,onclick,color){ return '<div onclick="'+onclick+'" style="padding:8px 12px;font-size:13px;cursor:pointer;border-radius:0;color:'+(color||'#1a1a1a')+';white-space:nowrap" onmouseover="this.style.background=\'#eef4fb\'" onmouseout="this.style.background=\'#fff\'">'+txt+'</div>'; };
     m.innerHTML=it('행 위에 삽입','qCartInsertRow('+i+',false)')
       +it('행 아래에 삽입','qCartInsertRow('+i+',true)')
       +'<div style="height:1px;background:#eef1f4;margin:4px 6px"></div>'
