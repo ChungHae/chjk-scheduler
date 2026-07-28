@@ -4325,6 +4325,9 @@ function reloadState() {
     });
   };
   window._pvZoomStep = function(dir){ window._pvSetZoom(window._pvZoom * (dir>0 ? 1.2 : 1/1.2)); };
+  window._pvPanX = 0; window._pvPanY = 0;
+  window._pvApplyPan = function(){ var zw=document.getElementById('pvZoomWrap'); if(zw) zw.style.transform='translate('+window._pvPanX+'px,'+window._pvPanY+'px)'; };
+  window._pvResetView = function(){ window._pvPanX=0; window._pvPanY=0; window._pvApplyPan(); window._pvSetZoom(1); };
   window.previewFile = async function(id){
     const meta = filesList.find(f=>f.id===id);
     if(!meta) return;
@@ -4357,21 +4360,22 @@ function reloadState() {
       +'<span style="font-size:14px;font-weight:700;color:#1B3A6B;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_fileIcon(meta.type,meta.name)+' '+esc(meta.name)+'</span>'
       +'<span style="display:flex;gap:5px;flex-shrink:0;align-items:center">'
         +'<button class="btn" onclick="_pvZoomStep(-1)" title="축소" aria-label="축소" style="padding:3px 7px;display:inline-flex;align-items:center"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5 16 16"/><path d="M8 11h6"/></svg></button>'
-        +'<button class="btn" onclick="_pvSetZoom(1)" title="원본 크기" style="padding:3px 8px;font-size:11px">100%</button>'
+        +'<button class="btn" onclick="_pvResetView()" title="원본 크기·위치" style="padding:3px 8px;font-size:11px">100%</button>'
         +'<button class="btn" onclick="_pvZoomStep(1)" title="확대" aria-label="확대" style="padding:3px 7px;display:inline-flex;align-items:center"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5 16 16"/><path d="M11 8v6M8 11h6"/></svg></button>'
         +'<button class="btn" id="filePvClose" style="padding:3px 8px;font-size:12px">닫기</button></span></div>'
-      +'<div id="filePreviewBody" style="flex:1;overflow:auto;background:#f4f6f9"><div id="pvZoomWrap" style="min-width:100%;min-height:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;padding:6px;zoom:1"><span style="font-size:13px;color:#888;padding:40px">불러오는 중…</span></div></div>';
+      +'<div id="filePreviewBody" style="flex:1;overflow:hidden;background:#f4f6f9"><div id="pvZoomWrap" style="min-width:100%;min-height:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;padding:6px"><span style="font-size:13px;color:#888;padding:40px">불러오는 중…</span></div></div>';
     document.getElementById('filePvClose').onclick=window.closeFilePreview;
     window._pvSetZoom(1);
+    window._pvPanX=0; window._pvPanY=0; window._pvApplyPan();
     if(!window._pvDragBound){
       window._pvDragBound=true;
-      window.addEventListener('mousemove', function(e){ if(!window._pvDragging) return; var bd=document.getElementById('filePreviewBody'); if(!bd) return; bd.scrollLeft=window._pvDragSL-(e.clientX-window._pvDragSX); bd.scrollTop=window._pvDragST-(e.clientY-window._pvDragSY); });
+      window.addEventListener('mousemove', function(e){ if(!window._pvDragging) return; window._pvPanX=window._pvDragPX+(e.clientX-window._pvDragSX); window._pvPanY=window._pvDragPY+(e.clientY-window._pvDragSY); window._pvApplyPan(); });
       window.addEventListener('mouseup', function(){ if(window._pvDragging){ window._pvDragging=false; var bd=document.getElementById('filePreviewBody'); if(bd) bd.style.cursor='grab'; } });
     }
     (function(){ var _bd=document.getElementById('filePreviewBody'); if(!_bd) return;
       _bd.onwheel=function(e){ e.preventDefault(); window._pvZoomStep(e.deltaY<0?1:-1); };
       _bd.style.cursor='grab'; _bd.style.userSelect='none';
-      _bd.onmousedown=function(e){ if(e.button!==0) return; window._pvDragging=true; window._pvDragSX=e.clientX; window._pvDragSY=e.clientY; window._pvDragSL=_bd.scrollLeft; window._pvDragST=_bd.scrollTop; _bd.style.cursor='grabbing'; e.preventDefault(); };
+      _bd.onmousedown=function(e){ if(e.button!==0) return; window._pvDragging=true; window._pvDragSX=e.clientX; window._pvDragSY=e.clientY; window._pvDragPX=window._pvPanX; window._pvDragPY=window._pvPanY; _bd.style.cursor='grabbing'; e.preventDefault(); };
     })();
     try{
       const dataUrl = await _fbFileGet(id);
