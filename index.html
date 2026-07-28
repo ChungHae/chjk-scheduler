@@ -4363,7 +4363,16 @@ function reloadState() {
       +'<div id="filePreviewBody" style="flex:1;overflow:auto;background:#f4f6f9"><div id="pvZoomWrap" style="min-width:100%;min-height:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;padding:6px;zoom:1"><span style="font-size:13px;color:#888;padding:40px">불러오는 중…</span></div></div>';
     document.getElementById('filePvClose').onclick=window.closeFilePreview;
     window._pvSetZoom(1);
-    (function(){ var _bd=document.getElementById('filePreviewBody'); if(_bd) _bd.onwheel=function(e){ e.preventDefault(); window._pvZoomStep(e.deltaY<0?1:-1); }; })();
+    if(!window._pvDragBound){
+      window._pvDragBound=true;
+      window.addEventListener('mousemove', function(e){ if(!window._pvDragging) return; var bd=document.getElementById('filePreviewBody'); if(!bd) return; bd.scrollLeft=window._pvDragSL-(e.clientX-window._pvDragSX); bd.scrollTop=window._pvDragST-(e.clientY-window._pvDragSY); });
+      window.addEventListener('mouseup', function(){ if(window._pvDragging){ window._pvDragging=false; var bd=document.getElementById('filePreviewBody'); if(bd) bd.style.cursor='grab'; } });
+    }
+    (function(){ var _bd=document.getElementById('filePreviewBody'); if(!_bd) return;
+      _bd.onwheel=function(e){ e.preventDefault(); window._pvZoomStep(e.deltaY<0?1:-1); };
+      _bd.style.cursor='grab'; _bd.style.userSelect='none';
+      _bd.onmousedown=function(e){ if(e.button!==0) return; window._pvDragging=true; window._pvDragSX=e.clientX; window._pvDragSY=e.clientY; window._pvDragSL=_bd.scrollLeft; window._pvDragST=_bd.scrollTop; _bd.style.cursor='grabbing'; e.preventDefault(); };
+    })();
     try{
       const dataUrl = await _fbFileGet(id);
       const body = document.getElementById('pvZoomWrap');
