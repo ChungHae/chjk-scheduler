@@ -95,6 +95,7 @@
     #invLogOverlay input, #invLogOverlay select, #invLogOverlay .btn,
     #invExcelGuideOverlay .btn { border-radius:0 !important; }
     #pagePurchase input, #pagePurchase select, #pagePurchase .btn { border-radius:0 !important; }
+    #pageFiles .btn { border-radius:0 !important; }
     #pageInventory .btn-primary, #invAddOverlay .btn-primary, #invUseOverlay .btn-primary,
     #invEditOverlay .btn-primary, #invItemOverlay .btn-primary, #invLogOverlay .btn-primary { background:#1B3A6B !important; border-color:#1B3A6B !important; color:#fff !important; }
     #pageInventory .btn-primary:hover, #invAddOverlay .btn-primary:hover, #invUseOverlay .btn-primary:hover,
@@ -124,6 +125,18 @@
     #pagePurchase .q-flat::placeholder { color:#aab4c2; }
     #pagePurchase .inv-toolbar .qic { width:26px !important; min-width:26px; height:26px; border-radius:6px !important; flex:0 0 auto; }
     #pagePurchase .inv-toolbar .qic svg { width:15px; height:15px; }
+    /* 자료실 툴바 — 재고/매입처 툴바와 동일 스타일 */
+    #pageFiles .inv-toolbar { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin: calc(var(--mpy)*-1) calc(var(--mpx)*-1) 14px; min-height:var(--snh,36px); padding:4px var(--mpx); background:#fff; border:0; border-bottom:1px solid #e5e5e5; box-shadow:0 2px 6px rgba(15,23,42,.06); box-sizing:border-box; }
+    #pageFiles .inv-flat-label { font-size:12.5px; font-weight:700; color:#14305c; white-space:nowrap; flex-shrink:0; }
+    #pageFiles .inv-flat-div { width:1px; height:18px; background:#e5e5e5; flex-shrink:0; margin:0 4px; }
+    #pageFiles .q-flat { box-sizing:border-box; height:26px; padding:4px 6px; margin:0; border:none !important; background:transparent; outline:none; font-size:13px; font-family:inherit; color:#14305c; }
+    #pageFiles input.q-flat { width:300px; max-width:100%; }
+    #pageFiles .q-flat:hover { background:rgba(27,58,107,.045); }
+    #pageFiles .q-flat:focus { background:#f2f4f7; }
+    #pageFiles .q-flat::placeholder { color:#aab4c2; }
+    #pageFiles .inv-toolbar .qic { width:26px !important; min-width:26px; height:26px; border-radius:6px !important; flex:0 0 auto; }
+    #pageFiles .inv-toolbar .qic svg { width:15px; height:15px; }
+    #pageFiles .fl-cat-sel { width:130px; flex-shrink:0; height:26px; box-sizing:border-box; padding:0 8px; border:1px solid #cdd8e6; border-radius:0; font-size:13px; line-height:24px; font-family:inherit; background:#fff; color:#1a1a1a; cursor:pointer; vertical-align:middle; -webkit-appearance:menulist; }
     /* 재고 표 헤더 — 견적 표와 동일한 연한 네이비 헤더·각진 테두리 */
     #pageInventory thead tr { background:#fafafa !important; }
     #pageInventory thead th { background:#fafafa !important; color:#888 !important; font-weight:500 !important; font-size:12px !important; border-color:#d3dce6 !important; }
@@ -1608,7 +1621,7 @@
     #bizPageList { display:grid; grid-template-columns:1fr 1fr; gap:8px; align-items:start; }
     .files-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
     .files-list { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
-    .file-row { display:flex; align-items:center; gap:9px; padding:7px 12px; border:1px solid #eef0f3; border-radius:8px; background:#fff; min-width:0; }
+    .file-row { display:flex; align-items:center; gap:9px; padding:7px 12px; border:1px solid #d3dce6; border-radius:0; background:#fafafa; min-width:0; }
     .file-row:hover { background:#f7f9fc; }
     .with-preview .files-list { grid-template-columns:1fr; }
     @media (max-width:900px){ .files-list { grid-template-columns:1fr; } }
@@ -1620,14 +1633,14 @@
     .file-grp-tab { padding:5px 12px; font-size:12.5px; white-space:nowrap; flex-shrink:0; font-weight:500; color:#9ca3af; cursor:pointer; border:none; border-left:3px solid transparent; border-radius:0; background:transparent; font-family:inherit; transition:all .12s; }
     .file-grp-tab:hover { background:#f6f8fa; color:#334155; }
     .file-grp-tab.active { color:#0f172a; background:#eef2f6; border-left-color:#334155; font-weight:700; }
-    .bfv { border:1px solid #e9edf2; border-radius:10px; margin-bottom:8px; background:#fff; overflow:hidden; }
+    .bfv { border:1px solid #e9edf2; border-radius:0; margin-bottom:8px; background:#fff; overflow:hidden; }
     .bfv-head { display:flex; align-items:center; gap:10px; padding:11px 14px; cursor:pointer; }
     .bfv-head:hover { background:#f7f9fc; }
     .bfv-chev { color:#5b7ba6; font-size:11px; transition:transform .15s; flex-shrink:0; }
-    .bfv-name { font-size:14px; font-weight:700; color:#14305c; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .bfv-name { font-size:14px; font-weight:700; color:#1a1a1a; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .bfv-cats { display:flex; gap:5px; flex-shrink:0; }
-    .bfv-cat-chip { font-size:10px; font-weight:600; color:#5b7ba6; background:#eef3fa; border-radius:5px; padding:1px 7px; white-space:nowrap; }
-    .bfv-count { font-size:12px; font-weight:700; color:#2f5288; background:#eaf1fb; border-radius:12px; padding:2px 10px; flex-shrink:0; min-width:30px; text-align:center; }
+    .bfv-cat-chip { font-size:10px; font-weight:600; color:#5b7ba6; background:#eef3fa; border-radius:0; padding:1px 7px; white-space:nowrap; }
+    .bfv-count { font-size:12px; font-weight:700; color:#2f5288; background:#eaf1fb; border-radius:0; padding:2px 10px; flex-shrink:0; min-width:30px; text-align:center; }
     .bfv-body { padding:0 12px 12px; border-top:1px solid #f0f3f7; }
     @media (max-width:700px){ .bfv-cats { display:none; } }
     /* 견적 목록 표: 열 구분선 + 칸에 바로 입력 (입력박스 테두리 없음) */
@@ -1667,7 +1680,7 @@
 
     #qCart td:has(> .qc-in), #qCart td:has(> span > .qc-in) { padding:0 !important; }
     .cho-idx { display:flex; flex-wrap:wrap; gap:3px; margin-bottom:10px; }
-    .cho-btn { min-width:26px; height:26px; padding:0 7px; border:1px solid #e0e6ee; background:#fff; color:#5b7ba6; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
+    .cho-btn { min-width:26px; height:26px; padding:0 7px; border:1px solid #e0e6ee; background:#fff; color:#5b7ba6; border-radius:0; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
     .cho-btn:hover:not(:disabled) { background:#f4f8fe; }
     .cho-btn.active { background:#1B3A6B; color:#fff; border-color:#1B3A6B; }
     .cho-btn:disabled { color:#d6dbe2; cursor:default; background:#fafbfc; }
@@ -2220,18 +2233,18 @@
 <main class="main">
   <!-- 자료실 페이지 -->
   <div id="pageFiles" class="page-section">
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:nowrap;margin-bottom:16px;overflow-x:auto">
-      <div style="display:flex;gap:8px;flex:1;max-width:100%;min-width:300px;align-items:center;flex-wrap:wrap;padding:12px;background:#f7f9fc;border:1px solid #e5e5e5;border-radius:10px;box-sizing:border-box">
-      <span class="fl-lbl-name" style="font-size:13px;font-weight:700;color:#14305c;white-space:nowrap">파일명</span>
-      <input id="fileSearch" type="text" placeholder="파일명 검색" oninput="renderFilesPage()" style="flex:0 0 360px;max-width:100%;box-sizing:border-box;height:34px;padding:6px 10px;border:1.5px solid #e5e5e5;border-radius:8px;font-size:13px;font-family:inherit;background:#fff">
-      <span class="fl-lbl-cat" style="font-size:12px;color:#888;white-space:nowrap;flex-shrink:0">분류</span>
-      <select id="fileFilterCat" onchange="renderFilesPage()" style="width:130px;flex-shrink:0;padding:6px 10px;border:1.5px solid #e5e5e5;border-radius:7px;font-size:13px;font-family:inherit;background:white"></select>
-      <span id="fileUploadControls" style="display:flex;gap:8px;align-items:center;flex-shrink:0"><button class="btn btn-primary" onclick="openFileUploadModal()" style="cursor:pointer;margin:0;white-space:nowrap;flex-shrink:0">자료 업로드</button></span>
-      </div>
+    <div class="q-toolbar inv-toolbar">
+      <span class="fl-lbl-name inv-flat-label">파일명</span>
+      <input id="fileSearch" type="text" class="q-flat" placeholder="파일명 검색" oninput="renderFilesPage()" autocomplete="off">
+      <span class="inv-flat-div"></span>
+      <span class="fl-lbl-cat inv-flat-label" style="font-weight:500;color:#6b7280">분류</span>
+      <select id="fileFilterCat" class="fl-cat-sel" onchange="renderFilesPage()"></select>
+      <span style="flex:1"></span>
+      <span id="fileUploadControls" style="display:flex;gap:4px;align-items:center;flex-shrink:0"><button class="qic" onclick="openFileUploadModal()" data-tip="자료 업로드" aria-label="자료 업로드" style="border-color:#16a34a;color:#16a34a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></button></span>
     </div>
     <div id="filesPaneWrap" style="display:flex;gap:14px;align-items:flex-start">
       <div id="filesList" style="flex:1;min-width:0"></div>
-      <div id="filePreviewPane" style="display:none;width:46%;flex-shrink:0;position:sticky;top:12px;background:#fff;border:1px solid #d6e4f5;border-radius:12px;overflow:hidden;height:calc(100vh - 150px);flex-direction:column;box-shadow:0 6px 22px rgba(27,58,107,.12)"></div>
+      <div id="filePreviewPane" style="display:none;width:46%;flex-shrink:0;position:sticky;top:12px;background:#fff;border:1px solid #d6e4f5;border-radius:0;overflow:hidden;height:calc(100vh - 150px);flex-direction:column;box-shadow:0 6px 22px rgba(27,58,107,.12)"></div>
     </div>
   </div>
   <!-- 주간 일정 페이지 -->
@@ -4103,6 +4116,11 @@ function reloadState() {
   window.expandAllVendors = function(open){
     _fileVendorOrder.forEach(function(name,idx){ if(open) _loadVendorBody(idx); var b=document.getElementById('bfvbody-'+idx); var c=document.getElementById('bfvchev-'+idx); if(b) b.style.display=open?'':'none'; if(c) c.style.transform=open?'rotate(90deg)':''; if(open) _fileExpanded.add(name); else _fileExpanded.delete(name); });
   };
+  window.toggleAllVendors = function(){
+    var allOpen = _fileVendorOrder.length>0 && _fileVendorOrder.every(function(n){ return _fileExpanded.has(n); });
+    _fileVendorOrder.forEach(function(n){ if(allOpen) _fileExpanded.delete(n); else _fileExpanded.add(n); });
+    renderFilesPage();
+  };
   window.setFileSort = function(mode){ _fileSort=mode; renderFilesPage(); };
   window.setFileChosung = function(c){ _fileChosung=c; renderFilesPage(); };
   // 미리보기 세션 캐시: 같은 세션에서 같은 파일을 다시 열 때 재다운로드 방지
@@ -4378,16 +4396,15 @@ function reloadState() {
   };
   function _canEditFile(f){
     if(_isViewer()) return false;
-    const myId=(_authUser&&_authUser.id)||'';
-    return _isAdmin() || ((f && (f.group==='거래처')) && f.by===myId);
+    return _isAdmin() || !!(f && f.group==='거래처');
   }
   function _fileCard(f, myId, showCat){
     const canDel = _canEditFile(f);
-    const catBadge = showCat ? `<span style="font-size:10px;font-weight:700;color:#2f5288;background:#eaf1fb;border-radius:5px;padding:1px 7px;flex-shrink:0;white-space:nowrap">${esc(f.category||'')}</span>` : '';
+    const catBadge = showCat ? `<span style="font-size:10px;font-weight:700;color:#2f5288;background:#eaf1fb;border-radius:0;padding:1px 7px;flex-shrink:0;white-space:nowrap">${esc(f.category||'')}</span>` : '';
     return `<div style="border:1px solid #eef0f3;border-radius:10px;padding:10px;background:#fff;display:flex;flex-direction:column;gap:8px;min-width:0">
       <div style="display:flex;align-items:center;gap:8px;min-width:0">
         <span style="font-size:20px;flex-shrink:0">${_fileIcon(f.type,f.name)}</span>
-        <span class="file-name-link" onclick="previewFile('${f.id}')" style="flex:1;min-width:0;font-size:13px;font-weight:600;color:#1B3A6B;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;text-decoration:underline" title="미리보기: ${esc(f.name)}">${esc(f.name)}</span>
+        <span class="file-name-link" onclick="previewFile('${f.id}')" style="flex:1;min-width:0;font-size:13px;font-weight:600;color:#1a1a1a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;text-decoration:underline" title="미리보기: ${esc(f.name)}">${esc(f.name)}</span>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
         <span style="display:flex;align-items:center;gap:6px;min-width:0">${catBadge}<span style="font-size:11px;color:#9ca3af">${_fmtSize(f.size||0)}</span></span>
@@ -4401,23 +4418,23 @@ function reloadState() {
   }
   function _fileRow(f, myId, showCat){
     const canDel = _canEditFile(f);
-    const catBadge = showCat ? `<span style="font-size:10px;font-weight:700;color:#2f5288;background:#eaf1fb;border-radius:5px;padding:1px 7px;flex-shrink:0;white-space:nowrap">${esc(f.category||'')}</span>` : '';
+    const catBadge = showCat ? `<span style="font-size:10px;font-weight:700;color:#2f5288;background:#eaf1fb;border-radius:0;padding:1px 7px;flex-shrink:0;white-space:nowrap">${esc(f.category||'')}</span>` : '';
     return `<div class="file-row">
       <span style="font-size:16px;flex-shrink:0">${_fileIcon(f.type,f.name)}</span>
-      <span class="file-name-link" onclick="previewFile('${f.id}')" style="flex:1;min-width:0;font-size:12.5px;font-weight:600;color:#1B3A6B;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;text-decoration:underline" title="미리보기: ${esc(f.name)}">${esc(f.name)}</span>
+      <span class="file-name-link" onclick="previewFile('${f.id}')" style="flex:1;min-width:0;font-size:12.5px;font-weight:600;color:#1a1a1a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;text-decoration:underline" title="미리보기: ${esc(f.name)}">${esc(f.name)}</span>
       ${catBadge}
       <span style="font-size:11px;color:#9ca3af;flex-shrink:0;min-width:46px;text-align:right">${_fmtSize(f.size||0)}</span>
       <span style="display:flex;gap:4px;flex-shrink:0">
-        <button class="btn" onclick="downloadFile('${f.id}')" title="다운로드" style="font-size:11px;padding:2px 6px;background:#1B3A6B;color:#fff;border:none">⬇</button>
-        ${canDel?`<button class="btn" onclick="renameFile('${f.id}')" title="이름 수정" style="font-size:11px;padding:2px 5px">✏️</button>`:''}
-        ${canDel?`<button class="btn btn-danger" onclick="deleteFile('${f.id}')" title="삭제" style="font-size:11px;padding:2px 5px">🗑</button>`:''}
+        <button type="button" onclick="downloadFile('${f.id}')" title="다운로드" aria-label="다운로드" style="background:none;border:none;cursor:pointer;color:#1B3A6B;padding:0 3px;display:inline-flex;align-items:center"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"/><path d="M7.5 11.5 12 16l4.5-4.5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></button>
+        ${canDel?`<button type="button" onclick="renameFile('${f.id}')" title="이름 수정" aria-label="이름 수정" style="background:none;border:none;cursor:pointer;color:#5b7ba6;padding:0 3px;display:inline-flex;align-items:center"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>`:''}
+        ${canDel?`<button type="button" onclick="deleteFile('${f.id}')" title="삭제" aria-label="삭제" style="background:none;border:none;cursor:pointer;color:#dc2626;padding:0 3px;display:inline-flex;align-items:center"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16"/><path d="M9.5 6.5V4.6a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.9"/><path d="M6.5 6.5 7.4 19a2 2 0 0 0 2 1.9h5.2a2 2 0 0 0 2-1.9l.9-12.5"/><path d="M10.5 10.5v6M13.5 10.5v6"/></svg></button>`:''}
       </span>
     </div>`;
   }
   function renderFilesPage(){
     const wrap = document.getElementById('filesList');
     if(!wrap) return;
-    var _uc = document.getElementById('fileUploadControls'); if(_uc) _uc.style.display = (_isAdmin() || _fileGroup==='거래처') ? 'flex' : 'none';
+    var _uc = document.getElementById('fileUploadControls'); if(_uc) _uc.style.display = (_isAdmin() || (_fileGroup==='거래처' && !_isViewer())) ? 'flex' : 'none';
     const cats = _catsForGroup(_fileGroup);
     const filt = document.getElementById('fileFilterCat');
     if(filt){ const cur=filt.value; filt.innerHTML = '<option value="">전체</option>'+cats.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join(''); if(cats.indexOf(cur)>=0) filt.value=cur; }
@@ -4443,16 +4460,19 @@ function reloadState() {
       if(_vendorTotal){
         const _nameBtn = _fileSort==='name' ? 'background:#1B3A6B;color:#fff;border-color:#1B3A6B' : '';
         const _cntBtn  = _fileSort==='count' ? 'background:#1B3A6B;color:#fff;border-color:#1B3A6B' : '';
-        html += `<div class="cho-idx"><button class="cho-btn ${_fileChosung===''?'active':''}" onclick="setFileChosung('')">전체</button>`+_choList.map(c=>`<button class="cho-btn ${_fileChosung===c?'active':''}" onclick="setFileChosung('${c}')" ${_choCnt[c]?'':'disabled'}>${c}</button>`).join('')+`</div>`;
-        html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-          <div style="font-size:12.5px;color:#6b7c93">총 <b style="color:#14305c">${_vendorTotal}</b>개 거래처 · <b style="color:#14305c">${list.length}</b>개 파일${_fileChosung?` · <span style="color:#1B3A6B;font-weight:700">${esc(_fileChosung)}</span> ${cls.length}개`:''}</div>
-          <div style="display:flex;gap:6px;align-items:center">
+        const _allOpen = forceOpen || (cls.length>0 && cls.every(cl=>_fileExpanded.has(cl)));
+        const _tglSvg = _allOpen
+          ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4l5 5 5-5"/><path d="M7 20l5-5 5 5"/></svg>'
+          : '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5"/><path d="M7 15l5 5 5-5"/></svg>';
+        html += `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+          <div class="cho-idx" style="margin-bottom:0;flex:1;min-width:200px"><button class="cho-btn ${_fileChosung===''?'active':''}" onclick="setFileChosung('')">전체</button>`+_choList.map(c=>`<button class="cho-btn ${_fileChosung===c?'active':''}" onclick="setFileChosung('${c}')" ${_choCnt[c]?'':'disabled'}>${c}</button>`).join('')+`</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:auto">
+            <div style="font-size:12.5px;color:#6b7c93;white-space:nowrap">총 <b style="color:#1a1a1a">${_vendorTotal}</b>개 거래처 · <b style="color:#1a1a1a">${list.length}</b>개 파일${_fileChosung?` · <span style="color:#1a1a1a;font-weight:700">${esc(_fileChosung)}</span> ${cls.length}개`:''}</div>
             <span style="font-size:11px;color:#9ca3af">정렬</span>
             <button class="btn" onclick="setFileSort('name')" style="font-size:11px;padding:3px 10px;${_nameBtn}">가나다순</button>
             <button class="btn" onclick="setFileSort('count')" style="font-size:11px;padding:3px 10px;${_cntBtn}">파일 많은순</button>
             <span style="width:1px;height:16px;background:#e5e5e5;margin:0 2px"></span>
-            <button class="btn" onclick="expandAllVendors(true)" style="font-size:11px;padding:3px 10px">모두 펼치기</button>
-            <button class="btn" onclick="expandAllVendors(false)" style="font-size:11px;padding:3px 10px">모두 접기</button>
+            <button class="btn" onclick="toggleAllVendors()" title="${_allOpen?'모두 접기':'모두 펼치기'}" aria-label="${_allOpen?'모두 접기':'모두 펼치기'}" style="display:inline-flex;align-items:center;justify-content:center;padding:4px 7px">${_tglSvg}</button>
           </div>
         </div>`;
       }
@@ -4477,7 +4497,7 @@ function reloadState() {
       cats.forEach(cat=>{
         const items = list.filter(f=>f.category===cat);
         if(!items.length) return;
-        html += `<div style="margin-bottom:14px"><div style="font-size:13px;font-weight:800;color:#14305c;margin-bottom:6px">${esc(cat)} <span style="font-size:11px;color:#888;font-weight:500">${items.length}건</span></div><div class="files-list">`;
+        html += `<div style="margin-bottom:14px"><div style="font-size:13px;font-weight:800;color:#1a1a1a;margin-bottom:6px">${esc(cat)} <span style="font-size:11px;color:#888;font-weight:500">${items.length}건</span></div><div class="files-list">`;
         html += items.map(f=>_fileRow(f,myId)).join('');
         html += '</div></div>';
       });
@@ -10600,7 +10620,7 @@ function reloadState() {
           </div>
           ${s.note?`<div style="font-size:11px;color:#aaa;margin-top:1px">${esc(s.note)}</div>`:''}
         </div>
-        <button data-action="del" data-uid="${s.id}" style="border:none;background:none;color:#ccc;cursor:pointer;font-size:16px;padding:0 2px;flex-shrink:0;line-height:1">×</button>
+        <button data-action="del" data-uid="${s.id}" title="삭제" aria-label="삭제" style="border:none;background:none;color:#dc2626;cursor:pointer;padding:0 2px;flex-shrink:0;display:inline-flex;align-items:center"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16"/><path d="M9.5 6.5V4.6a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.9"/><path d="M6.5 6.5 7.4 19a2 2 0 0 0 2 1.9h5.2a2 2 0 0 0 2-1.9l.9-12.5"/><path d="M10.5 10.5v6M13.5 10.5v6"/></svg></button>
       </div>`;
 
       const editRow = isEdit ? `
@@ -12142,23 +12162,23 @@ function reloadState() {
       const brandHomepage = (arr.find(x=>x.homepage)||{}).homepage || '';
       const brandHpUrl = brandHomepage ? (brandHomepage.indexOf('://')>=0 ? brandHomepage : ('http://'+brandHomepage)) : '';
       html += `<div style="background:#fff;border:1px solid #e5e9f0;border-radius:0;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08)">
-        <div style="padding:9px 12px;background:#fafafa;${isNone?'color:#9ca3af':'color:#14305c'};border-bottom:1px solid #d3dce6;font-size:14px;font-weight:800;word-break:break-all;display:flex;align-items:center;gap:8px">${brandLogo?`<span style="display:inline-flex;align-items:center;justify-content:center;width:96px;height:34px;background:#fff;border:1px solid #eef2f7;border-radius:0;padding:3px;flex-shrink:0"><img src="${brandLogo}" style="max-width:100%;max-height:100%;object-fit:contain"></span>`:''}<span style="flex:1;text-align:right;text-transform:uppercase">${esc(brand)}</span></div>
-        <div>${brandHomepage?`<div style="padding:8px 12px;border-bottom:1px solid #eef2f7;font-size:12px"><a href="${esc(brandHpUrl)}" target="_blank" rel="noopener" style="color:#2f5288;text-decoration:none;word-break:break-all">${esc(brandHomepage)}</a></div>`:''}`;
+        <div style="padding:9px 12px;background:#fafafa;${isNone?'color:#9ca3af':'color:#1a1a1a'};border-bottom:1px solid #d3dce6;font-size:14px;font-weight:800;word-break:break-all;display:flex;align-items:center;gap:8px">${brandLogo?`<span style="display:inline-flex;align-items:center;justify-content:center;width:96px;height:34px;background:#fff;border:1px solid #eef2f7;border-radius:0;padding:3px;flex-shrink:0"><img src="${brandLogo}" style="max-width:100%;max-height:100%;object-fit:contain"></span>`:''}<span style="flex:1;text-align:right;text-transform:uppercase">${esc(brand)}</span></div>
+        <div>${brandHomepage?`<div style="padding:8px 12px;border-bottom:1px solid #eef2f7;font-size:12px"><a href="${esc(brandHpUrl)}" target="_blank" rel="noopener" style="color:#1a1a1a;text-decoration:none;word-break:break-all">${esc(brandHomepage)}</a></div>`:''}`;
       arr.forEach((v, idx) => {
         const cs = v.contacts || [];
         const contactsHtml = cs.length
-          ? cs.map(c => `<div style="font-size:12px;color:#374151;display:flex;flex-wrap:nowrap;align-items:center;gap:6px;line-height:1.7;overflow:hidden">${c.role||c.name?`<span style="font-weight:600;color:#6b7280;flex-shrink:0;white-space:nowrap">${esc([c.role,c.name].filter(Boolean).join(' '))}</span>`:''}${c.phone?`<a href="tel:${esc(c.phone.replace(/[^0-9+]/g,''))}" style="color:#2f5288;text-decoration:none;flex-shrink:0;white-space:nowrap">${esc(c.phone)}</a>`:''}${c.email?`<a href="mailto:${esc(c.email)}" style="color:#2f5288;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${esc(c.email)}</a>`:''}</div>`).join('')
+          ? cs.map(c => `<div style="font-size:12px;color:#374151;display:flex;flex-wrap:nowrap;align-items:center;gap:6px;line-height:1.7;overflow:hidden">${c.role||c.name?`<span style="font-weight:600;color:#1a1a1a;flex-shrink:0;white-space:nowrap">${esc([c.role,c.name].filter(Boolean).join(' '))}</span>`:''}${c.phone?`<a href="tel:${esc(c.phone.replace(/[^0-9+]/g,''))}" style="color:#1a1a1a;text-decoration:none;flex-shrink:0;white-space:nowrap">${esc(c.phone)}</a>`:''}${c.email?`<a href="mailto:${esc(c.email)}" style="color:#1a1a1a;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${esc(c.email)}</a>`:''}</div>`).join('')
           : '';
         const rows = [];
-        if (v.fax) rows.push(`<span style="color:#555">${esc(v.fax)}</span>`);
-        if (v.address) rows.push(`<span style="color:#555">${esc(v.address)}</span>`);
+        if (v.fax) rows.push(`<span style="color:#1a1a1a">${esc(v.fax)}</span>`);
+        if (v.address) rows.push(`<span style="color:#1a1a1a">${esc(v.address)}</span>`);
         const infoHtml = rows.map(r=>`<div style="font-size:12px;line-height:1.6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r}</div>`).join('');
         html += `<div style="position:relative;padding:10px 12px;${idx>0?'border-top:1px solid #eef2f7':''}">
           <div style="position:absolute;top:8px;right:8px;display:flex;gap:4px">
             <button type="button" onclick="openPurchaseModal('${v.id}')" title="수정" aria-label="수정" style="background:none;border:none;cursor:pointer;color:#5b7ba6;padding:0 3px;display:inline-flex;align-items:center"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
             <button type="button" onclick="deletePurchase('${v.id}')" title="삭제" aria-label="삭제" style="background:none;border:none;cursor:pointer;color:#dc2626;padding:0 3px;display:inline-flex;align-items:center"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16"/><path d="M9.5 6.5V4.6a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.9"/><path d="M6.5 6.5 7.4 19a2 2 0 0 0 2 1.9h5.2a2 2 0 0 0 2-1.9l.9-12.5"/><path d="M10.5 10.5v6M13.5 10.5v6"/></svg></button>
           </div>
-          ${(v.region||v.distributor)?`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px;padding-right:52px">${v.region?`<span style="font-size:11px;font-weight:700;color:#9ca3af;white-space:nowrap">● ${esc(v.region)}</span>`:''}${v.distributor?`<span style="font-size:13px;font-weight:700;color:#1B3A6B;word-break:break-all">${esc(v.distributor)}</span>`:''}</div>`:''}
+          ${(v.region||v.distributor)?`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px;padding-right:52px">${v.region?`<span style="font-size:11px;font-weight:700;color:#9ca3af;white-space:nowrap">● ${esc(v.region)}</span>`:''}${v.distributor?`<span style="font-size:13px;font-weight:700;color:#1a1a1a;word-break:break-all">${esc(v.distributor)}</span>`:''}</div>`:''}
           ${contactsHtml?`<div style="display:flex;flex-direction:column;gap:2px;margin-bottom:5px">${contactsHtml}</div>`:''}
           ${infoHtml?`<div style="display:flex;flex-direction:column;gap:3px">${infoHtml}</div>`:''}
           ${v.memo?`<div style="margin-top:6px;font-size:11px;color:#888;background:#f4f8fe;border-left:3px solid #aac4e6;border-radius:4px;padding:5px 8px;white-space:pre-wrap">${esc(v.memo)}</div>`:''}
