@@ -3460,10 +3460,11 @@
       if((r.buy||0)>0) bars+='<text x="'+cxb+'" y="'+(padT+plotH-hb-4)+'" text-anchor="middle" font-size="9.5" font-weight="700" fill="#5f7fb0">'+_misuFmtWon(r.buy)+'</text>';
       labels+='<text x="'+cx+'" y="'+(H-9)+'" text-anchor="middle" font-size="10.5" fill="#6b7280">'+r.label+'</text>';
     });
+    var bands=''; for(var _bi=0;_bi<n;_bi++){ if(_bi%2===0) bands+='<rect x="'+(padL+groupW*_bi).toFixed(1)+'" y="'+padT+'" width="'+groupW.toFixed(1)+'" height="'+plotH+'" fill="#f4f6fb"/>'; }
     var base='<line x1="'+padL+'" y1="'+(padT+plotH)+'" x2="'+(W-padR)+'" y2="'+(padT+plotH)+'" stroke="#e5e9f0" stroke-width="1"/>';
     var legend='<span style="font-size:11px;color:#6b7280"><span style="display:inline-block;width:9px;height:9px;background:#1B3A6B;border-radius:0;margin-right:3px"></span>매출<span style="display:inline-block;width:9px;height:9px;background:#9db8dd;border-radius:0;margin:0 3px 0 10px"></span>매입</span>';
     el.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;flex-wrap:wrap;gap:4px"><span style="font-size:13px;font-weight:700;color:#1a1a1a">'+title+'</span>'+legend+'</div>'+
-      '<div style="border:1px solid #eef2f7;border-radius:0;padding:6px 6px 2px;background:#fff"><svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" preserveAspectRatio="xMidYMid meet">'+base+bars+labels+'</svg></div>';
+      '<div style="border:1px solid #eef2f7;border-radius:0;padding:6px 6px 2px;background:#fff"><svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" preserveAspectRatio="xMidYMid meet">'+bands+base+bars+labels+'</svg></div>';
   }
   function _misuRenderCards(gridId, cards){
     var g=document.getElementById(gridId); if(!g) return;
