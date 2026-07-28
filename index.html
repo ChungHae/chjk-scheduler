@@ -2513,7 +2513,7 @@
         <div id="salesChartMonth"></div>
       </div>
     </div>
-    <div style="max-width:640px;margin:16px auto 0;text-align:center;background:#fff;border:1px solid #e5e9f0;border-radius:0;padding:20px 28px;box-shadow:0 1px 3px rgba(0,0,0,.06)">
+    <div style="margin:16px 0 0;text-align:center;background:#fff;border:1px solid #e5e9f0;border-radius:0;padding:20px 28px;box-shadow:0 1px 3px rgba(0,0,0,.06)">
       <div style="font-size:32px;margin-bottom:4px">💳</div>
       <div style="font-size:17px;font-weight:800;color:#1a1a1a;margin-bottom:6px">세금계산서 입금 매칭</div>
       <div style="font-size:13px;color:#6b7280;line-height:1.6;margin-bottom:16px">은행 입금내역과 세금계산서를 자동으로 대사하고,<br>내용증명 등 문서를 생성하는 전용 앱입니다.</div>
@@ -3448,20 +3448,20 @@
     if(!rows || !rows.length){ el.innerHTML=''; return; }
     var n=rows.length, W=Math.max(320, n*74), H=210, padL=10, padR=10, padT=26, padB=26, plotH=H-padT-padB;
     var maxv=1; rows.forEach(function(r){ maxv=Math.max(maxv, r.sales||0, r.buy||0); });
-    var groupW=(W-padL-padR)/n, barW=Math.min(20, groupW/2.6), gap=3;
+    var groupW=(W-padL-padR)/n, barW=Math.min(22, groupW/2.5), gap=13;
     var bars='', labels='';
     rows.forEach(function(r,i){
       var cx=padL+groupW*i+groupW/2;
       var hs=Math.round((r.sales||0)/maxv*plotH), hb=Math.round((r.buy||0)/maxv*plotH);
       var cxs=cx-barW/2-gap/2, cxb=cx+barW/2+gap/2;
-      bars+='<rect x="'+(cx-barW-gap/2)+'" y="'+(padT+plotH-hs)+'" width="'+barW+'" height="'+hs+'" rx="2" fill="#1B3A6B"><title>매출 '+_misuFmtWon(r.sales)+'원</title></rect>';
-      bars+='<rect x="'+(cx+gap/2)+'" y="'+(padT+plotH-hb)+'" width="'+barW+'" height="'+hb+'" rx="2" fill="#9db8dd"><title>매입 '+_misuFmtWon(r.buy)+'원</title></rect>';
+      bars+='<rect x="'+(cx-barW-gap/2)+'" y="'+(padT+plotH-hs)+'" width="'+barW+'" height="'+hs+'" rx="0" fill="#1B3A6B"><title>매출 '+_misuFmtWon(r.sales)+'원</title></rect>';
+      bars+='<rect x="'+(cx+gap/2)+'" y="'+(padT+plotH-hb)+'" width="'+barW+'" height="'+hb+'" rx="0" fill="#9db8dd"><title>매입 '+_misuFmtWon(r.buy)+'원</title></rect>';
       if((r.sales||0)>0) bars+='<text x="'+cxs+'" y="'+(padT+plotH-hs-4)+'" text-anchor="middle" font-size="9.5" font-weight="700" fill="#1a1a1a">'+_misuFmtWon(r.sales)+'</text>';
       if((r.buy||0)>0) bars+='<text x="'+cxb+'" y="'+(padT+plotH-hb-4)+'" text-anchor="middle" font-size="9.5" font-weight="700" fill="#5f7fb0">'+_misuFmtWon(r.buy)+'</text>';
       labels+='<text x="'+cx+'" y="'+(H-9)+'" text-anchor="middle" font-size="10.5" fill="#6b7280">'+r.label+'</text>';
     });
     var base='<line x1="'+padL+'" y1="'+(padT+plotH)+'" x2="'+(W-padR)+'" y2="'+(padT+plotH)+'" stroke="#e5e9f0" stroke-width="1"/>';
-    var legend='<span style="font-size:11px;color:#6b7280"><span style="display:inline-block;width:9px;height:9px;background:#1B3A6B;border-radius:2px;margin-right:3px"></span>매출<span style="display:inline-block;width:9px;height:9px;background:#9db8dd;border-radius:2px;margin:0 3px 0 10px"></span>매입</span>';
+    var legend='<span style="font-size:11px;color:#6b7280"><span style="display:inline-block;width:9px;height:9px;background:#1B3A6B;border-radius:0;margin-right:3px"></span>매출<span style="display:inline-block;width:9px;height:9px;background:#9db8dd;border-radius:0;margin:0 3px 0 10px"></span>매입</span>';
     el.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;flex-wrap:wrap;gap:4px"><span style="font-size:13px;font-weight:700;color:#1a1a1a">'+title+'</span>'+legend+'</div>'+
       '<div style="border:1px solid #eef2f7;border-radius:0;padding:6px 6px 2px;background:#fff"><svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" preserveAspectRatio="xMidYMid meet">'+base+bars+labels+'</svg></div>';
   }
