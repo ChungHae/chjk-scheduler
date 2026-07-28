@@ -12199,7 +12199,7 @@ function reloadState() {
           <label class="form-label">브랜드 로고</label>
           <div style="display:flex;align-items:center;gap:10px">
             <div id="pvLogoPreview" style="width:60px;height:60px;border:1px solid #e5e5e5;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#fff;flex-shrink:0"></div>
-            <label class="btn" style="cursor:pointer;margin:0">이미지 선택<input type="file" id="pvLogoFile" accept="image/*" onchange="onPurchaseLogoChange(event)" style="display:none"></label>
+            <label class="btn" style="cursor:pointer;margin:0;height:28px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center">이미지 선택<input type="file" id="pvLogoFile" accept="image/*" onchange="onPurchaseLogoChange(event)" style="display:none"></label>
             <button type="button" class="btn" onclick="removePurchaseLogo()">제거</button>
           </div>
         </div>
@@ -12240,7 +12240,7 @@ function reloadState() {
         <div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
             <label class="form-label" style="margin:0">담당자 / 연락처</label>
-            <button type="button" onclick="addPurchaseContactRow()" style="padding:4px 10px;border:1px solid #aac4e6;background:#eaf1fb;color:#14305c;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:600">＋ 담당자 추가</button>
+            <button type="button" onclick="addPurchaseContactRow()" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:1px solid #aac4e6;background:#eaf1fb;color:#14305c;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:600"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>담당자 추가</button>
           </div>
           <div id="pvContacts" style="display:flex;flex-direction:column;gap:6px"></div>
         </div>
@@ -12328,9 +12328,9 @@ function reloadState() {
           <input type="text" data-pcfield="role" data-pci="${i}" value="${esc(c.role||'')}" placeholder="직책" style="padding:6px 8px;border:1.5px solid #e5e5e5;border-radius:6px;font-size:12px;font-family:inherit">
           <input type="text" data-pcfield="name" data-pci="${i}" value="${esc(c.name||'')}" placeholder="이름" style="padding:6px 8px;border:1.5px solid #e5e5e5;border-radius:6px;font-size:12px;font-family:inherit">
           <div style="display:flex;gap:3px">
-            <button type="button" onclick="movePurchaseContact(${i},-1)" title="위로" style="padding:5px 7px;border:1px solid #aac4e6;background:#eaf1fb;color:#14305c;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit">▲</button>
-            <button type="button" onclick="movePurchaseContact(${i},1)" title="아래로" style="padding:5px 7px;border:1px solid #aac4e6;background:#eaf1fb;color:#14305c;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit">▼</button>
-            <button type="button" onclick="removePurchaseContactRow(${i})" title="삭제" style="padding:5px 8px;border:1px solid #fecaca;background:#fff5f5;color:#dc2626;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit">🗑</button>
+            <button type="button" onclick="movePurchaseContact(${i},-1)" title="위로" aria-label="위로" style="display:inline-flex;align-items:center;justify-content:center;padding:5px 7px;border:1px solid #aac4e6;background:#eaf1fb;color:#14305c;border-radius:6px;cursor:pointer;font-family:inherit"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg></button>
+            <button type="button" onclick="movePurchaseContact(${i},1)" title="아래로" aria-label="아래로" style="display:inline-flex;align-items:center;justify-content:center;padding:5px 7px;border:1px solid #aac4e6;background:#eaf1fb;color:#14305c;border-radius:6px;cursor:pointer;font-family:inherit"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+            <button type="button" onclick="removePurchaseContactRow(${i})" title="삭제" aria-label="삭제" style="display:inline-flex;align-items:center;justify-content:center;padding:5px 8px;border:1px solid #fecaca;background:#fff5f5;color:#dc2626;border-radius:6px;cursor:pointer;font-family:inherit"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16"/><path d="M9.5 6.5V4.6a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.9"/><path d="M6.5 6.5 7.4 19a2 2 0 0 0 2 1.9h5.2a2 2 0 0 0 2-1.9l.9-12.5"/><path d="M10.5 10.5v6M13.5 10.5v6"/></svg></button>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
