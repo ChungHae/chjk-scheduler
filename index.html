@@ -137,6 +137,7 @@
     #pageFiles .inv-toolbar .qic { width:26px !important; min-width:26px; height:26px; border-radius:6px !important; flex:0 0 auto; }
     #pageFiles .inv-toolbar .qic svg { width:15px; height:15px; }
     #pageFiles .fl-cat-sel { width:130px; flex:0 0 auto; background:#fff; color:#1a1a1a; cursor:pointer; }
+    #pageFiles .fl-cat-sel:hover, #pageFiles .fl-cat-sel:focus { background:#fff !important; }
     /* 재고 표 헤더 — 견적 표와 동일한 연한 네이비 헤더·각진 테두리 */
     #pageInventory thead tr { background:#fafafa !important; }
     #pageInventory thead th { background:#fafafa !important; color:#888 !important; font-weight:500 !important; font-size:12px !important; border-color:#d3dce6 !important; }
@@ -2237,7 +2238,6 @@
       <span class="fl-lbl-name inv-flat-label">파일명</span>
       <input id="fileSearch" type="text" class="q-flat" placeholder="파일명 검색" oninput="renderFilesPage()" autocomplete="off">
       <span class="inv-flat-div"></span>
-      <span class="fl-lbl-cat inv-flat-label" style="font-weight:500;color:#6b7280">분류</span>
       <select id="fileFilterCat" class="q-flat fl-cat-sel" onchange="renderFilesPage()"></select>
       <span style="flex:1"></span>
       <span id="fileUploadControls" style="display:flex;gap:4px;align-items:center;flex-shrink:0"><button class="qic" onclick="openFileUploadModal()" data-tip="자료 업로드" aria-label="자료 업로드" style="border-color:#16a34a;color:#16a34a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></button></span>
