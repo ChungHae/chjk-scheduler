@@ -79,6 +79,60 @@
     /* 설정 창 저장 버튼 공통 크기 (닫기 버튼과 동일한 기본 크기) */
     .cfg-save { padding: 6px 12px; box-sizing: border-box; font-weight: 600; }
 
+    /* ══ 재고 카테고리: 일정·견적과 동일한 각진 네이비 통일 ══ */
+    #pageInventory [style*="border-radius"], #pageInventory [style*="box-shadow"],
+    #invAddOverlay [style*="border-radius"], #invUseOverlay [style*="border-radius"],
+    #invEditOverlay [style*="border-radius"], #invItemOverlay [style*="border-radius"],
+    #invLogOverlay [style*="border-radius"], #invExcelGuideOverlay [style*="border-radius"],
+    #invAddOverlay [style*="box-shadow"], #invUseOverlay [style*="box-shadow"],
+    #invEditOverlay [style*="box-shadow"], #invItemOverlay [style*="box-shadow"],
+    #invLogOverlay [style*="box-shadow"], #invExcelGuideOverlay [style*="box-shadow"], #purchaseExcelGuideOverlay [style*="box-shadow"] { border-radius:0 !important; box-shadow:none !important; }
+    #pageInventory input, #pageInventory select, #pageInventory .btn,
+    #invAddOverlay input, #invAddOverlay select, #invAddOverlay .btn,
+    #invUseOverlay input, #invUseOverlay select, #invUseOverlay .btn,
+    #invEditOverlay input, #invEditOverlay select, #invEditOverlay .btn,
+    #invItemOverlay input, #invItemOverlay select, #invItemOverlay .btn,
+    #invLogOverlay input, #invLogOverlay select, #invLogOverlay .btn,
+    #invExcelGuideOverlay .btn { border-radius:0 !important; }
+    #pagePurchase input, #pagePurchase select, #pagePurchase .btn { border-radius:0 !important; }
+    #pageInventory .btn-primary, #invAddOverlay .btn-primary, #invUseOverlay .btn-primary,
+    #invEditOverlay .btn-primary, #invItemOverlay .btn-primary, #invLogOverlay .btn-primary { background:#1B3A6B !important; border-color:#1B3A6B !important; color:#fff !important; }
+    #pageInventory .btn-primary:hover, #invAddOverlay .btn-primary:hover, #invUseOverlay .btn-primary:hover,
+    #invEditOverlay .btn-primary:hover, #invItemOverlay .btn-primary:hover, #invLogOverlay .btn-primary:hover { background:#14305c !important; border-color:#14305c !important; }
+    #pageInventory input:focus, #pageInventory select:focus,
+    #invAddOverlay input:focus, #invUseOverlay input:focus, #invEditOverlay input:focus, #invLogOverlay input:focus { outline:none; border-color:#1B3A6B !important; }
+    #invAddOverlay > div, #invUseOverlay > div, #invEditOverlay > div, #invItemOverlay > div, #invLogOverlay > div, #invExcelGuideOverlay > div { border:1px solid #c8d2de !important; }
+    /* 재고 툴바 — 견적관리 툴바와 동일 (전폭·플랫 검색·아이콘 버튼) */
+    #pageInventory .inv-toolbar { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin: calc(var(--mpy)*-1) calc(var(--mpx)*-1) 14px; min-height:var(--snh,36px); padding:4px var(--mpx); background:#fff; border:0; border-bottom:1px solid #e5e5e5; box-shadow:0 2px 6px rgba(15,23,42,.06); box-sizing:border-box; }
+    #pageInventory .inv-flat-label { font-size:12.5px; font-weight:700; color:#14305c; white-space:nowrap; flex-shrink:0; }
+    #pageInventory .inv-flat-div { width:1px; height:18px; background:#e5e5e5; flex-shrink:0; margin:0 4px; }
+    #pageInventory .q-flat { box-sizing:border-box; height:26px; padding:4px 6px; margin:0; border:none !important; background:transparent; outline:none; font-size:13px; font-family:inherit; color:#14305c; }
+    #pageInventory input.q-flat { width:300px; max-width:100%; }
+    #pageInventory .q-flat:hover { background:rgba(27,58,107,.045); }
+    #pageInventory .q-flat:focus { background:#f2f4f7; }
+    #pageInventory .q-flat::placeholder { color:#aab4c2; }
+    #pageInventory .inv-toolbar .qic { width:26px !important; min-width:26px; height:26px; border-radius:6px !important; flex:0 0 auto; }
+    #pageInventory .inv-toolbar .qic svg { width:15px; height:15px; }
+    /* 매입처 툴바 — 재고 툴바와 동일 스타일 */
+    #pagePurchase .inv-toolbar { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin: calc(var(--mpy)*-1) calc(var(--mpx)*-1) 14px; min-height:var(--snh,36px); padding:4px var(--mpx); background:#fff; border:0; border-bottom:1px solid #e5e5e5; box-shadow:0 2px 6px rgba(15,23,42,.06); box-sizing:border-box; }
+    #pagePurchase .inv-flat-label { font-size:12.5px; font-weight:700; color:#14305c; white-space:nowrap; flex-shrink:0; }
+    #pagePurchase .inv-flat-div { width:1px; height:18px; background:#e5e5e5; flex-shrink:0; margin:0 4px; }
+    #pagePurchase .q-flat { box-sizing:border-box; height:26px; padding:4px 6px; margin:0; border:none !important; background:transparent; outline:none; font-size:13px; font-family:inherit; color:#14305c; }
+    #pagePurchase input.q-flat { width:300px; max-width:100%; }
+    #pagePurchase .q-flat:hover { background:rgba(27,58,107,.045); }
+    #pagePurchase .q-flat:focus { background:#f2f4f7; }
+    #pagePurchase .q-flat::placeholder { color:#aab4c2; }
+    #pagePurchase .inv-toolbar .qic { width:26px !important; min-width:26px; height:26px; border-radius:6px !important; flex:0 0 auto; }
+    #pagePurchase .inv-toolbar .qic svg { width:15px; height:15px; }
+    /* 재고 표 헤더 — 견적 표와 동일한 연한 네이비 헤더·각진 테두리 */
+    #pageInventory thead tr { background:#fafafa !important; }
+    #pageInventory thead th { background:#fafafa !important; color:#888 !important; font-weight:500 !important; font-size:12px !important; border-color:#d3dce6 !important; }
+    #pageInventory thead th input { border-color:#cdd8e6 !important; }
+    #pageInventory #invColL, #pageInventory #invColM, #pageInventory #invColR { border-color:#d3dce6 !important; }
+    /* DC율·마진율 입력칸 — 견적 입력칸(플랫 밑줄형)과 동일 */
+    #pageInventory .inv-dc-inp, #pageInventory .inv-mg-inp { border:none !important; border-bottom:1.5px solid #aab8cf !important; border-radius:0 !important; background:transparent !important; box-shadow:none !important; padding:1px 4px 2px !important; text-align:right; font-weight:700; font-family:inherit; outline:none; }
+    #pageInventory .inv-dc-inp:focus, #pageInventory .inv-mg-inp:focus { border-bottom-color:#1B3A6B !important; background:#fff !important; }
+
     /* ── Main ── */
     .main { padding: 20px 24px; overflow-x: auto; }
 
@@ -1940,10 +1994,8 @@
       /* 재고/매입처: 절반폭 바 → 풀폭, 3열 → 스택 */
       #pageInventory [style*="max-width:50%"], #pagePurchase [style*="max-width:50%"] { max-width:100% !important; flex-basis:100% !important; }
       #invColL, #invColM, #invColR { flex:1 1 100% !important; }
-      /* 매입처: 검색창 풀폭 + 추가·엑셀 버튼 반반 한 줄 전체 */
-      #pagePurchase > div:first-child > div:first-child { flex: 1 1 100% !important; max-width: 100% !important; min-width: 0 !important; }
-      #purchaseSearch { flex: 1 1 100% !important; width: 100% !important; }
-      #purchaseAddBtn, #purchaseExcelBtn { flex: 1 1 0 !important; width: auto !important; min-width: 0 !important; }
+      /* 매입처: 검색창 풀폭 (재고와 동일) */
+      #purchaseSearch { flex: 1 1 100% !important; width: 100% !important; order: 1; }
       /* 재고: 검색창 풀폭 + 엑셀 업로드 숨김 + 버튼 2×2 반반 배치 */
       #pageInventory > div:first-child > div:first-child { flex: 1 1 100% !important; max-width: 100% !important; min-width: 0 !important; }
       #invSearch { flex: 1 1 100% !important; width: 100% !important; order: 1; }
@@ -2486,41 +2538,53 @@
     <div id="qSubPrice" style="display:none"></div>
   </div>
   <div id="pageInventory" class="page-section">
-    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
-      <div style="display:flex;gap:8px;flex:0 1 65%;max-width:65%;min-width:300px;align-items:center;flex-wrap:wrap">
-        <input type="text" id="invSearch" placeholder="품번 검색 (대시/공백 무시)…" oninput="renderInventoryPage()" style="flex:0 0 300px;min-width:0;padding:7px 10px;border:1.5px solid #e5e5e5;border-radius:8px;font-size:13px;font-family:inherit">
-        <button class="btn" id="invUploadBtn" onclick="openInvExcelGuide()" style="margin:0;width:116px;box-sizing:border-box;text-align:center;padding:6px 4px;font-size:12px;white-space:nowrap;border:1.5px solid #5b7ba6;color:#5b7ba6;font-weight:600">엑셀 업로드</button>
-        <input type="file" id="invUploadFile" accept=".xlsx,.xls" onchange="onInvExcelChange(event)" style="display:none"><button class="btn" id="invExcelBtn" onclick="exportInvExcel()" style="width:116px;box-sizing:border-box;text-align:center;padding:6px 4px;font-size:12px;white-space:nowrap;border:1.5px solid #16a34a;color:#16a34a;font-weight:600">엑셀 다운로드</button>
-        <button class="btn btn-primary" id="invAddBtn" onclick="openInvAddModal()" style="width:116px;box-sizing:border-box;text-align:center;padding:6px 4px;font-size:12px;white-space:nowrap;font-weight:600">＋ 재고품 추가</button>
-        <button class="btn btn-primary" id="invUseBtn" onclick="openInvUseModal()" style="width:116px;box-sizing:border-box;text-align:center;padding:6px 4px;font-size:12px;white-space:nowrap;font-weight:600">− 재고품 사용</button>
-        <button class="btn" id="invLogBtn" onclick="openInvLogModal()" style="width:116px;box-sizing:border-box;text-align:center;padding:6px 4px;font-size:12px;white-space:nowrap;border:1.5px solid #5b7ba6;color:#5b7ba6;font-weight:600">입출고 내역</button>
+    <div class="q-toolbar inv-toolbar">
+      <span class="inv-flat-label">재고 검색</span>
+      <input type="text" id="invSearch" class="q-flat" placeholder="품번 검색 (대시/공백 무시)…" autocomplete="off" oninput="renderInventoryPage()">
+      <span class="inv-flat-div"></span>
+      <div id="invRegionFilter" style="display:flex;gap:4px">
+        <button type="button" class="btn if-btn" data-region="all" onclick="setInvRegionFilter('all')" style="font-size:11.5px;padding:3px 11px">전체</button>
+        <button type="button" class="btn if-btn" data-region="서울" onclick="setInvRegionFilter('서울')" style="font-size:11.5px;padding:3px 11px">서울</button>
+        <button type="button" class="btn if-btn" data-region="화성" onclick="setInvRegionFilter('화성')" style="font-size:11.5px;padding:3px 11px">화성</button>
       </div>
-      <span id="invCount" style="font-size:12px;color:#888;margin-left:auto"></span>
-      <div id="invRegionFilter" style="display:flex;gap:6px;flex-wrap:wrap">
-        <button type="button" class="btn if-btn" data-region="all" onclick="setInvRegionFilter('all')" style="font-size:12px">전체</button>
-        <button type="button" class="btn if-btn" data-region="서울" onclick="setInvRegionFilter('서울')" style="font-size:12px">서울</button>
-        <button type="button" class="btn if-btn" data-region="화성" onclick="setInvRegionFilter('화성')" style="font-size:12px">화성</button>
-      </div>
+      <span id="invCount" style="font-size:11px;color:#9ca3af;white-space:nowrap;margin-left:6px"></span>
+      <span style="flex:1"></span>
+      <input type="file" id="invUploadFile" accept=".xlsx,.xls" onchange="onInvExcelChange(event)" style="display:none">
+      <button class="qic" id="invAddBtn" onclick="openInvAddModal()" data-tip="재고품 추가" aria-label="재고품 추가" style="border-color:#1B3A6B;color:#1B3A6B"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+      <button class="qic" id="invUseBtn" onclick="openInvUseModal()" data-tip="재고품 사용" aria-label="재고품 사용" style="border-color:#b45309;color:#b45309"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+      <button class="qic" id="invLogBtn" onclick="openInvLogModal()" data-tip="입출고 내역" aria-label="입출고 내역" style="border-color:#5b7ba6;color:#5b7ba6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h11M8 12h11M8 18h11"/><path d="M3.6 6h.01M3.6 12h.01M3.6 18h.01"/></svg></button>
+      <span class="qic-div" style="width:1px;align-self:stretch;background:#d3dae4;margin:2px 4px"></span>
+      <button class="qic" id="invUploadBtn" onclick="openInvExcelGuide()" data-tip="엑셀 업로드" aria-label="엑셀 업로드" style="border-color:#16a34a;color:#16a34a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></button>
+      <button class="qic" id="invExcelBtn" onclick="exportInvExcel()" data-tip="엑셀 다운로드" aria-label="엑셀 다운로드" style="border-color:#1B3A6B;color:#1B3A6B"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"/><path d="M7.5 11.5 12 16l4.5-4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></button>
     </div>
     <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">
-      <div id="invColL" style="flex:1;min-width:230px;overflow:hidden;border:1px solid #e5e9f0;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.08)"><table style="width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed"><colgroup><col style="width:88px"><col><col style="width:50px"><col style="width:125px"><col style="width:125px"><col style="width:125px"></colgroup><thead><tr style="background:#1B3A6B;border-bottom:2px solid #e5e7eb"><th style="text-align:center;padding:9px 8px;font-weight:600;color:#fff;background:#1B3A6B;white-space:nowrap;border:1px solid #2a4a7f">지점</th><th style="text-align:center;padding:9px 12px;font-weight:600;color:#fff;background:#1B3A6B;white-space:nowrap;border:1px solid #2a4a7f">규격</th><th style="text-align:center;padding:9px 8px;font-weight:600;color:#fff;background:#1B3A6B;white-space:nowrap;border:1px solid #2a4a7f">수량</th><th style="text-align:center;padding:6px 8px;font-weight:600;color:#fff;background:#1B3A6B;border:1px solid #2a4a7f">대리점가 (E가)</th><th style="text-align:center;padding:6px 8px;font-weight:700;color:#fff;background:#1B3A6B;white-space:nowrap;border:1px solid #2a4a7f"><div style="font-size:12px">DC 구매가</div><div style="margin-top:2px;font-weight:500"><input class="inv-dc-inp" value="0" oninput="invSetDc(this.value)" style="width:38px;padding:1px 3px;border-radius:4px;border:1px solid #7f9bc4;text-align:right;font-size:11px;font-family:inherit;background:#fff;color:#1B3A6B"> %</div></th><th style="text-align:center;padding:6px 8px;font-weight:700;color:#fff;background:#1B3A6B;white-space:nowrap;border:1px solid #2a4a7f"><div style="font-size:12px">마진 판매가</div><div style="margin-top:2px;font-weight:500"><input class="inv-mg-inp" value="0" oninput="invSetMargin(this.value)" style="width:38px;padding:1px 3px;border-radius:4px;border:1px solid #7f9bc4;text-align:right;font-size:11px;font-family:inherit;background:#fff;color:#0e7490"> %</div></th></tr></thead><tbody id="invBodyL"></tbody></table></div>
+      <div id="invColL" style="flex:1;min-width:230px;overflow:hidden;border:1px solid #e5e9f0;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.08)"><table style="width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed"><colgroup><col style="width:72px"><col><col style="width:50px"><col style="width:140px"><col style="width:140px"><col style="width:140px"></colgroup><thead><tr style="background:#eef2f8;border-bottom:2px solid #d3dce6"><th style="text-align:center;padding:9px 8px;font-weight:600;color:#14305c;background:#eef2f8;white-space:nowrap;border:1px solid #d3dce6">지점</th><th style="text-align:center;padding:9px 12px;font-weight:600;color:#14305c;background:#eef2f8;white-space:nowrap;border:1px solid #d3dce6">규격</th><th style="text-align:center;padding:9px 8px;font-weight:600;color:#14305c;background:#eef2f8;white-space:nowrap;border:1px solid #d3dce6">수량</th><th style="text-align:center;padding:6px 8px;font-weight:600;color:#14305c;background:#eef2f8;border:1px solid #d3dce6">대리점가 (E가)</th><th style="text-align:center;padding:6px 8px;font-weight:700;color:#14305c;background:#eef2f8;white-space:nowrap;border:1px solid #d3dce6"><div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap"><span style="font-size:12px">DC율</span><input class="inv-dc-inp" value="" placeholder="0" oninput="invSetDc(this.value)" style="width:28px;padding:1px 2px;border:1px solid #cdd8e6;text-align:right;font-size:11px;font-family:inherit;background:#fff;color:#1a1a1a">%</div></th><th style="text-align:center;padding:6px 8px;font-weight:700;color:#14305c;background:#eef2f8;white-space:nowrap;border:1px solid #d3dce6"><div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap"><span style="font-size:12px">마진율</span><input class="inv-mg-inp" value="" placeholder="0" oninput="invSetMargin(this.value)" style="width:28px;padding:1px 2px;border:1px solid #cdd8e6;text-align:right;font-size:11px;font-family:inherit;background:#fff;color:#1a1a1a">%</div></th></tr></thead><tbody id="invBodyL"></tbody></table></div>
       <div id="invDiv1" style="width:12px;flex-shrink:0"></div>
-      <div id="invColM" style="flex:1;min-width:230px;overflow:hidden;border:1px solid #e5e9f0;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.08)"><table style="width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed"><colgroup><col style="width:88px"><col><col style="width:50px"><col style="width:125px"><col style="width:125px"><col style="width:125px"></colgroup><thead><tr style="background:#1B3A6B;border-bottom:2px solid #e5e7eb"><th style="text-align:center;padding:9px 8px;font-weight:600;color:#fff;background:#1B3A6B;white-space:nowrap;border:1px solid #2a4a7f">지점</th><th style="text-align:center;padding:9px 12px;font-weight:600;color:#fff;background:#1B3A6B;white-space:nowrap;border:1px solid #2a4a7f">규격</th><th style="text-align:center;padding:9px 8px;font-weight:600;color:#fff;background:#1B3A6B;white-space:nowrap;border:1px solid #2a4a7f">수량</th><th style="text-align:center;padding:6px 8px;font-weight:600;color:#fff;background:#1B3A6B;border:1px solid #2a4a7f">대리점가 (E가)</th><th style="text-align:center;padding:6px 8px;font-weight:700;color:#fff;background:#1B3A6B;white-space:nowrap;border:1px solid #2a4a7f"><div style="font-size:12px">DC 구매가</div><div style="margin-top:2px;font-weight:500"><input class="inv-dc-inp" value="0" oninput="invSetDc(this.value)" style="width:38px;padding:1px 3px;border-radius:4px;border:1px solid #7f9bc4;text-align:right;font-size:11px;font-family:inherit;background:#fff;color:#1B3A6B"> %</div></th><th style="text-align:center;padding:6px 8px;font-weight:700;color:#fff;background:#1B3A6B;white-space:nowrap;border:1px solid #2a4a7f"><div style="font-size:12px">마진 판매가</div><div style="margin-top:2px;font-weight:500"><input class="inv-mg-inp" value="0" oninput="invSetMargin(this.value)" style="width:38px;padding:1px 3px;border-radius:4px;border:1px solid #7f9bc4;text-align:right;font-size:11px;font-family:inherit;background:#fff;color:#0e7490"> %</div></th></tr></thead><tbody id="invBodyM"></tbody></table></div>
+      <div id="invColM" style="flex:1;min-width:230px;overflow:hidden;border:1px solid #e5e9f0;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.08)"><table style="width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed"><colgroup><col style="width:72px"><col><col style="width:50px"><col style="width:140px"><col style="width:140px"><col style="width:140px"></colgroup><thead><tr style="background:#eef2f8;border-bottom:2px solid #d3dce6"><th style="text-align:center;padding:9px 8px;font-weight:600;color:#14305c;background:#eef2f8;white-space:nowrap;border:1px solid #d3dce6">지점</th><th style="text-align:center;padding:9px 12px;font-weight:600;color:#14305c;background:#eef2f8;white-space:nowrap;border:1px solid #d3dce6">규격</th><th style="text-align:center;padding:9px 8px;font-weight:600;color:#14305c;background:#eef2f8;white-space:nowrap;border:1px solid #d3dce6">수량</th><th style="text-align:center;padding:6px 8px;font-weight:600;color:#14305c;background:#eef2f8;border:1px solid #d3dce6">대리점가 (E가)</th><th style="text-align:center;padding:6px 8px;font-weight:700;color:#14305c;background:#eef2f8;white-space:nowrap;border:1px solid #d3dce6"><div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap"><span style="font-size:12px">DC율</span><input class="inv-dc-inp" value="" placeholder="0" oninput="invSetDc(this.value)" style="width:28px;padding:1px 2px;border:1px solid #cdd8e6;text-align:right;font-size:11px;font-family:inherit;background:#fff;color:#1a1a1a">%</div></th><th style="text-align:center;padding:6px 8px;font-weight:700;color:#14305c;background:#eef2f8;white-space:nowrap;border:1px solid #d3dce6"><div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap"><span style="font-size:12px">마진율</span><input class="inv-mg-inp" value="" placeholder="0" oninput="invSetMargin(this.value)" style="width:28px;padding:1px 2px;border:1px solid #cdd8e6;text-align:right;font-size:11px;font-family:inherit;background:#fff;color:#1a1a1a">%</div></th></tr></thead><tbody id="invBodyM"></tbody></table></div>
       <div id="invDiv2" style="width:2px;background:#1B3A6B;align-self:stretch;flex-shrink:0;border-radius:2px"></div>
-      <div id="invColR" style="flex:1;min-width:230px;overflow:hidden;border:1px solid #e5e9f0;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.08)"><table style="width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed"><colgroup><col style="width:88px"><col><col style="width:50px"><col style="width:125px"><col style="width:125px"><col style="width:125px"></colgroup><thead><tr style="background:#1B3A6B;border-bottom:2px solid #e5e7eb"><th style="text-align:center;padding:9px 8px;font-weight:600;color:#fff;background:#1B3A6B;white-space:nowrap;border:1px solid #2a4a7f">지점</th><th style="text-align:center;padding:9px 12px;font-weight:600;color:#fff;background:#1B3A6B;white-space:nowrap;border:1px solid #2a4a7f">규격</th><th style="text-align:center;padding:9px 8px;font-weight:600;color:#fff;background:#1B3A6B;white-space:nowrap;border:1px solid #2a4a7f">수량</th><th style="text-align:center;padding:6px 8px;font-weight:600;color:#fff;background:#1B3A6B;border:1px solid #2a4a7f">대리점가 (E가)</th><th style="text-align:center;padding:6px 8px;font-weight:700;color:#fff;background:#1B3A6B;white-space:nowrap;border:1px solid #2a4a7f"><div style="font-size:12px">DC 구매가</div><div style="margin-top:2px;font-weight:500"><input class="inv-dc-inp" value="0" oninput="invSetDc(this.value)" style="width:38px;padding:1px 3px;border-radius:4px;border:1px solid #7f9bc4;text-align:right;font-size:11px;font-family:inherit;background:#fff;color:#1B3A6B"> %</div></th><th style="text-align:center;padding:6px 8px;font-weight:700;color:#fff;background:#1B3A6B;white-space:nowrap;border:1px solid #2a4a7f"><div style="font-size:12px">마진 판매가</div><div style="margin-top:2px;font-weight:500"><input class="inv-mg-inp" value="0" oninput="invSetMargin(this.value)" style="width:38px;padding:1px 3px;border-radius:4px;border:1px solid #7f9bc4;text-align:right;font-size:11px;font-family:inherit;background:#fff;color:#0e7490"> %</div></th></tr></thead><tbody id="invBodyR"></tbody></table></div>
+      <div id="invColR" style="flex:1;min-width:230px;overflow:hidden;border:1px solid #e5e9f0;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.08)"><table style="width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed"><colgroup><col style="width:72px"><col><col style="width:50px"><col style="width:140px"><col style="width:140px"><col style="width:140px"></colgroup><thead><tr style="background:#eef2f8;border-bottom:2px solid #d3dce6"><th style="text-align:center;padding:9px 8px;font-weight:600;color:#14305c;background:#eef2f8;white-space:nowrap;border:1px solid #d3dce6">지점</th><th style="text-align:center;padding:9px 12px;font-weight:600;color:#14305c;background:#eef2f8;white-space:nowrap;border:1px solid #d3dce6">규격</th><th style="text-align:center;padding:9px 8px;font-weight:600;color:#14305c;background:#eef2f8;white-space:nowrap;border:1px solid #d3dce6">수량</th><th style="text-align:center;padding:6px 8px;font-weight:600;color:#14305c;background:#eef2f8;border:1px solid #d3dce6">대리점가 (E가)</th><th style="text-align:center;padding:6px 8px;font-weight:700;color:#14305c;background:#eef2f8;white-space:nowrap;border:1px solid #d3dce6"><div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap"><span style="font-size:12px">DC율</span><input class="inv-dc-inp" value="" placeholder="0" oninput="invSetDc(this.value)" style="width:28px;padding:1px 2px;border:1px solid #cdd8e6;text-align:right;font-size:11px;font-family:inherit;background:#fff;color:#1a1a1a">%</div></th><th style="text-align:center;padding:6px 8px;font-weight:700;color:#14305c;background:#eef2f8;white-space:nowrap;border:1px solid #d3dce6"><div style="display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap"><span style="font-size:12px">마진율</span><input class="inv-mg-inp" value="" placeholder="0" oninput="invSetMargin(this.value)" style="width:28px;padding:1px 2px;border:1px solid #cdd8e6;text-align:right;font-size:11px;font-family:inherit;background:#fff;color:#1a1a1a">%</div></th></tr></thead><tbody id="invBodyR"></tbody></table></div>
     </div>
     <div id="invTotal" style="margin-top:12px"></div>
   </div>
 
   <!-- 매입처 페이지 -->
   <div id="pagePurchase" class="page-section">
-    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
-      <div style="display:flex;gap:8px;flex:0 1 65%;max-width:65%;min-width:300px;align-items:center;flex-wrap:wrap">
-        <input type="text" id="purchaseSearch" placeholder="제조사/대리점/담당자/이메일 검색…" style="flex:0 0 300px;min-width:0;padding:7px 10px;border:1.5px solid #e5e5e5;border-radius:8px;font-size:13px;font-family:inherit">
-        <button class="btn btn-primary" id="purchaseAddBtn" style="width:116px;box-sizing:border-box;text-align:center;padding:6px 4px;font-size:12px;white-space:nowrap">＋ 매입처 추가</button>
-        <button class="btn" id="purchaseExcelBtn" onclick="exportPurchaseExcel()" style="width:116px;box-sizing:border-box;text-align:center;padding:6px 4px;font-size:12px;white-space:nowrap;border:1.5px solid #16a34a;color:#16a34a;font-weight:600">엑셀 다운로드</button>
+    <div class="q-toolbar inv-toolbar">
+      <span class="inv-flat-label">매입처</span>
+      <input type="text" id="purchaseSearch" class="q-flat" placeholder="제조사/대리점/담당자/이메일 검색…" autocomplete="off">
+      <span class="inv-flat-div"></span>
+      <div id="purchaseRegionFilter" style="display:flex;gap:4px">
+        <button type="button" class="btn pf-btn" data-region="all" style="font-size:11.5px;padding:3px 11px">전체</button>
+        <button type="button" class="btn pf-btn" data-region="서울" style="font-size:11.5px;padding:3px 11px">서울</button>
+        <button type="button" class="btn pf-btn" data-region="화성" style="font-size:11.5px;padding:3px 11px">화성</button>
       </div>
-      <span id="purchaseCount" style="font-size:12px;color:#888;margin-left:auto"></span>
+      <span id="purchaseCount" style="font-size:11px;color:#9ca3af;white-space:nowrap;margin-left:6px"></span>
+      <span style="flex:1"></span>
+      <input type="file" id="purchaseUploadFile" accept=".xlsx,.xls" style="display:none">
+      <button class="qic" id="purchaseAddBtn" data-tip="매입처 추가" aria-label="매입처 추가" style="border-color:#1B3A6B;color:#1B3A6B"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+      <span class="qic-div" style="width:1px;align-self:stretch;background:#d3dae4;margin:2px 4px"></span>
+      <button class="qic" id="purchaseUploadBtn" onclick="openPurchaseExcelGuide()" data-tip="엑셀 업로드" aria-label="엑셀 업로드" style="border-color:#16a34a;color:#16a34a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></button>
+      <button class="qic" id="purchaseExcelBtn" onclick="confirmPurchaseExcelDownload()" data-tip="엑셀 다운로드" aria-label="엑셀 다운로드" style="border-color:#1B3A6B;color:#1B3A6B"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"/><path d="M7.5 11.5 12 16l4.5-4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></button>
     </div>
     <div id="purchaseList"></div>
   </div>
@@ -11234,12 +11298,12 @@ function reloadState() {
       _invCalcRows.push({rid:rid,ega:_e});
       return `
       <tr data-name="${esc(item.name)}" style="border-bottom:1px solid #f3f4f6;background:${idx%2===0?'white':'#fafafa'};cursor:pointer">
-        <td style="padding:7px 8px;text-align:center;font-size:11px;font-weight:600;color:#6b7280;white-space:nowrap;border:1px solid #eef2f7">${esc(item.region||'서울')}</td>
+        <td style="padding:7px 10px;text-align:center;font-size:12px;color:#1a1a1a;white-space:nowrap;border:1px solid #eef2f7">${esc(item.region||'서울')}</td>
         <td class="inv-spec" style="padding:7px 12px;text-align:center;font-size:13px;color:#1a1a1a;border:1px solid #eef2f7"><span class="inv-spec-txt" style="display:inline-block;max-width:100%">${esc(item.name)}</span></td>
-        <td style="padding:7px 8px;text-align:center;font-weight:600;border:1px solid #eef2f7;color:${item.qty>=10?'#dc2626':item.qty>=5?'#3a5d8f':'#374151'}">${item.qty}</td>
+        <td style="padding:7px 8px;text-align:center;font-weight:600;border:1px solid #eef2f7;color:#1a1a1a">${item.qty}</td>
         <td style="padding:7px 12px;text-align:right;color:#6b7280;border:1px solid #eef2f7">${fmt(item.normal)}</td>
-        <td id="invbuy_${rid}" style="padding:7px 12px;text-align:right;color:#1B3A6B;font-weight:700;border:1px solid #eef2f7">${_b!=null?fmt(_b):'-'}</td>
-        <td id="invsell_${rid}" style="padding:7px 12px;text-align:right;color:#0e7490;font-weight:700;border:1px solid #eef2f7">${_s!=null?fmt(_s):'-'}</td>
+        <td id="invbuy_${rid}" style="padding:7px 12px;text-align:right;color:#1a1a1a;border:1px solid #eef2f7">${_b!=null?fmt(_b):'-'}</td>
+        <td id="invsell_${rid}" style="padding:7px 12px;text-align:right;color:#1a1a1a;border:1px solid #eef2f7">${_s!=null?fmt(_s):'-'}</td>
       </tr>`;
     };
     _invCalcRows=[]; _invRid=0;
@@ -11644,16 +11708,16 @@ function reloadState() {
       ov.addEventListener('click',function(e){ if(e.target===ov) ov.style.display='none'; });
     }
     ov.innerHTML='<div style="width:100%;max-width:520px;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 14px 44px rgba(27,58,107,.22);max-height:84vh;display:flex;flex-direction:column">'
-      +'<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:2px solid #1B3A6B"><span style="font-size:16px;font-weight:700;color:#1B3A6B">엑셀 업로드 형식 안내</span></div>'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:2px solid #1B3A6B"><span style="font-size:16px;font-weight:700;color:#1B3A6B">엑셀 업로드</span></div>'
       +'<div style="padding:18px 20px;overflow:auto;font-size:13px;color:#374151;line-height:1.7">'
-      +'<p style="margin:0 0 10px">엑셀의 <b>첫 번째 행은 제목(헤더)</b>이어야 하며, 아래 열을 포함하면 자동으로 인식됩니다. <b>열 순서는 상관없습니다.</b></p>'
+      +'<p style="margin:0 0 12px">첫 행에 <b>제목(헤더)</b>을 넣고, 아래 <b>4개 열을 모두</b> 포함하세요. <b>열 순서는 무관</b>합니다.</p>'
       +'<table style="width:100%;border-collapse:collapse;margin:8px 0 14px;font-size:12px">'
-        +'<thead><tr style="background:#1B3A6B;color:#fff;text-align:left"><th style="padding:8px 10px">열 제목</th><th style="padding:8px 10px">필수</th><th style="padding:8px 10px">설명</th></tr></thead>'
+        +'<thead><tr style="background:#1B3A6B;color:#fff;text-align:left"><th style="padding:8px 10px">열 제목</th><th style="padding:8px 10px">설명</th></tr></thead>'
         +'<tbody>'
-        +'<tr style="border-bottom:1px solid #eef2f7"><td style="padding:8px 10px;font-weight:700">품목</td><td style="padding:8px 10px;color:#dc2626">필수</td><td style="padding:8px 10px">품번/제품목 ("품번"으로 적어도 됨)</td></tr>'
-        +'<tr style="border-bottom:1px solid #eef2f7"><td style="padding:8px 10px;font-weight:700">정상가</td><td style="padding:8px 10px;color:#dc2626">필수</td><td style="padding:8px 10px">숫자만 ("E가/정가/단가"로 적어도 됨)</td></tr>'
-        +'<tr style="border-bottom:1px solid #eef2f7"><td style="padding:8px 10px;font-weight:700">수량</td><td style="padding:8px 10px;color:#dc2626">필수</td><td style="padding:8px 10px">숫자 (1 이상)</td></tr>'
-        +'<tr><td style="padding:8px 10px;font-weight:700">지점</td><td style="padding:8px 10px;color:#dc2626">필수</td><td style="padding:8px 10px">서울 또는 화성 (반드시 입력)</td></tr>'
+        +'<tr style="border-bottom:1px solid #eef2f7"><td style="padding:8px 10px;font-weight:700">품목</td><td style="padding:8px 10px">품번 (예: CXSL20-25)</td></tr>'
+        +'<tr style="border-bottom:1px solid #eef2f7"><td style="padding:8px 10px;font-weight:700">정상가</td><td style="padding:8px 10px">숫자만 (E가/정가/단가 가능)</td></tr>'
+        +'<tr style="border-bottom:1px solid #eef2f7"><td style="padding:8px 10px;font-weight:700">수량</td><td style="padding:8px 10px">1 이상 숫자</td></tr>'
+        +'<tr><td style="padding:8px 10px;font-weight:700">지점</td><td style="padding:8px 10px">서울 또는 화성</td></tr>'
         +'</tbody></table>'
       +'<div style="font-weight:700;color:#1B3A6B;margin:6px 0">작성 예시</div>'
       +'<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px">'
@@ -11662,10 +11726,11 @@ function reloadState() {
         +'<tr><td style="padding:7px 9px;border:1px solid #e5e7eb">CXSL20-25</td><td style="padding:7px 9px;border:1px solid #e5e7eb">5</td><td style="padding:7px 9px;border:1px solid #e5e7eb">102110</td><td style="padding:7px 9px;border:1px solid #e5e7eb">서울</td></tr>'
         +'<tr><td style="padding:7px 9px;border:1px solid #e5e7eb">MGPL12-75Z</td><td style="padding:7px 9px;border:1px solid #e5e7eb">2</td><td style="padding:7px 9px;border:1px solid #e5e7eb">133980</td><td style="padding:7px 9px;border:1px solid #e5e7eb">화성</td></tr>'
         +'</tbody></table>'
-      +'<ul style="margin:0;padding-left:18px;color:#6b7280;font-size:12px;line-height:1.8"><li>이미 등록된 품번은 중복으로 제외됩니다.</li><li>품목·정상가가 비어 있는 행은 건너뜁니다.</li><li>품번의 대시(-)·공백 차이는 같은 품목으로 처리됩니다.</li></ul>'
+      +'<p style="margin:0;color:#6b7280;font-size:12px;line-height:1.7">중복 품번·빈 행은 자동 제외되며, 품번의 대시(-)·공백 차이는 같은 품목으로 처리됩니다.</p>'
       +'</div>'
-      +'<div style="display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid #e5e5e5"><button class="btn" onclick="document.getElementById(\'invExcelGuideOverlay\').style.display=\'none\'">닫기</button><button class="btn btn-primary" onclick="document.getElementById(\'invExcelGuideOverlay\').style.display=\'none\'; document.getElementById(\'invUploadFile\').click();">파일 선택</button></div>'
+      +'<div style="display:flex;align-items:center;gap:8px;padding:14px 20px;border-top:1px solid #e5e5e5"><span id="invUpFileName" style="margin-right:auto;font-size:12px;color:#9ca3af;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px">선택된 파일 없음</span><button class="btn" onclick="document.getElementById(\'invExcelGuideOverlay\').style.display=\'none\'">닫기</button><button class="btn" onclick="document.getElementById(\'invUploadFile\').click()">파일 선택</button><button class="btn btn-primary" id="invUpDoBtn" onclick="doInvExcelUpload()">업로드</button></div>'
       +'</div>';
+    window._invPendingFile=null;
     ov.style.display='flex';
   };
   function importInventoryFromXlsx(file){
@@ -11713,8 +11778,17 @@ function reloadState() {
   }
   window.onInvExcelChange = function(ev){ if(!_guardW()) return;
     var f = ev.target.files && ev.target.files[0];
-    if (f) importInventoryFromXlsx(f);
+    window._invPendingFile = f || null;
+    var nm = document.getElementById('invUpFileName');
+    if(nm){ nm.textContent = f ? f.name : '선택된 파일 없음'; nm.style.color = f ? '#14305c' : '#9ca3af'; }
     ev.target.value = '';
+  };
+  window.doInvExcelUpload = function(){ if(!_guardW()) return;
+    var f = window._invPendingFile;
+    if(!f){ showInfoModal('파일 선택','엑셀 파일을 선택하세요.'); return; }
+    var ov = document.getElementById('invExcelGuideOverlay'); if(ov) ov.style.display='none';
+    window._invPendingFile = null;
+    importInventoryFromXlsx(f);
   };
   function invList(){
     return INVENTORY_DATA.filter(function(it){ return invHidden.indexOf(it.name) < 0; }).map(function(it){
@@ -12067,9 +12141,9 @@ function reloadState() {
       const brandLogo = (arr.find(x=>x.logo)||{}).logo || defaultBrandLogo(brand);
       const brandHomepage = (arr.find(x=>x.homepage)||{}).homepage || '';
       const brandHpUrl = brandHomepage ? (brandHomepage.indexOf('://')>=0 ? brandHomepage : ('http://'+brandHomepage)) : '';
-      html += `<div style="background:#fff;border:1px solid #e5e5e5;border-radius:10px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04)">
-        <div style="padding:9px 12px;${isNone?'background:#6b7280':'background:#1B3A6B'};color:#fff;font-size:14px;font-weight:800;word-break:break-all;display:flex;align-items:center;gap:8px">${brandLogo?`<span style="display:inline-flex;align-items:center;justify-content:center;width:96px;height:34px;background:#fff;border-radius:4px;padding:3px;flex-shrink:0"><img src="${brandLogo}" style="max-width:100%;max-height:100%;object-fit:contain"></span>`:''}<span style="flex:1;text-align:right;text-transform:uppercase">${esc(brand)}</span></div>
-        <div>${brandHomepage?`<div style="padding:8px 12px;border-bottom:1px solid #f0f0f0;font-size:12px"><a href="${esc(brandHpUrl)}" target="_blank" rel="noopener" style="color:#2f5288;text-decoration:none;word-break:break-all">${esc(brandHomepage)}</a></div>`:''}`;
+      html += `<div style="background:#fff;border:1px solid #e5e9f0;border-radius:0;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08)">
+        <div style="padding:9px 12px;background:#fafafa;${isNone?'color:#9ca3af':'color:#14305c'};border-bottom:1px solid #d3dce6;font-size:14px;font-weight:800;word-break:break-all;display:flex;align-items:center;gap:8px">${brandLogo?`<span style="display:inline-flex;align-items:center;justify-content:center;width:96px;height:34px;background:#fff;border:1px solid #eef2f7;border-radius:0;padding:3px;flex-shrink:0"><img src="${brandLogo}" style="max-width:100%;max-height:100%;object-fit:contain"></span>`:''}<span style="flex:1;text-align:right;text-transform:uppercase">${esc(brand)}</span></div>
+        <div>${brandHomepage?`<div style="padding:8px 12px;border-bottom:1px solid #eef2f7;font-size:12px"><a href="${esc(brandHpUrl)}" target="_blank" rel="noopener" style="color:#2f5288;text-decoration:none;word-break:break-all">${esc(brandHomepage)}</a></div>`:''}`;
       arr.forEach((v, idx) => {
         const cs = v.contacts || [];
         const contactsHtml = cs.length
@@ -12079,7 +12153,7 @@ function reloadState() {
         if (v.fax) rows.push(`<span style="color:#555">${esc(v.fax)}</span>`);
         if (v.address) rows.push(`<span style="color:#555">${esc(v.address)}</span>`);
         const infoHtml = rows.map(r=>`<div style="font-size:12px;line-height:1.6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r}</div>`).join('');
-        html += `<div style="position:relative;padding:10px 12px;${idx>0?'border-top:1px solid #f0f0f0':''}">
+        html += `<div style="position:relative;padding:10px 12px;${idx>0?'border-top:1px solid #eef2f7':''}">
           <div style="position:absolute;top:8px;right:8px;display:flex;gap:4px">
             <button type="button" onclick="openPurchaseModal('${v.id}')" title="편집" style="padding:3px 6px;border:1px solid #e5e5e5;background:#fff;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;color:#14305c">✏️</button>
             <button type="button" onclick="deletePurchase('${v.id}')" title="삭제" style="padding:3px 6px;border:1px solid #fecaca;background:#fff5f5;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;color:#dc2626">🗑</button>
@@ -12507,6 +12581,50 @@ function reloadState() {
   };
 
   // 엑셀 업로드 (예시 형식: 업체명 | 대리점명 | 이메일 | 담당자 | 연락처 — fill-down 처리)
+  window.confirmPurchaseExcelDownload = function(){ showConfirmModal('엑셀 다운로드','매입처 목록을 엑셀 파일로 다운로드할까요?', function(){ exportPurchaseExcel(); }, '다운로드', '#1B3A6B'); };
+  window.doPurchaseExcelUpload = function(){ if(!_guardW()) return;
+    var f = window._purPendingFile;
+    if(!f){ showInfoModal('파일 선택','엑셀 파일을 선택하세요.'); return; }
+    var ov = document.getElementById('purchaseExcelGuideOverlay'); if(ov) ov.style.display='none';
+    window._purPendingFile = null;
+    importPurchaseFromXlsx(f);
+  };
+  window.openPurchaseExcelGuide = function(){ if(!_guardW()) return;
+    var ov = document.getElementById('purchaseExcelGuideOverlay');
+    if(!ov){
+      ov=document.createElement('div'); ov.id='purchaseExcelGuideOverlay';
+      ov.style.cssText='position:fixed;inset:0;z-index:100002;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px';
+      document.body.appendChild(ov);
+      ov.addEventListener('click',function(e){ if(e.target===ov) ov.style.display='none'; });
+    }
+    ov.innerHTML='<div style="width:100%;max-width:520px;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 14px 44px rgba(27,58,107,.22);max-height:84vh;display:flex;flex-direction:column">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:2px solid #1B3A6B"><span style="font-size:16px;font-weight:700;color:#1B3A6B">엑셀 업로드</span></div>'
+      +'<div style="padding:18px 20px;overflow:auto;font-size:13px;color:#374151;line-height:1.7">'
+      +'<p style="margin:0 0 12px">첫 행에 <b>제목(헤더)</b>을 넣고, 아래 <b>순서대로</b> 열을 배치하세요. <b>제조사·대리점이 비면</b> 위 행 값이 이어집니다.</p>'
+      +'<table style="width:100%;border-collapse:collapse;margin:8px 0 14px;font-size:12px">'
+        +'<thead><tr style="background:#1B3A6B;color:#fff;text-align:left"><th style="padding:8px 10px">열(순서)</th><th style="padding:8px 10px">설명</th></tr></thead>'
+        +'<tbody>'
+        +'<tr style="border-bottom:1px solid #eef2f7"><td style="padding:8px 10px;font-weight:700">번호</td><td style="padding:8px 10px">순번 (아무 값·비워도 됨)</td></tr>'
+        +'<tr style="border-bottom:1px solid #eef2f7"><td style="padding:8px 10px;font-weight:700">제조사</td><td style="padding:8px 10px">브랜드명 (예: BUSSMANN)</td></tr>'
+        +'<tr style="border-bottom:1px solid #eef2f7"><td style="padding:8px 10px;font-weight:700">대리점</td><td style="padding:8px 10px">대리점·거래처명</td></tr>'
+        +'<tr style="border-bottom:1px solid #eef2f7"><td style="padding:8px 10px;font-weight:700">이메일</td><td style="padding:8px 10px">대표 이메일</td></tr>'
+        +'<tr style="border-bottom:1px solid #eef2f7"><td style="padding:8px 10px;font-weight:700">담당자</td><td style="padding:8px 10px">담당자 이름·직책</td></tr>'
+        +'<tr><td style="padding:8px 10px;font-weight:700">연락처</td><td style="padding:8px 10px">전화번호</td></tr>'
+        +'</tbody></table>'
+      +'<div style="font-weight:700;color:#1B3A6B;margin:6px 0">작성 예시</div>'
+      +'<div style="overflow-x:auto;margin-bottom:14px"><table style="border-collapse:collapse;font-size:11.5px;white-space:nowrap">'
+        +'<thead><tr style="background:#eaf1fb;color:#14305c;text-align:center"><th style="padding:6px 5px;border:1px solid #aac4e6;white-space:nowrap;width:1%">번호</th><th style="padding:6px 5px;border:1px solid #aac4e6;white-space:nowrap">제조사</th><th style="padding:6px 5px;border:1px solid #aac4e6;white-space:nowrap">대리점</th><th style="padding:6px 5px;border:1px solid #aac4e6;white-space:nowrap">이메일</th><th style="padding:6px 5px;border:1px solid #aac4e6;white-space:nowrap">담당자</th><th style="padding:6px 5px;border:1px solid #aac4e6;white-space:nowrap">연락처</th></tr></thead>'
+        +'<tbody>'
+        +'<tr><td style="padding:6px 5px;border:1px solid #e5e7eb;white-space:nowrap;text-align:center;width:1%">1</td><td style="padding:6px 5px;border:1px solid #e5e7eb;white-space:nowrap">BUSSMANN</td><td style="padding:6px 5px;border:1px solid #e5e7eb;white-space:nowrap">알파휴즈상사</td><td style="padding:6px 5px;border:1px solid #e5e7eb;white-space:nowrap">alphafuse@naver.com</td><td style="padding:6px 5px;border:1px solid #e5e7eb;white-space:nowrap">김담당</td><td style="padding:6px 5px;border:1px solid #e5e7eb;white-space:nowrap">051-319-3362</td></tr>'
+        +'<tr><td style="padding:6px 5px;border:1px solid #e5e7eb;white-space:nowrap;text-align:center;width:1%">2</td><td style="padding:6px 5px;border:1px solid #e5e7eb;white-space:nowrap"></td><td style="padding:6px 5px;border:1px solid #e5e7eb;white-space:nowrap">(주)상기</td><td style="padding:6px 5px;border:1px solid #e5e7eb;white-space:nowrap">hj.nam@samkicorp.co.kr</td><td style="padding:6px 5px;border:1px solid #e5e7eb;white-space:nowrap">남현진</td><td style="padding:6px 5px;border:1px solid #e5e7eb;white-space:nowrap">070-7124-6820</td></tr>'
+        +'</tbody></table></div>'
+      +'<p style="margin:0;color:#6b7280;font-size:12px;line-height:1.7">한 제조사에 담당자가 여러 명이면 아래 행에 이어 적고, 제조사·대리점 칸은 비워두면 됩니다.</p>'
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:8px;padding:14px 20px;border-top:1px solid #e5e5e5"><span id="purUpFileName" style="margin-right:auto;font-size:12px;color:#9ca3af;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px">선택된 파일 없음</span><button class="btn" onclick="document.getElementById(\'purchaseExcelGuideOverlay\').style.display=\'none\'">닫기</button><button class="btn" onclick="document.getElementById(\'purchaseUploadFile\').click()">파일 선택</button><button class="btn btn-primary" id="purUpDoBtn" onclick="doPurchaseExcelUpload()">업로드</button></div>'
+      +'</div>';
+    window._purPendingFile=null;
+    ov.style.display='flex';
+  };
   function importPurchaseFromXlsx(file) {
     if (typeof XLSX === 'undefined') {
       // SheetJS 로드 (재무현황에서 사용한 패턴)
@@ -12587,7 +12705,9 @@ function reloadState() {
   document.getElementById('purchaseAddBtn')?.addEventListener('click', () => openPurchaseModal());
   document.getElementById('purchaseUploadFile')?.addEventListener('change', (e) => {
     const f = e.target.files && e.target.files[0];
-    if (f) importPurchaseFromXlsx(f);
+    window._purPendingFile = f || null;
+    const nm = document.getElementById('purUpFileName');
+    if(nm){ nm.textContent = f ? f.name : '선택된 파일 없음'; nm.style.color = f ? '#14305c' : '#9ca3af'; }
     e.target.value = '';
   });
 
