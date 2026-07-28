@@ -4181,32 +4181,29 @@ function reloadState() {
     var bytes=_dataUrlToBytes(dataUrl);
     var pdf=await lib.getDocument({data:bytes}).promise;
     body.innerHTML=''; body.style.background='#3a3f44';
-    body.style.display='flex'; body.style.alignItems='center'; body.style.justifyContent='center';
-    body.style.overflow='hidden';
+    body.style.display='flex'; body.style.flexDirection='column'; body.style.alignItems='center'; body.style.justifyContent='flex-start';
+    body.style.overflow='visible';
     body.oncontextmenu=function(){ return false; };
     var gap=10, pad=16;
     var wrap=document.createElement('div');
-    wrap.style.cssText='display:flex;flex-direction:column;align-items:center;justify-content:center;gap:'+gap+'px;width:100%;height:100%;padding:'+pad+'px;box-sizing:border-box';
+    wrap.style.cssText='display:flex;flex-direction:column;align-items:center;gap:'+gap+'px;padding:'+pad+'px;box-sizing:border-box';
     body.appendChild(wrap);
-    var availH=(body.clientHeight||500)-pad*2;
-    var np=pdf.numPages;
-    var perH=Math.max(40,(availH-(np-1)*gap)/np);
+    var availW=Math.max(120,(body.clientWidth||600)-pad*2);
     var dpr=Math.min(2.5, (window.devicePixelRatio||1.5)+0.5);
-    for(var n=1;n<=np;n++){
+    for(var n=1;n<=pdf.numPages;n++){
       var page=await pdf.getPage(n);
       var vp1=page.getViewport({scale:1});
-      // 페이지 높이에 맞춰 렌더 해상도 산정 (선명도 위해 dpr 적용)
-      var scale=Math.max(0.2,(perH/vp1.height));
-      var vp=page.getViewport({scale:scale*dpr});
+      var vp=page.getViewport({scale:(availW/vp1.width)*dpr});
       var canvas=document.createElement('canvas');
       canvas.width=vp.width; canvas.height=vp.height;
-      canvas.style.maxHeight=perH+'px'; canvas.style.maxWidth='100%';
-      canvas.style.height='auto'; canvas.style.width='auto';
+      canvas.style.width=availW+'px'; canvas.style.height='auto'; canvas.style.display='block';
+      canvas._pvBaseW=availW;
       canvas.style.boxShadow='0 2px 10px rgba(0,0,0,.35)'; canvas.style.borderRadius='2px';
       canvas.style.userSelect='none'; canvas.draggable=false;
       await page.render({canvasContext:canvas.getContext('2d'), viewport:vp}).promise;
       wrap.appendChild(canvas);
     }
+    if(window._pvZoom && window._pvZoom!==1 && typeof window._pvSetZoom==='function') window._pvSetZoom(window._pvZoom);
   }
   function _fileIcon(type, name){
     const n=(name||'').toLowerCase();
@@ -4317,7 +4314,16 @@ function reloadState() {
     _openNameModal('파일명 수정', _sp.base, function(name){ meta.name=_withExt(name, _sp.ext); saveAll(); renderFilesPage(); });
   };
   window._pvZoom = 1;
-  window._pvSetZoom = function(z){ z = Math.max(0.2, Math.min(6, Math.round(z*100)/100)); window._pvZoom = z; var zw=document.getElementById('pvZoomWrap'); if(zw) zw.style.zoom = z; };
+  window._pvSetZoom = function(z){
+    z = Math.max(0.2, Math.min(8, Math.round(z*100)/100)); window._pvZoom = z;
+    var zw=document.getElementById('pvZoomWrap'); if(!zw) return;
+    var els=zw.querySelectorAll('img,canvas');
+    Array.prototype.forEach.call(els,function(el){
+      if(el._pvBaseW==null){ el._pvBaseW = Math.round(el.getBoundingClientRect().width) || el.clientWidth || el.naturalWidth || el.width || 0; }
+      el.style.maxWidth='none'; el.style.maxHeight='none';
+      el.style.width = Math.round(el._pvBaseW * z) + 'px'; el.style.height='auto';
+    });
+  };
   window._pvZoomStep = function(dir){ window._pvSetZoom(window._pvZoom * (dir>0 ? 1.2 : 1/1.2)); };
   window.previewFile = async function(id){
     const meta = filesList.find(f=>f.id===id);
