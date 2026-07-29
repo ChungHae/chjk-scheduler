@@ -1496,6 +1496,7 @@
     #pageEstimate .q-flat:hover { background:rgba(27,58,107,.045); }
     #pageEstimate .q-flat:focus { background:#f2f4f7; box-shadow:none; }
     #pageEstimate .q-flat::placeholder { color:#aab4c2; }
+    #priceMakerSel, #priceMakerSel:hover, #priceMakerSel:focus { background:#fff !important; }
     #pageEstimate .q-flat:disabled { color:#aab4c2; cursor:not-allowed; background:transparent; -webkit-text-fill-color:#aab4c2; opacity:1; }
     #pageEstimate .q-flat:disabled::placeholder { color:#c2c9d3; }
     /* ── 아이콘 버튼 (정사각 32px · 툴팁으로 이름 표시) ── */
@@ -2534,7 +2535,7 @@
         <div id="qVendorDropdown" style="display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;background:#fff;border:1px solid #d6e4f5;border-radius:8px;box-shadow:0 8px 22px rgba(27,58,107,.15);max-height:260px;overflow:auto;z-index:50"></div>
       </div>
       <span style="font-size:12.5px;font-weight:700;color:#14305c;white-space:nowrap;margin-left:4px">담당자</span>
-      <input id="qManager" class="q-flat" type="text" placeholder="거래처 선택 후 입력" autocomplete="off" disabled title="거래처를 먼저 선택하세요" style="width:140px;max-width:100%">
+      <input id="qManager" class="q-flat" type="text" placeholder="(선택사항)" autocomplete="off" disabled title="거래처를 먼저 선택하세요" style="width:140px;max-width:100%">
       <span style="font-size:12.5px;font-weight:700;color:#14305c;white-space:nowrap;margin-left:4px">날짜</span>
       <input id="qQuoteDate" class="q-flat" type="date" onchange="qDateChange()" style="width:150px">
       <span id="qMetaInfo" style="display:flex;gap:6px;align-items:center;white-space:nowrap"></span>
@@ -14009,7 +14010,7 @@ function reloadState() {
       // 할일 / 일정 항목 (최대 3개)
       dayPsched.slice(0,3).forEach(s => {
         const cc = CAT_COLOR[s.category] || '#9ca3af';
-        const tIcon = TIME_ICON[s.time] || '';
+        const tIcon = '';   // 오전/오후/종일 아이콘 표시 제거
         inner += `<div style="display:flex;align-items:center;gap:3px;font-size:10px;line-height:1.25;overflow:hidden">
           <span style="width:5px;height:5px;border-radius:50%;background:${s.done?'#d1d5db':cc};flex-shrink:0"></span>
           ${tIcon ? `<span title="${esc(s.time)}" style="font-size:10px;flex-shrink:0;line-height:1">${tIcon}</span>` : ''}
