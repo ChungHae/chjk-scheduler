@@ -1496,6 +1496,8 @@
     #pageEstimate .q-flat:hover { background:rgba(27,58,107,.045); }
     #pageEstimate .q-flat:focus { background:#f2f4f7; box-shadow:none; }
     #pageEstimate .q-flat::placeholder { color:#aab4c2; }
+    #pageEstimate .q-flat:disabled { color:#aab4c2; cursor:not-allowed; background:transparent; -webkit-text-fill-color:#aab4c2; opacity:1; }
+    #pageEstimate .q-flat:disabled::placeholder { color:#c2c9d3; }
     /* ── 아이콘 버튼 (정사각 32px · 툴팁으로 이름 표시) ── */
     .qic { width:32px; height:32px; padding:0; display:inline-flex; align-items:center; justify-content:center;
            box-sizing:border-box; border:1.5px solid #cfd4da; border-radius:8px; background:#fff; color:#6b7280;
@@ -2531,6 +2533,8 @@
         <input id="qVendorSearch" class="q-flat" type="text" placeholder="거래처 검색…" autocomplete="off" oninput="renderQVendorDropdown()" onfocus="renderQVendorDropdown()" onkeydown="qVendorKey(event)">
         <div id="qVendorDropdown" style="display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;background:#fff;border:1px solid #d6e4f5;border-radius:8px;box-shadow:0 8px 22px rgba(27,58,107,.15);max-height:260px;overflow:auto;z-index:50"></div>
       </div>
+      <span style="font-size:12.5px;font-weight:700;color:#14305c;white-space:nowrap;margin-left:4px">담당자</span>
+      <input id="qManager" class="q-flat" type="text" placeholder="거래처 선택 후 입력" autocomplete="off" disabled title="거래처를 먼저 선택하세요" style="width:140px;max-width:100%">
       <span style="font-size:12.5px;font-weight:700;color:#14305c;white-space:nowrap;margin-left:4px">날짜</span>
       <input id="qQuoteDate" class="q-flat" type="date" onchange="qDateChange()" style="width:150px">
       <span id="qMetaInfo" style="display:flex;gap:6px;align-items:center;white-space:nowrap"></span>
@@ -5157,6 +5161,7 @@ function reloadState() {
   async function _qSelectVendorNow(id, clear){
     if(clear){   // 견적 목록·견적번호 전부 초기화
       _qCart=[]; _qQuoteNo=null; _qLoadedId=null; _qNego=null; _qMemo=''; _qCols=[]; _qQuoteYmd=''; _qCartSave();
+      var _mgc=document.getElementById('qManager'); if(_mgc) _mgc.value='';
     }
     _qCurId=id; _qRows=[];
     var v=quoteVendors.find(x=>x.id===id);
@@ -5916,6 +5921,7 @@ function reloadState() {
         if(doc){
           var cells=doc.querySelectorAll('table.items td, table.items th');
           for(var ci=0; ci<cells.length; ci++){ var td=cells[ci]; var fs=parseFloat((w.getComputedStyle?w.getComputedStyle(td):td.style).fontSize)||12; var g=0; while(td.scrollWidth > td.clientWidth+1 && fs>6 && g<60){ fs-=0.5; td.style.fontSize=fs+'px'; g++; } }
+          try{ var _ld=d.getElementById('qpLblDate'), _lm=d.getElementById('qpLblMgr'); if(_ld&&_lm){ _ld.style.width=''; _lm.style.width=''; _ld.style.display='inline-block'; _lm.style.display='inline-block'; _ld.style.whiteSpace='nowrap'; _lm.style.whiteSpace='nowrap'; var _w1=_ld.getBoundingClientRect().width, _w2=_lm.getBoundingClientRect().width; var _W=Math.ceil(Math.max(_w1,_w2))+2; _ld.style.whiteSpace=''; _lm.style.whiteSpace=''; _ld.style.width=_W+'px'; _lm.style.width=_W+'px'; _ld.style.textAlignLast='justify'; _lm.style.textAlignLast='justify'; } }catch(_ml){}
           var h=doc.scrollHeight; if(h < pageH-12){ d.body.style.paddingTop=Math.max(0,Math.floor((pageH-h)/2))+'px'; }
         }
         try{ d.title=_fn; }catch(_te){}
@@ -5932,6 +5938,7 @@ function reloadState() {
     var _orient=window._qPdfOrient; var _docW=(_orient==='l')?1123:794;
     _qEnsureQuoteNo();
     var vname=_qCart[0].vname||'';
+    var _mgEl=document.getElementById('qManager'); var _mgr=(_mgEl&&!_mgEl.disabled&&_mgEl.value)?String(_mgEl.value).trim():'';
     // 견적일자 = 저장 시 정한 날짜(견적번호에 박힌 YYYYMMDD). 없으면 오늘.
     var _qm=String(_qQuoteNo||'').match(/(\d{8})/);
     var d, ymd8;
@@ -5979,7 +5986,7 @@ function reloadState() {
       rows+='<tr>'+_cxEmpty('start')+'<td class="c"></td>'+_cxEmpty('no')+'<td class="c" style="color:#dc2626">NEGO 할인</td>'+_cxEmpty('name')+'<td class="spec"></td>'+_cxEmpty('spec')+'<td class="r"></td>'+_cxEmpty('qty')+'<td class="r"></td>'+_cxEmpty('unit')+'<td class="r" style="color:#dc2626">- '+fmt(_nego)+'</td>'+_cxEmpty('amt')+'<td class="c"></td>'+_cxEmpty('eta')+'</tr>';
     }
     // 21행 양식 유지 (품목 + NEGO 행 포함)
-    var _TARGET=(_orient==='l')?10:25;
+    var _TARGET=(_orient==='l')?10:(_mgr?24:25);
     var _contentRows=_qCart.length + (_nego?1:0);
     if(_contentRows < _TARGET){
       var _er='<tr>'+_cxEmpty('start')+'<td class="c">&nbsp;</td>'+_cxEmpty('no')+'<td class="c"></td>'+_cxEmpty('name')+'<td class="spec"></td>'+_cxEmpty('spec')+'<td class="r"></td>'+_cxEmpty('qty')+'<td class="r"></td>'+_cxEmpty('unit')+'<td class="r"></td>'+_cxEmpty('amt')+'<td class="c"></td>'+_cxEmpty('eta')+'</tr>';
@@ -5998,6 +6005,8 @@ function reloadState() {
       #qpdfDoc .recv{flex:1}
       #qpdfDoc .recv .to{font-size:20px;font-weight:800;color:#14305c;border-bottom:2px solid #1B3A6B;display:inline-block;padding-bottom:5px;margin-bottom:12px}
       #qpdfDoc .recv .date{font-size:13px;color:#555}
+      #qpdfDoc .recv .mgr{font-size:16.5px;font-weight:700;color:#1a1a1a;margin-bottom:8px;white-space:nowrap}
+      #qpdfDoc .recv .mgr #qpLblMgr{display:inline-block;text-align:justify;text-align-last:justify}
       #qpdfDoc .recv .amt{margin-top:18px;font-size:14px;line-height:1.7}
       #qpdfDoc .recv .amt b{font-size:24px;color:#1B3A6B}
       #qpdfDoc .sup{position:relative;width:340px;border:1px solid #d6e4f5;border-radius:8px;padding:13px 15px;background:#f7f9fc}
@@ -6022,7 +6031,8 @@ function reloadState() {
       <div class="top">
         <div class="recv">
           <div class="to">${esc(vname)} 귀하</div>
-          <div class="date">견적일자 : ${ds}</div>
+          ${_mgr?`<div class="mgr"><span id="qpLblMgr">담당자 :</span> ${esc(_mgr)}님</div>`:''}
+          <div class="date"><span id="qpLblDate">견적일자 :</span> ${ds}</div>
           <div class="date">견적번호 : ${_qQuoteNo||''}</div>
           <div class="amt">아래와 같이 견적합니다.<br><span style="display:inline-block;text-align:right">견적금액 : <b>${fmt(total)} 원</b><br><span style="font-size:12px;color:#888">(합계금액 · 부가세 포함)</span></span></div>
         </div>
@@ -6477,6 +6487,7 @@ function reloadState() {
     var el=document.getElementById('qCart'); if(!el) return;
     _qEnsureFirstRow();   // 규격 작성용 첫 줄은 항상 유지
     var _vendorSel=!!(_qCurId && (typeof quoteVendors!=='undefined'&&quoteVendors) && quoteVendors.find(function(v){return v.id===_qCurId;}));
+    (function(){ var _mgi=document.getElementById('qManager'); if(_mgi){ if(_vendorSel){ _mgi.disabled=false; } else { _mgi.disabled=true; _mgi.value=''; } } })();
     var _lockInput=(!_vendorSel && !_qCartHasContent());   // 거래처 미선택 + 내용 없음 → 첫 줄 입력 잠금
     // 다시 그리기 전 커서 위치(행·열) 기억 → 그린 뒤 같은 칸으로 되돌린다
     // (수량 수정 후 엔터 → 아래 칸으로 이동 → onchange 로 재렌더 → 포커스 유실 방지)
