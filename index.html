@@ -1649,6 +1649,8 @@
     @media (max-width:700px){ .bfv-cats { display:none; } }
     /* 견적 목록 표: 열 구분선 + 칸에 바로 입력 (입력박스 테두리 없음) */
     #qCart table.qcart-tbl th, #qCart table.qcart-tbl td { border:1px solid #e4e9f0; }
+    #qCart table.qcart-tbl td.qc-sel { background:#d6e4f7 !important; box-shadow: inset 0 0 0 1px #1B3A6B; }
+    #qCart table.qcart-tbl td.qc-sel input.qc-in { background:transparent !important; }
     #qCart table.qcart-tbl thead th, #qCart table.qcart-tbl tfoot th, #qCart table.qcart-tbl tfoot td { border-color:#d3dce6; }
     #qCart .qc-in { width:100%; box-sizing:border-box; padding:6px 5px; margin:0; border:none; background:transparent;
                     outline:none; font-size:13px; font-family:inherit; color:#1a1a1a; border-radius:0; }
@@ -6486,6 +6488,7 @@ function reloadState() {
   window.qNegoRate = function(val){ if(!_guardW()) return; var v=String(val||'').replace(/[,%\s]/g,''); if(v===''){ _qNego=null; } else { var r=Number(v); if(isNaN(r)){ } else { var ts=0; _qCart.forEach(function(c){ var qy=Number(c.qty)||1; if(c.sell!=null&&c.sell!=='') ts+=Number(c.sell)*qy; }); _qNego=_qRoundUp10(ts*r/100); } } _qCartSave(); renderQCart(); };   // 할인금액도 10원 단위(올림)
   function renderQCart(){
     var el=document.getElementById('qCart'); if(!el) return;
+    if(_qgSuspend) return;
     _qEnsureFirstRow();   // 규격 작성용 첫 줄은 항상 유지
     var _vendorSel=!!(_qCurId && (typeof quoteVendors!=='undefined'&&quoteVendors) && quoteVendors.find(function(v){return v.id===_qCurId;}));
     (function(){ var _mgi=document.getElementById('qManager'); if(_mgi){ if(_vendorSel){ _mgi.disabled=false; } else { _mgi.disabled=true; _mgi.value=''; } } })();
@@ -7273,7 +7276,7 @@ function reloadState() {
     setTimeout(function(){ var rows=document.querySelectorAll('#qCart tbody tr'); var last=rows[rows.length-1]; if(last){ var inp=last.querySelector('input[data-mf="spec"]'); if(inp){ inp.focus(); inp.scrollIntoView({block:'center'}); } } },40);
   };
   // 우클릭 → 커서 위/아래에 빈 행 삽입 (직접 입력용)
-  window.qCartInsertRow = function(i, below){
+  window.qCartInsertRow = function(i, below, n){
     if(!_guardW()) return;
     var _vendorSel=!!(_qCurId && (typeof quoteVendors!=='undefined'&&quoteVendors) && quoteVendors.find(function(v){return v.id===_qCurId;}));
     if(!_vendorSel && !_qCartHasContent()){ showInfoModal('거래처 확인','거래처를 먼저 선택한 뒤 행을 삽입해 주세요.'); return; }
@@ -7281,10 +7284,13 @@ function reloadState() {
     var vid=_qCart.length?_qCart[0].vid:(_qCurId||'');
     var vn=_qCart.length?_qCart[0].vname:((typeof quoteVendors!=='undefined'&&quoteVendors?(quoteVendors.find(function(v){return v.id===_qCurId;})||{}):{}).name||'');
     var idx=Math.max(0, Math.min(_qCart.length, below?(i+1):i));
-    _qCart.splice(idx, 0, {vid:vid, vname:vn, spec:'', name:'', e:null, buy:null, small:null, pl:false, sell:null, disc:'', eta:'', qty:1, manual:true});
+    n=Math.max(1, Math.min(500, parseInt(n,10)||1));
+    var _ins=[]; for(var _k=0;_k<n;_k++){ _ins.push({vid:vid, vname:vn, spec:'', name:'', e:null, buy:null, small:null, pl:false, sell:null, disc:'', eta:'', qty:1, manual:true}); }
+    _qCart.splice.apply(_qCart, [idx, 0].concat(_ins));
     _qCartSave(); renderQCart();
     setTimeout(function(){ var rows=document.querySelectorAll('#qCart tbody tr'); var tr=rows[idx]; if(tr){ var inp=tr.querySelector('input[data-mf="spec"]'); if(inp){ inp.focus(); inp.scrollIntoView({block:'center'}); } } },40);
   };
+  window._qInsCnt=function(){ var el=document.getElementById('qCartInsCnt'); var v=parseInt(el?el.value:1,10); return (isNaN(v)||v<1)?1:Math.min(500,v); };
   function _qCartCtxMenu(){
     var m=document.getElementById('qCartCtxMenu');
     if(!m){
@@ -7305,9 +7311,14 @@ function reloadState() {
     if(!_vs && !_qCartHasContent()){ var _rm0=document.getElementById('qCartCtxMenu'); if(_rm0) _rm0.style.display='none'; return; }
     var m=_qCartCtxMenu();
     var it=function(txt,onclick,color){ return '<div onclick="'+onclick+'" style="padding:8px 12px;font-size:13px;cursor:pointer;border-radius:0;color:'+(color||'#1a1a1a')+';white-space:nowrap" onmouseover="this.style.background=\'#eef4fb\'" onmouseout="this.style.background=\'#fff\'">'+txt+'</div>'; };
-    m.innerHTML=it('행 위에 삽입','qCartInsertRow('+i+',false)')
-      +it('행 아래에 삽입','qCartInsertRow('+i+',true)')
+    var _selR=(typeof _qgSelRows==='function')?_qgSelRows():[];
+    var _selDelItem=_selR.length?(it('선택한 행 삭제 ('+_selR.length+'개)','_qgDeleteRows()','#dc2626')+'<div style="height:1px;background:#eef1f4;margin:4px 6px"></div>'):'';
+    m.innerHTML='<div style="padding:7px 12px 8px;display:flex;align-items:center;gap:6px" onclick="event.stopPropagation()"><span style="font-size:12px;color:#6b7280">삽입 개수</span><input id="qCartInsCnt" type="number" min="1" max="500" value="1" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()" style="width:54px;padding:3px 6px;border:1px solid #c8d2de;border-radius:0;font-size:13px;font-family:inherit;text-align:center"><span style="font-size:12px;color:#6b7280">개</span></div>'
+      +'<div style="height:1px;background:#eef1f4;margin:2px 6px"></div>'
+      +it('행 위에 삽입','qCartInsertRow('+i+',false,_qInsCnt())')
+      +it('행 아래에 삽입','qCartInsertRow('+i+',true,_qInsCnt())')
       +'<div style="height:1px;background:#eef1f4;margin:4px 6px"></div>'
+      +_selDelItem
       +it('이 행 삭제','qCartDel('+i+')','#dc2626');
     m.style.display='block';
     var mw=m.offsetWidth||160, mh=m.offsetHeight||120;
@@ -7532,6 +7543,98 @@ function reloadState() {
     t.focus(); try{ t.select(); }catch(_e){}
     return true;
   }
+  // ===== 엑셀식 셀 선택 (Shift+화살표 / Ctrl·Shift+클릭 / Ctrl+C·V / Delete) =====
+  var _qgSuspend=false;
+  var _qgSel=null;   // {set:Set('r,c'), anchor:{r,c}}
+  var _qgMD=null, _qgDragging=false;   // 드래그 선택 상태(마우스 눌림 앵커)
+  function _qgReset(){ _qgSel=null; try{ _qgPaint(); }catch(e){} }
+  function _qgRectKeys(a,b,g){ var keys=[],r0=Math.min(a.r,b.r),r1=Math.max(a.r,b.r),c0=Math.min(a.c,b.c),c1=Math.max(a.c,b.c); for(var r=r0;r<=r1;r++){ var row=g[r]; if(!row) continue; for(var c=c0;c<=c1&&c<row.length;c++) keys.push(r+','+c); } return keys; }
+  function _qgSetRect(anchor,focus){ var g=_qcGrid(); _qgSel={set:new Set(_qgRectKeys(anchor,focus,g)),anchor:{r:anchor.r,c:anchor.c}}; _qgPaint(); }
+  function _qgToggle(cell){ if(!_qgSel) _qgSel={set:new Set(),anchor:{r:cell.r,c:cell.c}}; var k=cell.r+','+cell.c; if(_qgSel.set.has(k)) _qgSel.set.delete(k); else _qgSel.set.add(k); _qgSel.anchor={r:cell.r,c:cell.c}; _qgPaint(); }
+  function _qgPaint(){ var g=_qcGrid(); for(var r=0;r<g.length;r++){ for(var c=0;c<g[r].length;c++){ var inp=g[r][c]; var td=inp&&inp.closest?inp.closest('td'):null; if(!td) continue; if(_qgSel&&_qgSel.set.has(r+','+c)) td.classList.add('qc-sel'); else td.classList.remove('qc-sel'); } } }
+  function _qgBounds(){ if(!_qgSel||!_qgSel.set.size) return null; var r0=1e9,r1=-1,c0=1e9,c1=-1; _qgSel.set.forEach(function(k){ var p=k.split(','),r=+p[0],c=+p[1]; if(r<r0)r0=r; if(r>r1)r1=r; if(c<c0)c0=c; if(c>c1)c1=c; }); return {r0:r0,r1:r1,c0:c0,c1:c1}; }
+  function _qgBuildTSV(){ var b=_qgBounds(); if(!b) return null; var g=_qcGrid(),lines=[]; for(var r=b.r0;r<=b.r1;r++){ var cells=[]; for(var c=b.c0;c<=b.c1;c++){ var inp=(g[r]||[])[c]; cells.push(inp?String(inp.value||''):''); } lines.push(cells.join('\t')); } return lines.join('\n'); }
+  function _qgSetInput(inp,val){ if(!inp||inp.readOnly||inp.disabled) return; inp.value=val; try{ inp.dispatchEvent(new Event('input',{bubbles:true})); }catch(e){} try{ inp.dispatchEvent(new Event('change',{bubbles:true})); }catch(e){} }
+  function _qgDelete(){ if(!_qgSel||!_qgSel.set.size) return; var g=_qcGrid(),targets=[]; _qgSel.set.forEach(function(k){ var p=k.split(','); var inp=(g[+p[0]]||[])[+p[1]]; if(inp&&!inp.readOnly&&!inp.disabled) targets.push(inp); }); if(!targets.length) return; _qgSuspend=true; try{ targets.forEach(function(inp){ _qgSetInput(inp,''); }); } finally { _qgSuspend=false; } renderQCart(); _qgPaint(); }
+  function _qgFillFromLedger(i){ var c=_qCart[i]; if(!c) return false; var key=_qNorm(c.spec); if(!key) return false; var r=(_qRows||[]).find(function(x){ return _qNorm(x.spec)===key; }); if(!r) return false; c.name=r.name||''; c.e=(r.e!=null&&r.e!=='')?Number(r.e):null; c.buy=(r.buy!=null&&r.buy!=='')?Number(r.buy):null; c.small=(r.small!=null&&r.small!=='')?Number(r.small):null; c.pl=r.pl?true:false; c.sell=(r.sell!=null&&r.sell!=='')?Number(r.sell):null; c.disc=r.disc||''; c.eta=r.eta||''; return true; }
+  function _qgPasteText(txt){
+    var g=_qcGrid(); var b=_qgBounds(); var start = b?{r:b.r0,c:b.c0}:(_qcPos(document.activeElement)||{r:0,c:0});
+    var rows=String(txt).replace(/\r/g,'').replace(/\n+$/,'').split('\n').map(function(ln){ return ln.split('\t'); });
+    _qgSuspend=true; var specRows={};
+    try{
+      for(var ri=0;ri<rows.length;ri++){ var gi=start.r+ri; for(var ci=0;ci<(rows[ri]||[]).length;ci++){ var inp=(g[gi]||[])[start.c+ci]; if(!inp) continue; if(inp.getAttribute && inp.getAttribute('data-mf')==='spec'){ inp.value=rows[ri][ci]; try{ qCartFieldNoRender(gi,'spec',rows[ri][ci]); }catch(e){} specRows[gi]=1; } } }
+      Object.keys(specRows).forEach(function(rk){ _qgFillFromLedger(+rk); });
+      for(var rj=0;rj<rows.length;rj++){ var gj=start.r+rj; for(var cj=0;cj<(rows[rj]||[]).length;cj++){ var in2=(g[gj]||[])[start.c+cj]; if(!in2) continue; if(in2.getAttribute && in2.getAttribute('data-mf')==='spec') continue; _qgSetInput(in2, rows[rj][cj]); } }
+    } finally { _qgSuspend=false; }
+    try{ _qcsHide(); }catch(e){}
+    _qCartSave(); renderQCart(); _qgPaint();
+  }
+  function _qgSelRows(){ if(!_qgSel||!_qgSel.set.size) return []; var rs={}; _qgSel.set.forEach(function(k){ rs[+k.split(',')[0]]=1; }); return Object.keys(rs).map(Number).sort(function(a,b){return a-b;}); }
+  window._qgDeleteRows=function(){ if(!_guardW()) return; var rows=_qgSelRows(); if(!rows.length) return; _qPushUndo(); rows.sort(function(a,b){return b-a;}); rows.forEach(function(r){ if(r>=0&&r<_qCart.length) _qCart.splice(r,1); }); _qgReset(); _qCartSave(); renderQCart(); };
+  document.addEventListener('mousedown', function(ev){
+    if(ev.button!==0) return;   // 좌클릭만 선택 처리(우클릭은 컨텍스트 메뉴가 선택을 유지)
+    var inp = ev.target&&ev.target.closest ? ev.target.closest('#qCart table.qcart-tbl tbody input.qc-in') : null;
+    if(!inp){ if(_qgSel && !(ev.target.closest&&ev.target.closest('#qCartCtxMenu'))) _qgReset(); return; }
+    var g=_qcGrid(),p=null; for(var r=0;r<g.length&&!p;r++){ var c=g[r].indexOf(inp); if(c>=0) p={r:r,c:c}; }
+    if(!p) return;
+    var ae=document.activeElement, fp=null;
+    if(ae && ae.closest && ae.closest('#qCart table.qcart-tbl tbody')) fp=_qcPos(ae);   // 커서가 있는 칸
+    if(ev.ctrlKey||ev.metaKey){
+      ev.preventDefault();
+      if(!_qgSel && fp && (fp.r!==p.r||fp.c!==p.c)) _qgSel={set:new Set([fp.r+','+fp.c]),anchor:{r:fp.r,c:fp.c}};
+      _qgToggle(p);
+      var t=(g[p.r]||[])[p.c]; if(t){ t.focus(); try{ t.setSelectionRange(t.value.length,t.value.length); }catch(e){} }
+    } else if(ev.shiftKey){
+      ev.preventDefault();
+      var anchor=(_qgSel&&_qgSel.anchor)?_qgSel.anchor:(fp||p);   // 기존 앵커 없으면 커서 칸부터
+      _qgSetRect(anchor,p);
+      var t2=(g[p.r]||[])[p.c]; if(t2){ t2.focus(); try{ t2.setSelectionRange(t2.value.length,t2.value.length); }catch(e){} }
+    } else {
+      _qgMD=p; _qgDragging=false;   // 드래그 선택 시작점(클릭만 하면 편집)
+      if(_qgSel) _qgReset();
+    }
+  }, true);
+  document.addEventListener('mousemove', function(ev){
+    if(!_qgMD) return;
+    if(ev.buttons===0){ _qgMD=null; _qgDragging=false; return; }
+    var td = ev.target&&ev.target.closest ? ev.target.closest('#qCart table.qcart-tbl tbody td') : null;
+    if(!td) return; var inp=td.querySelector('input.qc-in'); if(!inp) return;
+    var g=_qcGrid(),p=null; for(var r=0;r<g.length&&!p;r++){ var c=g[r].indexOf(inp); if(c>=0) p={r:r,c:c}; }
+    if(!p) return;
+    if(!_qgDragging && p.r===_qgMD.r && p.c===_qgMD.c) return;
+    _qgDragging=true;
+    try{ window.getSelection().removeAllRanges(); }catch(e){}
+    ev.preventDefault();
+    _qgSetRect(_qgMD, p);
+  }, true);
+  document.addEventListener('mouseup', function(){ _qgMD=null; _qgDragging=false; }, true);
+  document.addEventListener('keydown', function(ev){
+    var k=ev.key;
+    if(k==='Delete' && _qgSel && _qgSel.set.size){ ev.preventDefault(); ev.stopPropagation(); _qgDelete(); return; }
+    var el=document.activeElement; var inGrid = el&&el.closest&&el.closest('#qCart table.qcart-tbl tbody'); if(!inGrid) return;
+    var isArrow=(k==='ArrowUp'||k==='ArrowDown'||k==='ArrowLeft'||k==='ArrowRight'); var p=_qcPos(el);
+    if(ev.shiftKey && isArrow && p){
+      ev.preventDefault(); ev.stopPropagation(); var g=_qcGrid();
+      if(!_qgSel) _qgSel={set:new Set([p.r+','+p.c]),anchor:{r:p.r,c:p.c}};
+      var dr=(k==='ArrowDown'?1:k==='ArrowUp'?-1:0), dc=(k==='ArrowRight'?1:k==='ArrowLeft'?-1:0);
+      var nr=Math.max(0,Math.min(g.length-1,p.r+dr));
+      var nc=Math.max(0,Math.min((g[nr]?g[nr].length-1:0),p.c+dc));
+      var t=(g[nr]||[])[nc]; if(t){ _qgSetRect(_qgSel.anchor,{r:nr,c:nc}); t.focus(); try{ t.setSelectionRange(t.value.length,t.value.length); }catch(e){} }
+      return;
+    }
+    if(isArrow && _qgSel){ _qgReset(); return; }
+    if(_qgSel && !ev.ctrlKey && !ev.metaKey && !ev.altKey && (k.length===1||k==='Backspace'||k==='Enter')){ _qgReset(); }
+  }, true);
+  document.addEventListener('copy', function(ev){
+    if(!(_qgSel && _qgSel.set.size>1)) return;
+    var tsv=_qgBuildTSV(); if(tsv==null) return;
+    try{ (ev.clipboardData||window.clipboardData).setData('text/plain', tsv); ev.preventDefault(); }catch(e){}
+  }, true);
+  document.addEventListener('paste', function(ev){
+    var el=document.activeElement; if(!(el&&el.closest&&el.closest('#qCart table.qcart-tbl tbody input.qc-in'))) return;
+    var txt=''; try{ txt=(ev.clipboardData||window.clipboardData).getData('text'); }catch(e){}
+    if(txt && (txt.indexOf('\t')>=0 || txt.indexOf('\n')>=0)){ ev.preventDefault(); _qgPasteText(txt); }
+  }, true);
   window.qCartGridKey = function(ev, el){
     var k=ev.key;
     if(k==='Tab'){                          // 탭 → 오른쪽 칸 (Shift+탭은 왼쪽), 줄 끝이면 다음 줄 첫 칸
