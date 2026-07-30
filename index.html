@@ -7260,10 +7260,12 @@ function reloadState() {
     }
     _qAddManualRowNow();
   };
+  function _qSpecCol(){ var g=_qcGrid(); if(!g.length) return 1; var row=g[0]; for(var i=0;i<row.length;i++){ if(row[i].getAttribute && row[i].getAttribute('data-mf')==='spec') return i; } return 1; }
   function _qAddManualRowNow(){
     // 마지막 줄이 이미 빈 줄이면 새로 추가하지 않고 그 줄로 포커스
     var _lc=_qCart.length?_qCart[_qCart.length-1]:null;
     if(_lc && !String(_lc.spec||'').trim() && !String(_lc.name||'').trim() && _lc.e==null && _lc.buy==null && _lc.sell==null){
+      _qcWant={r:_qCart.length-1,c:_qSpecCol(),at:Date.now()};
       renderQCart();
       setTimeout(function(){ var rows=document.querySelectorAll('#qCart tbody tr'); var last=rows[rows.length-1]; if(last){ var inp=last.querySelector('input[data-mf="spec"]'); if(inp){ inp.focus(); inp.scrollIntoView({block:'center'}); } } },40);
       return;
@@ -7272,6 +7274,7 @@ function reloadState() {
     var vid=_qCart.length?_qCart[0].vid:(_qCurId||'');
     var vn=_qCart.length?_qCart[0].vname:((quoteVendors.find(function(v){return v.id===_qCurId;})||{}).name||'');
     _qCart.push({vid:vid, vname:vn, spec:'', name:'', e:null, buy:null, sell:null, disc:'', eta:'', qty:1, manual:true});
+    _qcWant={r:_qCart.length-1,c:_qSpecCol(),at:Date.now()};
     _qCartSave(); renderQCart();
     setTimeout(function(){ var rows=document.querySelectorAll('#qCart tbody tr'); var last=rows[rows.length-1]; if(last){ var inp=last.querySelector('input[data-mf="spec"]'); if(inp){ inp.focus(); inp.scrollIntoView({block:'center'}); } } },40);
   };
@@ -7313,7 +7316,7 @@ function reloadState() {
     var it=function(txt,onclick,color){ return '<div onclick="'+onclick+'" style="padding:8px 12px;font-size:13px;cursor:pointer;border-radius:0;color:'+(color||'#1a1a1a')+';white-space:nowrap" onmouseover="this.style.background=\'#eef4fb\'" onmouseout="this.style.background=\'#fff\'">'+txt+'</div>'; };
     var _selR=(typeof _qgSelRows==='function')?_qgSelRows():[];
     var _selDelItem=_selR.length?(it('선택한 행 삭제 ('+_selR.length+'개)','_qgDeleteRows()','#dc2626')+'<div style="height:1px;background:#eef1f4;margin:4px 6px"></div>'):'';
-    m.innerHTML='<div style="padding:7px 12px 8px;display:flex;align-items:center;gap:6px" onclick="event.stopPropagation()"><span style="font-size:12px;color:#6b7280">삽입 개수</span><input id="qCartInsCnt" type="number" min="1" max="500" value="1" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()" style="width:54px;padding:3px 6px;border:1px solid #c8d2de;border-radius:0;font-size:13px;font-family:inherit;text-align:center"><span style="font-size:12px;color:#6b7280">개</span></div>'
+    m.innerHTML='<div style="padding:7px 12px 8px;display:flex;align-items:center;gap:6px" onclick="event.stopPropagation()"><span style="font-size:12px;color:#6b7280">삽입 개수</span><input id="qCartInsCnt" type="text" inputmode="numeric" value="1" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()" style="width:54px;padding:3px 6px;border:1px solid #c8d2de;border-radius:0;font-size:13px;font-family:inherit;text-align:center"><span style="font-size:12px;color:#6b7280">개</span></div>'
       +'<div style="height:1px;background:#eef1f4;margin:2px 6px"></div>'
       +it('행 위에 삽입','qCartInsertRow('+i+',false,_qInsCnt())')
       +it('행 아래에 삽입','qCartInsertRow('+i+',true,_qInsCnt())')
@@ -7669,7 +7672,7 @@ function reloadState() {
       // 마지막 줄에서는 엔터 한 번으로 새 줄을 만들지 않는다 (여기서 견적이 끝날 수 있으므로)
       var pp=_qcPos(el); var key=pp?(pp.r+':'+pp.c):null;
       if(key && _qEnterArmed===key){ _qEnterArmed=null; _qAddManualRowNow(); }   // 두 번째 엔터 → 새 줄
-      else { _qEnterArmed=key; }                                                  // 첫 엔터 → 대기
+      else { if(pp){ _qcWant={r:pp.r,c:pp.c,at:Date.now()}; } try{ el.dispatchEvent(new Event('change',{bubbles:true})); }catch(_ce){} _qEnterArmed=key; }                                                  // 첫 엔터 → 대기
       return;
     }
   };
