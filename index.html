@@ -6579,7 +6579,7 @@ function reloadState() {
         <tr style="background:#fff5f5;font-weight:800;color:#dc2626">
           <td colspan="${_lblCol}" style="padding:6px 10px;text-align:right">NEGO 금액 (할인)
             <span style="font-weight:600;color:#9ca3af;font-size:11px;margin-left:8px">할인율</span>
-            <input type="text" inputmode="decimal" class="qc-nego" value="${(_qNego!=null&&totalSell>0)?((_qNego/totalSell)*100).toFixed(2):''}" onchange="qNegoRate(this.value)" ${_isViewer()?'disabled':''} placeholder="%" style="width:52px;text-align:right">
+            <input type="text" inputmode="decimal" class="qc-nego" value="${(_qNego!=null&&totalSell>0)?((_qNego/totalSell)*100).toFixed(2):''}" onchange="qNegoRate(this.value)" ${_isViewer()?'disabled':''} style="width:52px;text-align:right">
             <span style="font-weight:600;color:#9ca3af;font-size:11px">%</span>
           </td>
           <td colspan="${_valCol}" style="padding:0;text-align:right"><input type="text" inputmode="numeric" class="qc-nego qc-nego-amt" value="${_qNego!=null?_qFmt(_qNego):''}" oninput="_qNumInput(this)" onchange="qNegoSet(this.value)" ${_isViewer()?'disabled':''} placeholder="직접 입력" style="text-align:right"></td>
