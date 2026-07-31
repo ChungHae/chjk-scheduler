@@ -16233,6 +16233,8 @@ function reloadState() {
     }
     // 3) 허용 목록 등록 (잠금 전 채워두면 잠금 후 이 사람만 접근)
     try{ await _fbAuthorizeSelf(id); }catch(_ae){}
+    // 로그인 성공 → 로그아웃 표식 삭제 (연동 앱 세션 복원 허용)
+    try{ await _fbFetch(`${_fbDbUrl}/${_AUTH_BASE}_logout/${encodeURIComponent(String(id))}.json`, {method:'DELETE'}); }catch(_lo){}
     localStorage.setItem('sched_last_user', id);
     if(u.mustChange){ _authShowChangePw(id, true); return; }
     _authUser = { id, name: u.name || id, role: u.role || 'user' };
