@@ -5900,7 +5900,7 @@ function reloadState() {
   window.qSetSubTab = function(which){ var tabs={quote:'qSubQuote',price:'qSubPrice'}, btns={quote:'qSubTabQuote',price:'qSubTabPrice'}; if(!tabs[which]) which='quote'; Object.keys(tabs).forEach(function(k){ var el=document.getElementById(tabs[k]); if(el) el.style.display=(k===which)?'':'none'; var b=document.getElementById(btns[k]); if(b) b.classList.toggle('active', k===which); }); if(which==='price' && typeof renderPricePage==='function') renderPricePage(); };
   window.qCartClear = function(){ if(!_qCartHasContent()) return; _qPushUndo(); showConfirmModal('견적 목록 비우기','담은 견적 항목을 모두 비울까요?',function(){ _qCart=[]; _qLoadedId=null; _qQuoteNo=null; _qNego=null; _qCols=[]; _qMemo=''; _qCartSave(); renderQCart(); },'비우기','#dc2626'); };
   window.qOpenDownloadMenu = function(){
-    if(!_qCart.length){ showInfoModal('견적 목록','견적 목록이 비어 있습니다.'); return; }
+    if(!_qCart.length || !_qCartHasContent()){ showInfoModal('견적 목록','견적 목록이 비어 있습니다.'); return; }
     var _DLB='flex:1;padding:11px;background:#fff;border:1px solid #cbd2dc;border-radius:6px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:#334155;text-align:center';
     var ov=document.getElementById('qDlMenuOverlay');
     if(!ov){ ov=document.createElement('div'); ov.id='qDlMenuOverlay'; ov.style.cssText='position:fixed;inset:0;z-index:100055;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px'; document.body.appendChild(ov); ov.addEventListener('click',function(e){ if(e.target===ov) ov.style.display='none'; }); }
@@ -6452,7 +6452,7 @@ function reloadState() {
   }
   // __QPDF_MAKE_END__
   window.qDownloadPdf = async function(orient){
-    if(!_qCart.length){ showInfoModal('견적 목록', '견적 목록이 비어 있습니다.'); return; }
+    if(!_qCart.length || !_qCartHasContent()){ showInfoModal('견적 목록', '견적 목록이 비어 있습니다.'); return; }
     window._qPdfOrient=(orient==='l')?'l':((orient==='p')?'p':((window._qPdfOrient==='l')?'l':'p'));
     _qEnsureQuoteNo();
     var pm=await _ensurePdfMake();
@@ -6462,7 +6462,7 @@ function reloadState() {
     pm.createPdf(dd).download(_fn+'.pdf');
   };
   window.qPreviewPdf = async function(orient){
-    if(!_qCart.length){ showInfoModal('견적 목록', '견적 목록이 비어 있습니다.'); return; }
+    if(!_qCart.length || !_qCartHasContent()){ showInfoModal('견적 목록', '견적 목록이 비어 있습니다.'); return; }
     window._qPdfOrient=(orient==='l')?'l':'p';
     _qEnsureQuoteNo();
     var no=_qQuoteNo||'';
@@ -6472,7 +6472,7 @@ function reloadState() {
       ov.style.cssText='position:fixed;inset:0;z-index:100070;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;padding:18px';
       document.body.appendChild(ov);
     }
-    ov.innerHTML='<div style="width:100%;max-width:'+(window._qPdfOrient==='l'?'1080px':'860px')+';height:92vh;background:#fff;border-radius:10px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 18px 60px rgba(0,0,0,.35)">'
+    ov.innerHTML='<div style="width:100%;max-width:'+(window._qPdfOrient==='l'?'1080px':'920px')+';height:92vh;background:#fff;border-radius:10px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 18px 60px rgba(0,0,0,.35)">'
       +'<div style="padding:11px 16px;border-bottom:2px solid #1B3A6B;display:flex;align-items:center;gap:10px">'
         +'<span style="font-size:15px;font-weight:700;color:#1B3A6B">견적서 미리보기</span>'
         +'<span style="font-size:12px;color:#6b7280">견적번호 '+esc(no)+' · '+(window._qPdfOrient==='l'?'가로형':'세로형')+'</span>'
@@ -6504,7 +6504,7 @@ function reloadState() {
               var pdf=await lib.getDocument({data:_dataUrlToBytes(fr.result)}).promise;
               b.innerHTML=''; b.style.background='#3a3f44';
               b.style.display='flex'; b.style.flexDirection='column'; b.style.alignItems='center'; b.style.justifyContent='flex-start';
-              b.style.overflow='auto'; b.style.position='relative';
+              b.style.overflowY='scroll'; b.style.overflowX='auto'; b.style.position='relative';
               b.oncontextmenu=function(){ return false; };
               var wrap=document.createElement('div');
               wrap.style.cssText='display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px;box-sizing:border-box';
@@ -6629,7 +6629,7 @@ function reloadState() {
     var b=document.getElementById('qPvBody'); if(b) b.innerHTML='';
   };
   window.qSavePdfQuote = function(orient){
-    if(!_qCart.length){ showInfoModal('견적 목록', '견적 목록이 비어 있습니다.'); return; }
+    if(!_qCart.length || !_qCartHasContent()){ showInfoModal('견적 목록', '견적 목록이 비어 있습니다.'); return; }
     window._qPdfOrient=(orient==='l')?'l':'p';
     _qEnsureQuoteNo();
     var no=_qQuoteNo||'';
@@ -6816,7 +6816,7 @@ function reloadState() {
     }, '삭제', '#dc2626');
   };
   window.qExportHitpan = function(){
-    if(!_qCart.length){ showInfoModal('견적 목록','견적 목록이 비어 있습니다.'); return; }
+    if(!_qCart.length || !_qCartHasContent()){ showInfoModal('견적 목록','견적 목록이 비어 있습니다.'); return; }
     var mov=document.getElementById('qDlMenuOverlay'); if(mov) mov.style.display='none';
     var cols=(typeof _qCols!=='undefined'&&_qCols)?_qCols:[];
     if(!cols.length){ _qDoHitpan(null); return; }
@@ -6870,7 +6870,7 @@ function reloadState() {
   };
 
   window.exportQuoteExcel = async function(){
-    if(!_qCart.length){ showInfoModal('견적 목록', '견적 목록이 비어 있습니다.'); return; }
+    if(!_qCart.length || !_qCartHasContent()){ showInfoModal('견적 목록', '견적 목록이 비어 있습니다.'); return; }
     try{
       await _ensureXlsxLib();
       try{ await _qPersistQuote(); }catch(_pe){ showInfoModal('견적 저장 실패', (_pe&&_pe.message||String(_pe))+'\n\n엑셀은 계속 만들지만, 이 견적은 저장되지 않았습니다.'); }
