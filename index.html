@@ -3498,7 +3498,7 @@
         ['서울 미수', _misuFmtWon(d.seoul_unpaid)+'원', false, '#EAF1FB'],
         ['화성 미수', _misuFmtWon(d.hwaseong_unpaid)+'원', false, '#EAF1FB']
       ]);
-      if(meta) meta.textContent=(d.basis?('기준일 '+d.basis):'')+(d.updatedAt?('   ·   갱신 '+String(d.updatedAt).replace('T',' ')):'');
+      if(meta) meta.textContent=(d.basis?('기준일 '+d.basis):'');  /* 갱신 시각 표시 제거(사용자 요청 2026-08-02) — 기준일만 표시 */
       if(d.sales_year){
         _misuRenderCards('salesSummaryGrid', [
           ['올해('+d.sales_year+') 매출', _misuFmtWon(d.sales_year_total)+'원', true, '#1B3A6B'],
