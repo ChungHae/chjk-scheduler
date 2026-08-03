@@ -2543,10 +2543,9 @@
       <span style="font-size:12.5px;font-weight:700;color:#14305c;white-space:nowrap;margin-left:4px">날짜</span>
       <input id="qQuoteDate" class="q-flat" type="date" onchange="qDateChange()" style="width:150px">
       <span style="font-size:12.5px;font-weight:700;color:#14305c;white-space:nowrap;margin-left:4px">메모</span>
-      <input id="qQuoteNote" class="q-flat" type="text" placeholder="(선택사항)" autocomplete="off" oninput="qNoteSet(this.value)" style="width:150px;max-width:100%">
-      <span id="qMetaInfo" style="display:flex;gap:6px;align-items:center;white-space:nowrap"></span>
+      <input id="qQuoteNote" class="q-flat" type="text" placeholder="(선택사항)" autocomplete="off" oninput="qNoteSet(this.value)" style="flex:1;min-width:150px;max-width:100%">
       <input id="qSpec" class="q-flat" type="text" lang="en" inputmode="latin" placeholder="규격(품번) 입력" oninput="renderQResults()" onkeydown="qSpecKey(event)" style="width:360px;max-width:100%;ime-mode:disabled">
-      <span style="flex:1"></span>
+      <span id="qMetaInfo" style="display:flex;gap:6px;align-items:center;white-space:nowrap"></span>
       <button class="qic" id="qAddBtn" onclick="openQAddModal()" data-tip="규격 추가" aria-label="규격 추가" style="display:none;border-color:#5b7ba6;color:#5b7ba6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
       <button class="qic" id="qLedgerBtn" onclick="qOpenLedger()" data-tip="원장 관리" aria-label="원장 관리" style="border-color:#b45309;color:#b45309"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.2A2.2 2.2 0 0 1 6.2 3H19a1 1 0 0 1 1 1v13"/><path d="M4 5.2V19a2 2 0 0 0 2 2h14"/><path d="M20 17H6.2A2.2 2.2 0 0 0 4 19.2"/><path d="M8 7.5h8M8 11h5"/></svg></button>
       <button class="qic" id="qLoadBtn" onclick="qOpenLoad()" data-tip="견적 불러오기" aria-label="견적 불러오기" style="border-color:#1a1a1a;color:#1a1a1a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V6a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.6.8l1 1.4a2 2 0 0 0 1.6.8H19a2 2 0 0 1 2 2v1"/><path d="M3 8h17.4a1 1 0 0 1 .97 1.25l-1.7 6.8A2 2 0 0 1 17.73 18H5a2 2 0 0 1-2-2Z"/></svg></button>
@@ -6750,7 +6749,7 @@ function reloadState() {
     var _defVn=_qCurId?_qVName(_qCurId):'';
     var _defWr=(_me&&_writers.indexOf(_me)>=0)?_me:'';
     var _wopts2='<option value=""'+(_defWr?'':' selected')+'>전체 작성자</option>'+_writers.map(function(w){ return '<option value="'+esc(w)+'"'+(w===_defWr?' selected':'')+'>'+esc(w)+'</option>'; }).join('');
-    ov.innerHTML='<div style="width:100%;max-width:680px;max-height:88vh;background:#fff;border:1px solid #e0e4ea;border-radius:10px;overflow:hidden;display:flex;flex-direction:column">'
+    ov.innerHTML='<div style="width:100%;max-width:860px;max-height:88vh;background:#fff;border:1px solid #e0e4ea;border-radius:10px;overflow:hidden;display:flex;flex-direction:column">'
       +'<div style="padding:11px 16px;border-bottom:1px solid #eef1f4;background:#f8fafc;display:flex;align-items:center;gap:9px"><span style="width:4px;height:16px;background:#334155;border-radius:2px"></span><span style="font-size:14px;font-weight:700;color:#1f2937">견적 불러오기</span><button class="btn" onclick="document.getElementById(\'qLoadOverlay\').style.display=\'none\'" style="padding:4px 12px;margin-left:auto">닫기</button></div>'
       +'<div style="padding:12px 16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;border-bottom:1px solid #eef1f4">'
         +'<input id="qLoadSearch" value="'+esc(_defVn)+'" placeholder="거래처 · 이름 · 작성자 · 메모 검색" oninput="_qRenderLoadList()" style="'+INP+';flex:1;min-width:150px">'
@@ -6788,7 +6787,7 @@ function reloadState() {
       var dd=qq.savedAt?new Date(qq.savedAt):null;
       var ds=dd?(dd.getFullYear()+'.'+String(dd.getMonth()+1).padStart(2,'0')+'.'+String(dd.getDate()).padStart(2,'0')):'';
       return '<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #f0f3f7">'
-        +'<div style="flex:1;min-width:0"><div style="font-weight:700;color:#0f172a;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(qq.title)+(qq.note?'<span style="font-weight:600;font-size:12px;color:#1B3A6B;background:#eef4fb;border:1px solid #d6e4f5;padding:1px 7px;margin-left:8px;vertical-align:1px">'+esc(qq.note)+'</span>':'')+'</div>'
+        +'<div style="flex:1;min-width:0"><div style="display:flex;align-items:flex-start;gap:8px;min-width:0"><span style="font-weight:700;color:#0f172a;font-size:14px;white-space:nowrap;flex-shrink:0">'+esc(qq.title)+'</span>'+(qq.note?'<span style="font-weight:600;font-size:12px;line-height:1.5;color:#1B3A6B;background:#eef4fb;border:1px solid #d6e4f5;padding:1px 7px;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all">'+esc(qq.note)+'</span>':'')+'</div>'
         +'<div style="font-size:11px;color:#9ca3af">'+esc(qq.vname||'')+' · '+(qq.count||0)+'건 · '+esc(qq.savedBy||'')+(ds?(' · '+ds):'')+'</div></div>'
         +'<div style="text-align:right;white-space:nowrap;margin-right:4px"><div style="font-size:14px;font-weight:800;color:#334155">'+(qq.total!=null?(_qFmt(qq.total-(qq.nego||0))+'원'):'-')+'</div><div style="font-size:10px;color:#9ca3af">부가세 별도</div></div>'
         +'<button class="btn btn-primary" onclick="qLoadSaved(\''+qq.id+'\')" style="font-size:12px;padding:5px 10px;white-space:nowrap">불러오기</button>'
