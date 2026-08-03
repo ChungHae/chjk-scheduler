@@ -2224,7 +2224,7 @@
   <button class="page-tab" id="tabEtc">기타</button>
 </nav>
 <nav class="sub-nav" id="etcSubNav" style="display:none">
-  <button class="sub-tab" onclick="window.open('http://guro09.iptime.org/nxpmsc/login','_blank')">주차관제</button>
+  <button class="sub-tab" data-page="links">링크</button>
 </nav>
 <nav class="sub-nav" id="scheduleSubNav">
   <button class="sub-tab active" data-page="personal">개인 일정</button>
@@ -2614,6 +2614,14 @@
       <button class="qic" id="purchaseExcelBtn" onclick="confirmPurchaseExcelDownload()" data-tip="엑셀 다운로드" aria-label="엑셀 다운로드" style="border-color:#1B3A6B;color:#1B3A6B"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"/><path d="M7.5 11.5 12 16l4.5-4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></button>
     </div>
     <div id="purchaseList"></div>
+  </div>
+  <div id="pageLinks" class="page-section">
+    <div class="q-toolbar inv-toolbar">
+      <span class="inv-flat-label">링크</span>
+      <span style="flex:1"></span>
+      <button class="qic" id="linksAddBtn" data-tip="링크 추가" aria-label="링크 추가" style="border-color:#1B3A6B;color:#1B3A6B"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div>
+    <div id="linksList"></div>
   </div>
 </main>
 
@@ -3207,6 +3215,7 @@
   let taxInvoices = load('sched_tax_invoices') ?? []; // [{id,date,supplierName,clientName,supplyPrice,taxAmount,totalAmount}]
   let arItems = load('sched_ar_items') ?? []; // [{id,bizName,invoiceDate,invoiceAmount,paidAmount,paidDate,note,status}]
   let purchaseVendors = load('sched_purchase_vendors') ?? []; // [{id,brand,distributor,email,contacts:[{role,name,phone}],memo}]
+  let linksList = load('sched_links') ?? []; // [{id,name,url,createdAt}] — 기타>링크 탭의 바로가기 목록
   let invCustom = load('sched_inventory_add') ?? [];
   let invAdjust = load('sched_inventory_qty') ?? {};
   let invUseLog = load('sched_inventory_log') ?? [];
@@ -3414,6 +3423,7 @@
     save('sched_tax_invoices', taxInvoices);
     save('sched_ar_items', arItems);
     save('sched_purchase_vendors', purchaseVendors);
+    save('sched_links', linksList);
     save('sched_inventory_add', invCustom);
     save('sched_inventory_qty', invAdjust);
     save('sched_inventory_log', invUseLog);
@@ -3802,6 +3812,7 @@ function reloadState() {
     taxInvoices      = load('sched_tax_invoices')?? [];
     arItems          = load('sched_ar_items')    ?? [];
     purchaseVendors  = load('sched_purchase_vendors') ?? [];
+    linksList        = load('sched_links') ?? [];
     invCustom        = load('sched_inventory_add') ?? [];
     invAdjust        = load('sched_inventory_qty') ?? {};
     invUseLog        = load('sched_inventory_log') ?? [];
@@ -13440,6 +13451,89 @@ function reloadState() {
     });
   };
 
+  // ─── 기타 > 링크 (사용자가 직접 이름+URL을 등록하는 바로가기 목록) ──────────
+  function renderLinksPage() {
+    const listEl = document.getElementById('linksList');
+    if (!listEl) return;
+    if (!linksList.length) {
+      listEl.innerHTML = `<div style="text-align:center;padding:48px;color:#bbb;font-size:13px">
+        등록된 링크가 없습니다.<br>"＋ 링크 추가"로 자주 쓰는 사이트를 등록하세요.</div>`;
+      return;
+    }
+    const arr = linksList.slice().sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
+    let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">';
+    arr.forEach(l => {
+      html += `<div style="position:relative;background:#fff;border:1px solid #e5e9f0;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06)" onclick="window.open('${esc(l.url)}','_blank')">
+        <div style="position:absolute;top:8px;right:8px;display:flex;gap:4px">
+          <button type="button" onclick="event.stopPropagation();openLinksModal('${l.id}')" title="수정" aria-label="수정" style="background:none;border:none;cursor:pointer;color:#5b7ba6;padding:0 3px;display:inline-flex;align-items:center"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+          <button type="button" onclick="event.stopPropagation();deleteLink('${l.id}')" title="삭제" aria-label="삭제" style="background:none;border:none;cursor:pointer;color:#dc2626;padding:0 3px;display:inline-flex;align-items:center"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16"/><path d="M9.5 6.5V4.6a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.9"/><path d="M6.5 6.5 7.4 19a2 2 0 0 0 2 1.9h5.2a2 2 0 0 0 2-1.9l.9-12.5"/><path d="M10.5 10.5v6M13.5 10.5v6"/></svg></button>
+        </div>
+        <div style="font-size:14px;font-weight:700;color:#1a1a1a;padding-right:52px;word-break:break-all">${esc(l.name)}</div>
+        <div style="font-size:11.5px;color:#5b7ba6;word-break:break-all">${esc(l.url)}</div>
+      </div>`;
+    });
+    html += '</div>';
+    listEl.innerHTML = html;
+  }
+  function ensureLinksOverlay() {
+    if (document.getElementById('linksOverlay')) return;
+    document.body.insertAdjacentHTML('beforeend', `<div class="overlay" id="linksOverlay" style="display:none;align-items:center;justify-content:center;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:1000"></div>`);
+  }
+  let _linksEditId = null;
+  window.openLinksModal = function(editId) { if(!_guardW()) return;
+    ensureLinksOverlay();
+    _linksEditId = editId || null;
+    const l = editId ? linksList.find(x => x.id === editId) : null;
+    const overlay = document.getElementById('linksOverlay');
+    overlay.innerHTML = `<div class="modal" style="max-width:420px;background:white;border-radius:12px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.15)">
+      <div class="modal-head" style="padding:14px 18px;border-bottom:1px solid #e5e5e5;display:flex;align-items:center;justify-content:space-between">
+        <h2 style="font-size:15px;margin:0">${l ? '링크 수정' : '링크 추가'}</h2>
+        <button class="close-btn" onclick="document.getElementById('linksOverlay').style.display='none'" style="border:none;background:none;font-size:18px;cursor:pointer;color:#888">닫기</button>
+      </div>
+      <div class="modal-body" style="padding:16px 18px;display:flex;flex-direction:column;gap:12px">
+        <div>
+          <label class="form-label">이름 *</label>
+          <input type="text" id="lkName" value="${esc(l?.name||'')}" placeholder="예: 주차관제" style="width:100%;padding:8px 10px;border:1.5px solid #e5e5e5;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box">
+        </div>
+        <div>
+          <label class="form-label">링크(URL) *</label>
+          <input type="text" id="lkUrl" value="${esc(l?.url||'')}" placeholder="예: http://guro09.iptime.org/nxpmsc/login" style="width:100%;padding:8px 10px;border:1.5px solid #e5e5e5;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box">
+        </div>
+      </div>
+      <div class="modal-foot" style="padding:12px 18px;border-top:1px solid #e5e5e5;display:flex;justify-content:flex-end;gap:8px">
+        <button class="btn" onclick="document.getElementById('linksOverlay').style.display='none'">취소</button>
+        <button class="btn btn-primary" onclick="saveLinkNow()">저장</button>
+      </div>
+    </div>`;
+    overlay.style.display = 'flex';
+    setTimeout(function(){ var el=document.getElementById('lkName'); if(el) el.focus(); }, 50);
+  };
+  window.saveLinkNow = function(){
+    const name = (document.getElementById('lkName').value || '').trim();
+    let url = (document.getElementById('lkUrl').value || '').trim();
+    if (!name) { showInfoModal('알림', '이름을 입력해 주세요.'); return; }
+    if (!url) { showInfoModal('알림', '링크(URL)를 입력해 주세요.'); return; }
+    if (url.indexOf('://') < 0) url = 'http://' + url;
+    if (_linksEditId) {
+      const idx = linksList.findIndex(x => x.id === _linksEditId);
+      if (idx >= 0) Object.assign(linksList[idx], { name, url });
+    } else {
+      linksList.push({ id: uid(), name, url, createdAt: Date.now() });
+    }
+    saveAll();
+    document.getElementById('linksOverlay').style.display = 'none';
+    renderLinksPage();
+  };
+  window.deleteLink = function(id) { if(!_guardW()) return;
+    const l = linksList.find(x => x.id === id);
+    if (!l) return;
+    showConfirmModal('링크 삭제', '정말 삭제하시겠습니까?\n\n' + esc(l.name) + '\n\n이 작업은 되돌릴 수 없습니다.', function(){
+      linksList = linksList.filter(x => x.id !== id);
+      saveAll();
+      renderLinksPage();
+    });
+  };
+
   // 엑셀 업로드 (예시 형식: 업체명 | 대리점명 | 이메일 | 담당자 | 연락처 — fill-down 처리)
   window.confirmPurchaseExcelDownload = function(){ showConfirmModal('엑셀 다운로드','매입처 목록을 엑셀 파일로 다운로드할까요?', function(){ exportPurchaseExcel(); }, '다운로드', '#1B3A6B'); };
   window.doPurchaseExcelUpload = function(){ if(!_guardW()) return;
@@ -13563,6 +13657,7 @@ function reloadState() {
   document.querySelectorAll('#purchaseRegionFilter .pf-btn').forEach(b => b.addEventListener('click', () => { _purchaseRegionFilter = b.dataset.region; renderPurchasePage(); }));
   updatePurchaseFilterUI();
   document.getElementById('purchaseAddBtn')?.addEventListener('click', () => openPurchaseModal());
+  document.getElementById('linksAddBtn')?.addEventListener('click', () => openLinksModal());
   document.getElementById('purchaseUploadFile')?.addEventListener('change', (e) => {
     const f = e.target.files && e.target.files[0];
     window._purPendingFile = f || null;
@@ -13614,20 +13709,22 @@ function reloadState() {
     _smoothScrollTo(absTop - offset, 850);
   }
   function switchPage(page) {
-    if(!page) return;   // 기타>주차관제처럼 실제 페이지가 없는 바로가기 버튼의 오작동 방지
+    if(!page) return;   // 실제 페이지가 없는 바로가기 버튼 등의 오작동 방지
     // 견적 작성 중 다른 카테고리로 이동 → 저장 여부 확인 (저장 안 하면 비움)
     try{ if(typeof _qLeaveGuard==='function' && _qLeaveGuard(page)) return; }catch(_e){}
     var _SCHED=['personal','weekly','biz'];
+    var _ETC=['links'];
     document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
     if(_SCHED.indexOf(page)>=0){ var _ts=document.getElementById('tabSchedule'); if(_ts) _ts.classList.add('active'); _lastSched=page; }
+    else if(_ETC.indexOf(page)>=0){ var _te=document.getElementById('tabEtc'); if(_te) _te.classList.add('active'); }
     else { document.querySelectorAll('.page-tab').forEach(t => { if(t.dataset.page===page) t.classList.add('active'); }); }
     var _subnav=document.getElementById('scheduleSubNav'); if(_subnav) _subnav.style.display = _SCHED.indexOf(page)>=0 ? 'flex' : 'none';
     var _fnav=document.getElementById('fileGroupTabs'); if(_fnav) _fnav.style.display = (page==='files') ? 'flex' : 'none';
     var _enav=document.getElementById('estimateSubNav'); if(_enav) _enav.style.display = (page==='estimate') ? 'flex' : 'none';
-    var _etcnav=document.getElementById('etcSubNav'); if(_etcnav) _etcnav.style.display='none';   // 실제 페이지 전환 시 '기타' 플라이아웃은 항상 닫는다
+    var _etcnav=document.getElementById('etcSubNav'); if(_etcnav) _etcnav.style.display = _ETC.indexOf(page)>=0 ? 'flex' : 'none';
     document.querySelectorAll('.sub-tab').forEach(t => t.classList.toggle('active', t.dataset.page === page));
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-    const pageMap = { weekly:'pageWeekly', biz:'pageBiz', assign:'pageAssign', personal:'pagePersonal', finance:'pageFinance', ar:'pageAr', inventory:'pageInventory', purchase:'pagePurchase', files:'pageFiles', estimate:'pageEstimate', armatch:'pageArmatch' };
+    const pageMap = { weekly:'pageWeekly', biz:'pageBiz', assign:'pageAssign', personal:'pagePersonal', finance:'pageFinance', ar:'pageAr', inventory:'pageInventory', purchase:'pagePurchase', files:'pageFiles', estimate:'pageEstimate', armatch:'pageArmatch', links:'pageLinks' };
     document.getElementById(pageMap[page] || 'pageWeekly').classList.add('active');
     // 견적 화면에서만 .main 의 가로 스크롤을 풀어 툴바 sticky 가 화면 기준으로 붙게 한다
     var _mn=document.querySelector('.main'); if(_mn) _mn.classList.toggle('main-estimate', page==='estimate');
@@ -13679,22 +13776,13 @@ function reloadState() {
       var _qs=document.getElementById('qSpec'); if(_qs) _qs.value='';
       renderEstimatePage();
     }
+    if (page === 'links')     renderLinksPage();
   }
   document.querySelectorAll('.page-tab[data-page], .sub-tab').forEach(tab => {
     tab.addEventListener('click', () => switchPage(tab.dataset.page));
   });
   (function(){ var ts=document.getElementById('tabSchedule'); if(ts) ts.addEventListener('click', function(){ switchPage('personal'); }); })();
-  (function(){
-    // '기타' 탭: 실제 페이지가 없는 그룹이라 switchPage를 타지 않고 서브탭(주차관제 등)만 펼침/접음
-    var te=document.getElementById('tabEtc'); var en=document.getElementById('etcSubNav');
-    if(te && en){
-      te.addEventListener('click', function(){
-        var opening = en.style.display !== 'flex';
-        en.style.display = opening ? 'flex' : 'none';
-        te.classList.toggle('active', opening);
-      });
-    }
-  })();
+  (function(){ var te=document.getElementById('tabEtc'); if(te) te.addEventListener('click', function(){ switchPage('links'); }); })();
   (function(){ var lg=document.querySelector('.brand-logo'); if(lg){ lg.style.cursor='pointer'; lg.title='처음 화면'; lg.addEventListener('click', function(){ switchPage('personal'); }); } })();
 
   // ─── 개인 일정 페이지 ──────────────────────────────────
