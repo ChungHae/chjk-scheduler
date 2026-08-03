@@ -2221,10 +2221,7 @@
   <button class="page-tab" data-page="purchase">매입처</button>
   <button class="page-tab" data-page="files">자료실</button>
   <button class="page-tab" data-page="armatch">입출금</button>
-  <button class="page-tab" id="tabEtc">기타</button>
-</nav>
-<nav class="sub-nav" id="etcSubNav" style="display:none">
-  <button class="sub-tab active" data-page="parking" onclick="window.open('http://guro09.iptime.org/nxpmsc/login','_blank')">주차관리</button>
+  <button class="page-tab" onclick="window.open('http://guro09.iptime.org/nxpmsc/login','_blank')">주차관리</button>
 </nav>
 <nav class="sub-nav" id="scheduleSubNav">
   <button class="sub-tab active" data-page="personal">개인 일정</button>
@@ -2614,16 +2611,6 @@
       <button class="qic" id="purchaseExcelBtn" onclick="confirmPurchaseExcelDownload()" data-tip="엑셀 다운로드" aria-label="엑셀 다운로드" style="border-color:#1B3A6B;color:#1B3A6B"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"/><path d="M7.5 11.5 12 16l4.5-4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></button>
     </div>
     <div id="purchaseList"></div>
-  </div>
-  <div id="pageParking" class="page-section">
-    <div style="max-width:520px;margin:48px auto 0;padding:32px 28px;border:1px solid #e5e9f0;border-radius:12px;background:#fff;text-align:center">
-      <div style="font-size:15px;font-weight:700;color:#14305c;margin-bottom:8px">주차관리</div>
-      <div style="font-size:13px;color:#6b7280;line-height:1.6;margin-bottom:20px">
-        회사 부지에 들어온 고객 차량에 주차권(할인권)을 부여하는 NEXPA 주차관제 시스템입니다.<br>
-        보안상 이 화면 안에는 삽입할 수 없어 새 탭에서 열립니다.
-      </div>
-      <button class="btn btn-primary" style="width:100%;padding:12px;font-size:14px" onclick="window.open('http://guro09.iptime.org/nxpmsc/login','_blank')">주차관리 사이트 새 탭에서 열기</button>
-    </div>
   </div>
 </main>
 
@@ -13598,7 +13585,6 @@ function reloadState() {
   try{ if(window.ResizeObserver){ var _tfEl=document.querySelector('.top-frozen'); if(_tfEl) new ResizeObserver(function(){ _syncTopFrozenH(); }).observe(_tfEl); } }catch(e){}
   setTimeout(_syncTopFrozenH, 300);
   let _lastSched='personal';
-  let _lastEtc='parking';
   function _smoothScrollTo(targetY, duration){
     targetY = Math.max(0, targetY);
     var startY = window.scrollY || window.pageYOffset || 0;
@@ -13628,18 +13614,15 @@ function reloadState() {
     // 견적 작성 중 다른 카테고리로 이동 → 저장 여부 확인 (저장 안 하면 비움)
     try{ if(typeof _qLeaveGuard==='function' && _qLeaveGuard(page)) return; }catch(_e){}
     var _SCHED=['personal','weekly','biz'];
-    var _ETC=['parking'];
     document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
     if(_SCHED.indexOf(page)>=0){ var _ts=document.getElementById('tabSchedule'); if(_ts) _ts.classList.add('active'); _lastSched=page; }
-    else if(_ETC.indexOf(page)>=0){ var _te=document.getElementById('tabEtc'); if(_te) _te.classList.add('active'); _lastEtc=page; }
     else { document.querySelectorAll('.page-tab').forEach(t => { if(t.dataset.page===page) t.classList.add('active'); }); }
     var _subnav=document.getElementById('scheduleSubNav'); if(_subnav) _subnav.style.display = _SCHED.indexOf(page)>=0 ? 'flex' : 'none';
     var _fnav=document.getElementById('fileGroupTabs'); if(_fnav) _fnav.style.display = (page==='files') ? 'flex' : 'none';
     var _enav=document.getElementById('estimateSubNav'); if(_enav) _enav.style.display = (page==='estimate') ? 'flex' : 'none';
-    var _etcnav=document.getElementById('etcSubNav'); if(_etcnav) _etcnav.style.display = _ETC.indexOf(page)>=0 ? 'flex' : 'none';
     document.querySelectorAll('.sub-tab').forEach(t => t.classList.toggle('active', t.dataset.page === page));
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-    const pageMap = { weekly:'pageWeekly', biz:'pageBiz', assign:'pageAssign', personal:'pagePersonal', finance:'pageFinance', ar:'pageAr', inventory:'pageInventory', purchase:'pagePurchase', files:'pageFiles', estimate:'pageEstimate', armatch:'pageArmatch', parking:'pageParking' };
+    const pageMap = { weekly:'pageWeekly', biz:'pageBiz', assign:'pageAssign', personal:'pagePersonal', finance:'pageFinance', ar:'pageAr', inventory:'pageInventory', purchase:'pagePurchase', files:'pageFiles', estimate:'pageEstimate', armatch:'pageArmatch' };
     document.getElementById(pageMap[page] || 'pageWeekly').classList.add('active');
     // 견적 화면에서만 .main 의 가로 스크롤을 풀어 툴바 sticky 가 화면 기준으로 붙게 한다
     var _mn=document.querySelector('.main'); if(_mn) _mn.classList.toggle('main-estimate', page==='estimate');
@@ -13696,7 +13679,6 @@ function reloadState() {
     tab.addEventListener('click', () => switchPage(tab.dataset.page));
   });
   (function(){ var ts=document.getElementById('tabSchedule'); if(ts) ts.addEventListener('click', function(){ switchPage('personal'); }); })();
-  (function(){ var te=document.getElementById('tabEtc'); if(te) te.addEventListener('click', function(){ switchPage(_lastEtc||'parking'); }); })();
   (function(){ var lg=document.querySelector('.brand-logo'); if(lg){ lg.style.cursor='pointer'; lg.title='처음 화면'; lg.addEventListener('click', function(){ switchPage('personal'); }); } })();
 
   // ─── 개인 일정 페이지 ──────────────────────────────────
