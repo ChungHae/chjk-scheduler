@@ -2221,7 +2221,10 @@
   <button class="page-tab" data-page="purchase">매입처</button>
   <button class="page-tab" data-page="files">자료실</button>
   <button class="page-tab" data-page="armatch">입출금</button>
-  <button class="page-tab" onclick="window.open('http://guro09.iptime.org/nxpmsc/login','_blank')">주차관리</button>
+  <button class="page-tab" id="tabEtc">기타</button>
+</nav>
+<nav class="sub-nav" id="etcSubNav" style="display:none">
+  <button class="sub-tab" onclick="window.open('http://guro09.iptime.org/nxpmsc/login','_blank')">주차관제</button>
 </nav>
 <nav class="sub-nav" id="scheduleSubNav">
   <button class="sub-tab active" data-page="personal">개인 일정</button>
@@ -13611,6 +13614,7 @@ function reloadState() {
     _smoothScrollTo(absTop - offset, 850);
   }
   function switchPage(page) {
+    if(!page) return;   // 기타>주차관제처럼 실제 페이지가 없는 바로가기 버튼의 오작동 방지
     // 견적 작성 중 다른 카테고리로 이동 → 저장 여부 확인 (저장 안 하면 비움)
     try{ if(typeof _qLeaveGuard==='function' && _qLeaveGuard(page)) return; }catch(_e){}
     var _SCHED=['personal','weekly','biz'];
@@ -13620,6 +13624,7 @@ function reloadState() {
     var _subnav=document.getElementById('scheduleSubNav'); if(_subnav) _subnav.style.display = _SCHED.indexOf(page)>=0 ? 'flex' : 'none';
     var _fnav=document.getElementById('fileGroupTabs'); if(_fnav) _fnav.style.display = (page==='files') ? 'flex' : 'none';
     var _enav=document.getElementById('estimateSubNav'); if(_enav) _enav.style.display = (page==='estimate') ? 'flex' : 'none';
+    var _etcnav=document.getElementById('etcSubNav'); if(_etcnav) _etcnav.style.display='none';   // 실제 페이지 전환 시 '기타' 플라이아웃은 항상 닫는다
     document.querySelectorAll('.sub-tab').forEach(t => t.classList.toggle('active', t.dataset.page === page));
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
     const pageMap = { weekly:'pageWeekly', biz:'pageBiz', assign:'pageAssign', personal:'pagePersonal', finance:'pageFinance', ar:'pageAr', inventory:'pageInventory', purchase:'pagePurchase', files:'pageFiles', estimate:'pageEstimate', armatch:'pageArmatch' };
@@ -13679,6 +13684,17 @@ function reloadState() {
     tab.addEventListener('click', () => switchPage(tab.dataset.page));
   });
   (function(){ var ts=document.getElementById('tabSchedule'); if(ts) ts.addEventListener('click', function(){ switchPage('personal'); }); })();
+  (function(){
+    // '기타' 탭: 실제 페이지가 없는 그룹이라 switchPage를 타지 않고 서브탭(주차관제 등)만 펼침/접음
+    var te=document.getElementById('tabEtc'); var en=document.getElementById('etcSubNav');
+    if(te && en){
+      te.addEventListener('click', function(){
+        var opening = en.style.display !== 'flex';
+        en.style.display = opening ? 'flex' : 'none';
+        te.classList.toggle('active', opening);
+      });
+    }
+  })();
   (function(){ var lg=document.querySelector('.brand-logo'); if(lg){ lg.style.cursor='pointer'; lg.title='처음 화면'; lg.addEventListener('click', function(){ switchPage('personal'); }); } })();
 
   // ─── 개인 일정 페이지 ──────────────────────────────────
