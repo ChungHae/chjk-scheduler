@@ -39,3 +39,15 @@ jobs:
           SEMPLUS_PW: ${{ secrets.SEMPLUS_PW }}
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         run: python scrape_semplus.py
+
+      # SemPlus 로그인/화면 조작이 실패하면 그 시점의 화면을 스크린샷으로
+      # 남겨두는데(scrape_semplus.py 참고), 이 스텝이 그걸 실행 결과의
+      # "Artifacts"로 다운로드할 수 있게 올려준다 - 텍스트 오류만으로
+      # 원인을 못 좁힐 때 이 이미지를 다운로드해 확인하면 된다.
+      - name: SemPlus 실패 스크린샷 업로드
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semplus-login-debug
+          path: automation/semplus_login_debug.png
+          if-no-files-found: ignore
