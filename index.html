@@ -13541,13 +13541,31 @@ function reloadState() {
         </div>
         <div style="font-size:11px;font-weight:700;color:#9ca3af;white-space:nowrap;padding-right:${padRight}px;height:14px;line-height:14px">${l.region?('● '+esc(l.region)):''}</div>
         <div style="display:flex;align-items:center;gap:8px;padding-right:${padRight}px">
-          <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:#f4f6f9;border:1px solid #eef2f7;border-radius:0;flex-shrink:0;overflow:hidden">${fav?`<img src="${esc(fav.primary)}" style="width:18px;height:18px;object-fit:contain" onerror="this.onerror=function(){this.style.display='none'};this.src='${esc(fav.fallback)}'">`:''}</span>
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:#f4f6f9;border:1px solid #eef2f7;border-radius:0;flex-shrink:0;overflow:hidden">${fav?`<img class="lk-favicon" src="${esc(fav.primary)}" data-fallback="${esc(fav.fallback)}" style="width:18px;height:18px;object-fit:contain">`:''}</span>
           <span style="font-size:14px;font-weight:700;color:#1a1a1a;word-break:break-all">${esc(l.name)}</span>
         </div>
       </div>`;
     });
     html += '</div>';
     listEl.innerHTML = html;
+    _wireLinkFavicons();
+  }
+  // 사이트 favicon.ico 요청이 (사내망·DDNS 사이트 등에서) 응답 없이 오래 멈춰있는 경우가
+  // 있어, onerror만으로는 구글 폴백 전환이 너무 늦어질 수 있다. 일정 시간 안에 로드되지
+  // 않으면 강제로 구글 파비콘 서비스로 전환한다.
+  function _wireLinkFavicons(){
+    document.querySelectorAll('#linksList img.lk-favicon').forEach(function(img){
+      var settled = false;
+      var toFallback = function(){
+        if (settled) return; settled = true;
+        var fb = img.getAttribute('data-fallback');
+        if (fb) { img.onerror = function(){ img.style.display='none'; }; img.src = fb; }
+        else { img.style.display = 'none'; }
+      };
+      img.addEventListener('error', toFallback, { once:true });
+      img.addEventListener('load', function(){ settled = true; }, { once:true });
+      setTimeout(function(){ if (!settled && (!img.complete || img.naturalWidth === 0)) toFallback(); }, 2000);
+    });
   }
   function ensureLinksOverlay() {
     if (document.getElementById('linksOverlay')) return;
