@@ -109,6 +109,34 @@ async def _first_visible(scope, selector, timeout=8000):
     return None
 
 
+async def _first_visible_anywhere(page, selector, timeout=8000):
+    """_first_visible과 비슷하지만 frame 하나로 좁히지 않고 page.frames
+    전체를 매 폴링마다 훑는다. WebSquare는 탭(예: '신용거래')마다 내용을
+    별도 iframe으로 그려 넣는 경우가 있어서, "selector가 존재하는 첫
+    frame"(_first_frame_with)과 "실제로 보이는 요소가 있는 frame"이 다를
+    수 있다 - 실제로 '검색' 버튼을 이 방식으로 못 찾은 사례가 있었다
+    (다른 frame의 숨겨진 '검색' 관련 텍스트가 먼저 걸렸을 가능성이 큼).
+    그래서 아예 모든 frame을 다 뒤져서 그 중 화면에 보이는 첫 요소를
+    찾는, 더 확실한 방식으로 바꾼다."""
+    deadline = asyncio.get_event_loop().time() + timeout / 1000
+    while asyncio.get_event_loop().time() < deadline:
+        for f in page.frames:
+            try:
+                loc = f.locator(selector)
+                n = await loc.count()
+            except Exception:
+                continue
+            for i in range(n):
+                item = loc.nth(i)
+                try:
+                    if await item.is_visible():
+                        return item
+                except Exception:
+                    continue
+        await asyncio.sleep(0.3)
+    return None
+
+
 async def login(page):
     await page.goto(BASE_URL, wait_until="domcontentloaded")
     try:
@@ -225,20 +253,16 @@ async def open_credit_transaction_list(page):
     # "신용거래"는 정확히 일치(text="...")하는 것만, 그리고 그 중에서도
     # 실제로 화면에 보이는(visible) 것만 골라 클릭한다 - '일마감' 메뉴의
     # 숨겨진 '신용거래집계' 항목을 잘못 클릭하려다 타임아웃 났던 버그를
-    # 재발 방지하기 위함.
-    menu_frame = await _first_frame_with(page, 'text="거래내역"')
-    if not menu_frame:
-        raise RuntimeError("'거래내역' 메뉴를 찾지 못했습니다.")
-    top_item = await _first_visible(menu_frame, 'text="거래내역"')
+    # 재발 방지하기 위함. frame이 여러 개일 수 있어(탭마다 별도 iframe),
+    # "텍스트가 존재하는 frame"이 아니라 "실제로 보이는 frame"을 페이지
+    # 전체에서 찾는 _first_visible_anywhere를 쓴다.
+    top_item = await _first_visible_anywhere(page, 'text="거래내역"')
     if not top_item:
         raise RuntimeError("'거래내역' 메뉴가 화면에 보이지 않습니다.")
     await top_item.click()
     await page.wait_for_timeout(500)
 
-    sub_frame = await _first_frame_with(page, 'text="신용거래"')
-    if not sub_frame:
-        raise RuntimeError("'신용거래' 하위 메뉴를 찾지 못했습니다.")
-    sub_item = await _first_visible(sub_frame, 'text="신용거래"', timeout=5000)
+    sub_item = await _first_visible_anywhere(page, 'text="신용거래"', timeout=5000)
     if not sub_item:
         raise RuntimeError(
             "'신용거래' 하위 메뉴가 화면에 보이지 않습니다 "
@@ -249,21 +273,19 @@ async def open_credit_transaction_list(page):
 
 
 async def search_last_week(page):
-    # 아래 두 항목도 같은 종류의 오탐(다른 숨겨진 메뉴에 같은 글자가
-    # 부분적으로 포함된 경우)이 있을 수 있으므로, 화면에 보이는 것만
-    # 고르는 _first_visible을 함께 사용한다.
-    week_btn_frame = await _first_frame_with(page, 'text=1주일')
-    if not week_btn_frame:
-        raise RuntimeError("'1주일' 조회기간 버튼을 찾지 못했습니다.")
-    week_btn = await _first_visible(week_btn_frame, 'text=1주일')
+    # '검색' 버튼 찾기가 실제로 실패한 적이 있음 - 원인으로 가장 유력한
+    # 것은, WebSquare가 '신용거래' 탭 내용을 별도 iframe으로 그려 넣는데
+    # _first_frame_with가 "'검색'이라는 글자가 존재하는 첫 frame"을
+    # 골랐지만 그 frame에서는 해당 글자가 숨겨진 채로만 있고, 실제로
+    # 보이는 '검색' 버튼은 다른 frame에 있었을 가능성. 그래서 frame을
+    # 하나로 좁히지 않고 페이지 전체 frame을 다 뒤지는
+    # _first_visible_anywhere로 통일한다.
+    week_btn = await _first_visible_anywhere(page, 'text=1주일')
     if not week_btn:
         raise RuntimeError("'1주일' 조회기간 버튼이 화면에 보이지 않습니다.")
     await week_btn.click()
 
-    search_frame = await _first_frame_with(page, 'text=검색')
-    if not search_frame:
-        raise RuntimeError("'검색' 버튼을 찾지 못했습니다.")
-    search_btn = await _first_visible(search_frame, 'text=검색')
+    search_btn = await _first_visible_anywhere(page, 'text=검색')
     if not search_btn:
         raise RuntimeError("'검색' 버튼이 화면에 보이지 않습니다.")
     await search_btn.click()
@@ -271,10 +293,7 @@ async def search_last_week(page):
 
 
 async def download_excel(page) -> str:
-    excel_frame = await _first_frame_with(page, 'text=엑셀')
-    if not excel_frame:
-        raise RuntimeError("'엑셀' 다운로드 버튼을 찾지 못했습니다.")
-    excel_btn = await _first_visible(excel_frame, 'text=엑셀')
+    excel_btn = await _first_visible_anywhere(page, 'text=엑셀')
     if not excel_btn:
         raise RuntimeError("'엑셀' 다운로드 버튼이 화면에 보이지 않습니다.")
     async with page.expect_download(timeout=20000) as dl_info:
