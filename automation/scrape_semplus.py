@@ -38,11 +38,23 @@ from common_firebase import write_transactions
 
 BASE_URL = "https://semplus.kisvan.co.kr/"
 
+# 로그인 폼 후보 선택자들 - 위에서부터 순서대로 시도
+# (2026-08-04 workflow_dispatch 실행에서 "로그인 폼(비밀번호 입력칸)을 찾지 못했습니다"
+#  오류 발생 → 로그아웃 상태의 실제 로그인 화면 DOM을 직접 확인함.
+#  로그인 폼은 WebSquare 프레임워크가 그려 넣는 별도 frame
+#  (websquare.html#w2xPath=/main/kr/co/kisvan/login/login.xml) 안에 있고,
+#  아이디/비밀번호 입력칸은 커스텀 위젯(class="w2input w2input_mandatory")이며
+#  로그인 버튼은 <button>이 아니라 클릭 가능한 <div id="grp_login">이다.)
 ID_FIELD_CANDIDATES = [
-    'input[placeholder*="아이디"]', 'input[name*="id" i]', '#userId', '#usr_id', '#mbr_id',
+    '#ibx_userId', 'input[placeholder*="아이디"]', 'input[name*="id" i]', '#userId', '#usr_id', '#mbr_id',
 ]
-PW_FIELD_CANDIDATES = ['input[type="password"]']
-LOGIN_SUBMIT_CANDIDATES = ['button:has-text("로그인")', 'a:has-text("로그인")', 'input[type="submit"]']
+PW_FIELD_CANDIDATES = ['#ibx_Password', 'input[type="password"]']
+LOGIN_SUBMIT_CANDIDATES = ['#grp_login', 'button:has-text("로그인")', 'a:has-text("로그인")', 'input[type="submit"]']
+
+# WebSquare는 화면을 자바스크립트로 그려 넣는 구형 프레임워크라, 헤드리스/CI
+# 환경(특히 매번 새로 뜨는 GitHub Actions 러너)에서는 렌더링이 끝날 때까지
+# 예상보다 오래 걸릴 수 있다 - 넉넉하게 잡는다.
+LOGIN_FRAME_TIMEOUT_MS = 25000
 
 
 async def _first_frame_with(page, selector, timeout=8000):
@@ -73,9 +85,15 @@ async def _find_first_in_frame(frame, selectors, timeout=3000):
 
 async def login(page):
     await page.goto(BASE_URL, wait_until="domcontentloaded")
+    try:
+        # WebSquare는 백그라운드 폴링(남은시간 카운트다운 등) 때문에 완전히
+        # idle 상태가 되지 않을 수 있으므로, 실패해도 무시하고 진행한다.
+        await page.wait_for_load_state("networkidle", timeout=15000)
+    except Exception:
+        pass
 
     # 로그인 폼이 어느 프레임에 있는지 불확실하므로, 비밀번호 input이 있는 프레임을 우선 탐색
-    pw_frame = await _first_frame_with(page, PW_FIELD_CANDIDATES[0])
+    pw_frame = await _first_frame_with(page, PW_FIELD_CANDIDATES[0], timeout=LOGIN_FRAME_TIMEOUT_MS)
     if not pw_frame:
         raise RuntimeError("SemPlus 로그인 폼(비밀번호 입력칸)을 찾지 못했습니다.")
 
@@ -93,8 +111,32 @@ async def login(page):
     else:
         await pw_field.press("Enter")
 
-    await page.wait_for_load_state("networkidle", timeout=15000)
-    if await _first_frame_with(page, 'text=로그아웃', timeout=5000) is None:
+    await page.wait_for_timeout(2000)
+    try:
+        await page.wait_for_load_state("networkidle", timeout=15000)
+    except Exception:
+        pass
+
+    # 신규/미등록 환경(예: GitHub Actions처럼 매번 IP가 바뀌는 러너)에서 로그인하면
+    # SemPlus가 SMS 2차 인증(#ibx_2Factor)을 요구할 수 있다. 이 경우 사람이 문자로
+    # 받은 인증번호를 입력해야 해서 완전 자동화가 불가능하므로, 원인을 명확히 구분해
+    # 알린다 (단순 선택자 문제와 헷갈리지 않도록).
+    twofactor_frame = await _first_frame_with(page, '#ibx_2Factor', timeout=3000)
+    if twofactor_frame:
+        try:
+            twofactor_visible = await twofactor_frame.locator('#ibx_2Factor').first.is_visible()
+        except Exception:
+            twofactor_visible = True
+        if twofactor_visible:
+            raise RuntimeError(
+                "SemPlus에서 SMS 2차 인증(#ibx_2Factor)을 요구하고 있습니다. "
+                "GitHub Actions처럼 매번 IP가 바뀌는 환경은 신규 기기로 인식되어 "
+                "2차 인증이 뜰 수 있는데, 이 경우 자동 로그인은 불가능합니다 - "
+                "SemPlus 고객센터에 해당 계정의 신규기기 2차 인증을 끄거나 예외 처리할 "
+                "수 있는지 문의가 필요합니다."
+            )
+
+    if await _first_frame_with(page, 'text=로그아웃', timeout=8000) is None:
         raise RuntimeError("SemPlus 로그인 실패로 보입니다 (로그아웃 링크를 찾을 수 없음).")
 
 
