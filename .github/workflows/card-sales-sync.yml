@@ -1,0 +1,41 @@
+name: 카드매출 동기화 (머니온/SemPlus → Firebase)
+
+on:
+  schedule:
+    # 평일(월~금)만, 한국시간 오전 8시(UTC 전날 23시)에 실행.
+    # 주말에는 애초에 실행되지 않도록 요일 필드를 1-5(월~금)로 제한.
+    - cron: "0 23 * * 0-4"
+  workflow_dispatch: {}   # 수동 실행(첫 검증 등)을 위한 트리거
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 의존성 설치
+        working-directory: automation
+        run: |
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
+
+      - name: 머니온(서울) 매출 동기화
+        working-directory: automation
+        env:
+          MONEYON_ID: ${{ secrets.MONEYON_ID }}
+          MONEYON_PW: ${{ secrets.MONEYON_PW }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: python scrape_moneyon.py
+
+      - name: SemPlus(화성) 매출 동기화
+        working-directory: automation
+        env:
+          SEMPLUS_ID: ${{ secrets.SEMPLUS_ID }}
+          SEMPLUS_PW: ${{ secrets.SEMPLUS_PW }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: python scrape_semplus.py
