@@ -2631,6 +2631,11 @@
       <span class="inv-flat-label">링크</span>
       <input type="text" id="linksSearch" class="q-flat" placeholder="이름/링크 검색…" autocomplete="off">
       <span class="inv-flat-div"></span>
+      <div id="linksRegionFilter" style="display:flex;gap:4px">
+        <button type="button" class="btn pf-btn" data-region="all" style="font-size:11.5px;padding:3px 11px">전체</button>
+        <button type="button" class="btn pf-btn" data-region="서울" style="font-size:11.5px;padding:3px 11px">서울</button>
+        <button type="button" class="btn pf-btn" data-region="화성" style="font-size:11.5px;padding:3px 11px">화성</button>
+      </div>
       <span style="flex:1"></span>
       <input type="file" id="linksUploadFile" accept=".xlsx,.xls" style="display:none">
       <button class="qic" id="linksAddBtn" data-tip="링크 추가" aria-label="링크 추가" style="border-color:#1B3A6B;color:#1B3A6B"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
@@ -3232,7 +3237,7 @@
   let taxInvoices = load('sched_tax_invoices') ?? []; // [{id,date,supplierName,clientName,supplyPrice,taxAmount,totalAmount}]
   let arItems = load('sched_ar_items') ?? []; // [{id,bizName,invoiceDate,invoiceAmount,paidAmount,paidDate,note,status}]
   let purchaseVendors = load('sched_purchase_vendors') ?? []; // [{id,brand,distributor,email,contacts:[{role,name,phone}],memo}]
-  let linksList = load('sched_links') ?? []; // [{id,name,url,createdAt}] — 기타>링크 탭의 바로가기 목록
+  let linksList = load('sched_links') ?? []; // [{id,name,url,region,createdAt}] — 기타>링크 탭의 바로가기 목록
   let invCustom = load('sched_inventory_add') ?? [];
   let invAdjust = load('sched_inventory_qty') ?? {};
   let invUseLog = load('sched_inventory_log') ?? [];
@@ -13469,30 +13474,54 @@ function reloadState() {
   };
 
   // ─── 기타 > 링크 (사용자가 직접 이름+URL을 등록하는 바로가기 목록) ──────────
+  let _linksRegionFilter = 'all';
+  function updateLinksFilterUI(){
+    document.querySelectorAll('#linksRegionFilter .pf-btn').forEach(b => {
+      const on = b.dataset.region === _linksRegionFilter;
+      b.style.background = on ? '#1B3A6B' : '#fff';
+      b.style.color = on ? '#fff' : '#444';
+      b.style.borderColor = on ? '#1B3A6B' : '#e0e0e0';
+      b.style.fontWeight = on ? '700' : '400';
+    });
+  }
+  // 링크 주소(URL)에서 호스트명을 뽑아 파비콘(사이트 아이콘) 이미지 주소를 만든다.
+  function _linkFavicon(url){
+    try{
+      const u = new URL(url);
+      return 'https://www.google.com/s2/favicons?sz=64&domain=' + encodeURIComponent(u.hostname);
+    }catch(e){ return ''; }
+  }
   function renderLinksPage() {
     const q = (document.getElementById('linksSearch')?.value || '').trim().toLowerCase();
     const listEl = document.getElementById('linksList');
     if (!listEl) return;
+    updateLinksFilterUI();
     if (!linksList.length) {
       listEl.innerHTML = `<div style="text-align:center;padding:48px;color:#bbb;font-size:13px">
         등록된 링크가 없습니다.<br>"＋ 링크 추가"로 자주 쓰는 사이트를 등록하세요.</div>`;
       return;
     }
-    const filtered = linksList.filter(l => !q || (l.name||'').toLowerCase().includes(q) || (l.url||'').toLowerCase().includes(q));
+    const matches = (l) => !q || (l.name||'').toLowerCase().includes(q) || (l.url||'').toLowerCase().includes(q);
+    const filtered = linksList.filter(l => matches(l) && (_linksRegionFilter === 'all' || (l.region||'') === _linksRegionFilter));
     if (!filtered.length) {
       listEl.innerHTML = `<div style="text-align:center;padding:40px;color:#bbb;font-size:13px">검색 결과가 없습니다.</div>`;
       return;
     }
-    const arr = filtered.slice().sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
-    let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">';
+    const _regRank = r => { r=(r||'').trim(); return r==='서울'?1 : (r==='화성'?2 : 0); };
+    const arr = filtered.slice().sort((a,b) => { const rr=_regRank(a.region)-_regRank(b.region); return rr!==0 ? rr : (a.createdAt||0)-(b.createdAt||0); });
+    let html = '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px">';
     arr.forEach(l => {
-      html += `<div style="position:relative;background:#fff;border:1px solid #e5e9f0;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06)" onclick="window.open('${esc(l.url)}','_blank')">
+      const favicon = _linkFavicon(l.url);
+      html += `<div style="position:relative;background:#fff;border:1px solid #e5e9f0;border-radius:0;padding:14px 16px;display:flex;flex-direction:column;gap:6px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.08)" onclick="window.open('${esc(l.url)}','_blank')">
         <div style="position:absolute;top:8px;right:8px;display:flex;gap:4px">
           <button type="button" onclick="event.stopPropagation();openLinksModal('${l.id}')" title="수정" aria-label="수정" style="background:none;border:none;cursor:pointer;color:#5b7ba6;padding:0 3px;display:inline-flex;align-items:center"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
           <button type="button" onclick="event.stopPropagation();deleteLink('${l.id}')" title="삭제" aria-label="삭제" style="background:none;border:none;cursor:pointer;color:#dc2626;padding:0 3px;display:inline-flex;align-items:center"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16"/><path d="M9.5 6.5V4.6a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.9"/><path d="M6.5 6.5 7.4 19a2 2 0 0 0 2 1.9h5.2a2 2 0 0 0 2-1.9l.9-12.5"/><path d="M10.5 10.5v6M13.5 10.5v6"/></svg></button>
         </div>
-        <div style="font-size:14px;font-weight:700;color:#1a1a1a;padding-right:52px;word-break:break-all">${esc(l.name)}</div>
-        <div style="font-size:11.5px;color:#5b7ba6;word-break:break-all">${esc(l.url)}</div>
+        ${l.region?`<div style="font-size:11px;font-weight:700;color:#9ca3af;white-space:nowrap;padding-right:52px">● ${esc(l.region)}</div>`:''}
+        <div style="display:flex;align-items:center;gap:8px;padding-right:52px">
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:#f4f6f9;border:1px solid #eef2f7;border-radius:0;flex-shrink:0;overflow:hidden">${favicon?`<img src="${favicon}" style="width:18px;height:18px;object-fit:contain" onerror="this.style.display='none'">`:''}</span>
+          <span style="font-size:14px;font-weight:700;color:#1a1a1a;word-break:break-all">${esc(l.name)}</span>
+        </div>
       </div>`;
     });
     html += '</div>';
@@ -13503,10 +13532,12 @@ function reloadState() {
     document.body.insertAdjacentHTML('beforeend', `<div class="overlay" id="linksOverlay" style="display:none;align-items:center;justify-content:center;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:1000"></div>`);
   }
   let _linksEditId = null;
+  let _linksDraftRegion = null;
   window.openLinksModal = function(editId) { if(!_guardW()) return;
     ensureLinksOverlay();
     _linksEditId = editId || null;
     const l = editId ? linksList.find(x => x.id === editId) : null;
+    _linksDraftRegion = (l && l.region) ? l.region : '';
     const overlay = document.getElementById('linksOverlay');
     overlay.innerHTML = `<div class="modal" style="max-width:420px;background:white;border-radius:12px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.15)">
       <div class="modal-head" style="padding:14px 18px;border-bottom:1px solid #e5e5e5;display:flex;align-items:center;justify-content:space-between">
@@ -13522,6 +13553,14 @@ function reloadState() {
           <label class="form-label">링크(URL) *</label>
           <input type="text" id="lkUrl" value="${esc(l?.url||'')}" placeholder="예: http://guro09.iptime.org/nxpmsc/login" style="width:100%;padding:8px 10px;border:1.5px solid #e5e5e5;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box">
         </div>
+        <div>
+          <label class="form-label">지점</label>
+          <div id="lkRegionBtns" style="display:flex;gap:8px">
+            <button type="button" class="lk-region-btn" data-region="서울" onclick="setLinksRegion('서울')" style="flex:1;padding:9px;border:1.5px solid #e5e5e5;border-radius:8px;background:#fff;font-size:12px;font-family:inherit;cursor:pointer;font-weight:600;color:#444">서울</button>
+            <button type="button" class="lk-region-btn" data-region="화성" onclick="setLinksRegion('화성')" style="flex:1;padding:9px;border:1.5px solid #e5e5e5;border-radius:8px;background:#fff;font-size:12px;font-family:inherit;cursor:pointer;font-weight:600;color:#444">화성</button>
+            <button type="button" class="lk-region-btn" data-region="" onclick="setLinksRegion('')" style="flex:1;padding:9px;border:1.5px solid #e5e5e5;border-radius:8px;background:#fff;font-size:12px;font-family:inherit;cursor:pointer;font-weight:600;color:#444">선택 안 함</button>
+          </div>
+        </div>
       </div>
       <div class="modal-foot" style="padding:12px 18px;border-top:1px solid #e5e5e5;display:flex;justify-content:flex-end;gap:8px">
         <button class="btn" onclick="document.getElementById('linksOverlay').style.display='none'">취소</button>
@@ -13529,19 +13568,31 @@ function reloadState() {
       </div>
     </div>`;
     overlay.style.display = 'flex';
+    renderLinksRegionBtns();
     setTimeout(function(){ var el=document.getElementById('lkName'); if(el) el.focus(); }, 50);
   };
+  window.setLinksRegion = function(r){ _linksDraftRegion = r; renderLinksRegionBtns(); };
+  function renderLinksRegionBtns(){
+    document.querySelectorAll('#lkRegionBtns .lk-region-btn').forEach(b => {
+      const on = (_linksDraftRegion !== null) && (b.dataset.region === _linksDraftRegion);
+      const noneBtn = b.dataset.region === '';
+      b.style.background = on ? (noneBtn ? '#9ca3af' : '#1B3A6B') : '#fff';
+      b.style.color = on ? '#fff' : '#444';
+      b.style.borderColor = on ? (noneBtn ? '#9ca3af' : '#1B3A6B') : '#e5e5e5';
+    });
+  }
   window.saveLinkNow = function(){
     const name = (document.getElementById('lkName').value || '').trim();
     let url = (document.getElementById('lkUrl').value || '').trim();
+    const region = _linksDraftRegion || '';
     if (!name) { showInfoModal('알림', '이름을 입력해 주세요.'); return; }
     if (!url) { showInfoModal('알림', '링크(URL)를 입력해 주세요.'); return; }
     if (url.indexOf('://') < 0) url = 'http://' + url;
     if (_linksEditId) {
       const idx = linksList.findIndex(x => x.id === _linksEditId);
-      if (idx >= 0) Object.assign(linksList[idx], { name, url });
+      if (idx >= 0) Object.assign(linksList[idx], { name, url, region });
     } else {
-      linksList.push({ id: uid(), name, url, createdAt: Date.now() });
+      linksList.push({ id: uid(), name, url, region, createdAt: Date.now() });
     }
     saveAll();
     document.getElementById('linksOverlay').style.display = 'none';
@@ -13564,15 +13615,15 @@ function reloadState() {
       var list = linksList.slice().sort(function(a,b){ return (a.createdAt||0) - (b.createdAt||0); });
       if(!list.length){ showInfoModal('알림', '등록된 링크가 없습니다.'); return; }
       await _ensureXlsxLib();
-      var aoa=[['이름','링크(URL)']];
-      list.forEach(function(l){ aoa.push([ l.name||'', l.url||'' ]); });
+      var aoa=[['이름','링크(URL)','지점']];
+      list.forEach(function(l){ aoa.push([ l.name||'', l.url||'', l.region||'' ]); });
       var ws=XLSX.utils.aoa_to_sheet(aoa);
-      ws['!cols']=[{wch:20},{wch:50}];
+      ws['!cols']=[{wch:20},{wch:50},{wch:10}];
       var thin={style:'thin',color:{rgb:'808080'}};
       var border={top:thin,bottom:thin,left:thin,right:thin};
       var hStyle={font:{name:'맑은 고딕',sz:9,bold:true},alignment:{horizontal:'center',vertical:'center',wrapText:true},fill:{patternType:'solid',fgColor:{rgb:'FFFF00'}},border:border};
       var lft={font:{name:'맑은 고딕',sz:9},alignment:{horizontal:'left',vertical:'center',wrapText:true},border:border};
-      var R=aoa.length, NC=2;
+      var R=aoa.length, NC=3;
       for(var r=0;r<R;r++){ for(var c=0;c<NC;c++){
         var ref=XLSX.utils.encode_cell({r:r,c:c}); var cl=ws[ref]; if(!cl) continue;
         cl.s = (r===0) ? hStyle : lft;
@@ -13606,13 +13657,14 @@ function reloadState() {
         +'<thead><tr style="background:#1B3A6B;color:#fff;text-align:left"><th style="padding:8px 10px">열(순서)</th><th style="padding:8px 10px">설명</th></tr></thead>'
         +'<tbody>'
         +'<tr style="border-bottom:1px solid #eef2f7"><td style="padding:8px 10px;font-weight:700">이름</td><td style="padding:8px 10px">링크 버튼에 표시할 이름</td></tr>'
-        +'<tr><td style="padding:8px 10px;font-weight:700">링크(URL)</td><td style="padding:8px 10px">이동할 주소 (http/https 생략 가능)</td></tr>'
+        +'<tr style="border-bottom:1px solid #eef2f7"><td style="padding:8px 10px;font-weight:700">링크(URL)</td><td style="padding:8px 10px">이동할 주소 (http/https 생략 가능)</td></tr>'
+        +'<tr><td style="padding:8px 10px;font-weight:700">지점</td><td style="padding:8px 10px">서울 또는 화성 (선택, 비워두면 미지정)</td></tr>'
         +'</tbody></table>'
       +'<div style="font-weight:700;color:#1B3A6B;margin:6px 0">작성 예시</div>'
       +'<div style="overflow-x:auto;margin-bottom:8px"><table style="border-collapse:collapse;font-size:11.5px;white-space:nowrap">'
-        +'<thead><tr style="background:#eaf1fb;color:#14305c;text-align:center"><th style="padding:6px 5px;border:1px solid #aac4e6;white-space:nowrap">이름</th><th style="padding:6px 5px;border:1px solid #aac4e6;white-space:nowrap">링크(URL)</th></tr></thead>'
+        +'<thead><tr style="background:#eaf1fb;color:#14305c;text-align:center"><th style="padding:6px 5px;border:1px solid #aac4e6;white-space:nowrap">이름</th><th style="padding:6px 5px;border:1px solid #aac4e6;white-space:nowrap">링크(URL)</th><th style="padding:6px 5px;border:1px solid #aac4e6;white-space:nowrap">지점</th></tr></thead>'
         +'<tbody>'
-        +'<tr><td style="padding:6px 5px;border:1px solid #e5e7eb;white-space:nowrap">주차관제</td><td style="padding:6px 5px;border:1px solid #e5e7eb;white-space:nowrap">http://guro09.iptime.org/nxpmsc/login</td></tr>'
+        +'<tr><td style="padding:6px 5px;border:1px solid #e5e7eb;white-space:nowrap">주차관제</td><td style="padding:6px 5px;border:1px solid #e5e7eb;white-space:nowrap">http://guro09.iptime.org/nxpmsc/login</td><td style="padding:6px 5px;border:1px solid #e5e7eb;white-space:nowrap">서울</td></tr>'
         +'</tbody></table></div>'
       +'</div>'
       +'<div style="display:flex;align-items:center;gap:8px;padding:14px 20px;border-top:1px solid #e5e5e5"><span id="lkUpFileName" style="margin-right:auto;font-size:12px;color:#9ca3af;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px">선택된 파일 없음</span><button class="btn" onclick="document.getElementById(\'linksExcelGuideOverlay\').style.display=\'none\'">닫기</button><button class="btn" onclick="document.getElementById(\'linksUploadFile\').click()">파일 선택</button><button class="btn btn-primary" id="lkUpDoBtn" onclick="doLinksExcelUpload()">업로드</button></div>'
@@ -13642,14 +13694,16 @@ function reloadState() {
           const r = rows[i] || [];
           const name = String(r[0] || '').trim();
           let url  = String(r[1] || '').trim();
+          let region = String(r[2] || '').trim();
+          region = region.indexOf('화성')>=0 ? '화성' : (region.indexOf('서울')>=0 ? '서울' : '');
           if (!name && !url) continue;
           if (!name || !url) continue;
           if (url.indexOf('://') < 0) url = 'http://' + url;
-          entries.push({ name, url });
+          entries.push({ name, url, region });
         }
         if (!entries.length) { showInfoModal('알림', '파싱된 데이터가 없습니다. 시트 형식을 확인해 주세요.'); return; }
         showConfirmModal('링크 추가', `엑셀에서 ${entries.length}개 링크를 읽었습니다.\n\n기존 목록에 추가할까요?`, function(){
-          entries.forEach(en => linksList.push({ id: uid(), name: en.name, url: en.url, createdAt: Date.now() }));
+          entries.forEach(en => linksList.push({ id: uid(), name: en.name, url: en.url, region: en.region||'', createdAt: Date.now() }));
           saveAll();
           renderLinksPage();
           showInfoModal('알림', `${entries.length}개 링크 추가됨`);
@@ -13786,6 +13840,7 @@ function reloadState() {
   document.getElementById('purchaseAddBtn')?.addEventListener('click', () => openPurchaseModal());
   document.getElementById('linksAddBtn')?.addEventListener('click', () => openLinksModal());
   document.getElementById('linksSearch')?.addEventListener('input', () => renderLinksPage());
+  document.querySelectorAll('#linksRegionFilter .pf-btn').forEach(b => b.addEventListener('click', () => { _linksRegionFilter = b.dataset.region; renderLinksPage(); }));
   document.getElementById('purchaseUploadFile')?.addEventListener('change', (e) => {
     const f = e.target.files && e.target.files[0];
     window._purPendingFile = f || null;
