@@ -3601,7 +3601,7 @@
     if(!tbody) return;
     if(!_fbDbUrl){ _misuNote('csSummaryGrid','로그인 후 표시됩니다.'); tbody.innerHTML='<tr><td colspan="7" style="padding:40px;text-align:center;color:#ccc">로그인 후 표시됩니다.</td></tr>'; return; }
     var dateEl=document.getElementById('csDate');
-    var ymd=(dateEl && dateEl.value) ? dateEl.value.replace(/-/g,'') : new Date().toISOString().slice(0,10).replace(/-/g,'');
+    var ymd=(dateEl && dateEl.value) ? dateEl.value.replace(/-/g,'') : (function(){var d=new Date();var p=function(n){return (n<10?'0':'')+n;};return ''+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate());})();
     var branches = _csBranchFilter==='all' ? ['seoul','hwaseong'] : [_csBranchFilter];
     tbody.innerHTML='<tr><td colspan="7" style="padding:40px;text-align:center;color:#ccc">불러오는 중…</td></tr>';
     try{
@@ -14270,7 +14270,7 @@ function reloadState() {
     }
     if (page === 'links')     renderLinksPage();
     if (page === 'cardsales'){
-      var _csd=document.getElementById('csDate'); if(_csd && !_csd.value) _csd.value = new Date().toISOString().slice(0,10);
+      var _csd=document.getElementById('csDate'); if(_csd && !_csd.value){ var _d=new Date(); var _p=function(n){return (n<10?'0':'')+n;}; _csd.value = _d.getFullYear()+'-'+_p(_d.getMonth()+1)+'-'+_p(_d.getDate()); }
       renderCardSalesPage();
     }
   }
