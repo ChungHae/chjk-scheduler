@@ -13502,23 +13502,9 @@ function reloadState() {
     });
   }
   // 사이트 자체 favicon도, 구글 파비콘 서비스도 끝내 못 찾으면 마지막으로 보여줄
-  // 기본 아이콘 — 빈 회색 박스 대신 귀여운 곰돌이 얼굴로(사내 인트라넷·개인 서버처럼
+  // 기본 아이콘 — 빈 회색 박스 대신 귀여운 미니언 캐릭터로(사내 인트라넷·개인 서버처럼
   // 외부에 전혀 노출되지 않아 원천적으로 어떤 파비콘 서비스도 찾을 수 없는 주소가 있음).
-  // 다른 아이콘(수정 연필·삭제 휴지통 등)과 같은 방식으로 직접 그린 인라인 SVG.
-  var _LINK_DEFAULT_ICON = 'data:image/svg+xml;utf8,' + encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
-    '<circle cx="6" cy="6.3" r="2.7" fill="#c9d6ea"/>' +
-    '<circle cx="18" cy="6.3" r="2.7" fill="#c9d6ea"/>' +
-    '<circle cx="6" cy="6.3" r="1.3" fill="#8fa5c8"/>' +
-    '<circle cx="18" cy="6.3" r="1.3" fill="#8fa5c8"/>' +
-    '<circle cx="12" cy="13" r="8.6" fill="#e8f0fb" stroke="#b9cbe6" stroke-width="1"/>' +
-    '<circle cx="8.4" cy="11.8" r="1.3" fill="#3d5273"/>' +
-    '<circle cx="15.6" cy="11.8" r="1.3" fill="#3d5273"/>' +
-    '<ellipse cx="12" cy="15.8" rx="3.1" ry="2.3" fill="#dce8f7"/>' +
-    '<circle cx="12" cy="14.9" r="0.85" fill="#5b7ba6"/>' +
-    '<path d="M10.1 16.9c.55.55 1.2.85 1.9.85s1.35-.3 1.9-.85" stroke="#5b7ba6" stroke-width="1.1" stroke-linecap="round" fill="none"/>' +
-    '</svg>'
-  );
+  var _LINK_DEFAULT_ICON = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAACXBIWXMAAAsTAAALEwEAmpwYAAAJ3ElEQVR4nO1dZ5AVRRD+TlQ4MGDACIhnFhNmUUEsFQOiYipDiRTmiHCWgjkUnjkrZsUsaKGYuTNhBixDmREjqCgGcri7tbrsVzXV1TOz+x733uzeflXz43Z25/VM7/b0dDogR44cOXLkyJEjR44cOXLk8KANgK4AtgPQH8AgAIcD2ANAFwBVvgFyJEN7AAcBuA3ARwAWAIgc7V8ALwI4F0C3ShOfZmwN4F5e0KjI1gxgIoABAJap9ITSgs0BPM+LFy3F9gWA/Ss9uZDRFsA1ABY7FnEJi6H7AVwHYASA4QCuBXAfgA88z1N7BkCnSk82NGwC4GPLgs0FMBpAX94PfGgHoI9HfP0KoFcZ5pUK9AIwy7KZXgxgxRLGbs+bsTb+IgAD0cqxj0WreXQpi4lVAIyybNInopViNwDzxYLMAXBsC/4maUN/id9sAnAEWhnowPS7WAgSEzuW4be34D3A/O15AHqgFZ1k31EWf8sy0rAxgOmChq9jbvKpR62iWu5VATp2ArBQ0HIDMo61WM6bk67lPvoCzgMwHsBkAN+xzv8UgLNZbMUF2YqG8LMf8ViTADzHWhEd9ggnCFoWs0qcWdwuJjwZwO4A6mOcZBsBPAGgxjH+BgCe5I3VN94rAHYG0CCuj0VGsbqi9TTwwiYxKdCGOVgZ/0Rl/DhMHSMY1siMzBzOT7g4TZ7+S4yxLytxLNnIzJE52EwNkXEGIJvOLgA68DOrAtiXTRHal0Jv/UnKddrYH2TzBY0BHrMnL67ch2T7KWt+hRrPhOsBrOkZgzbpb8RzC5ST9FcAusdQBl7z0LQDMoSBjom+AGDZmOOsyvq6bawv2ewQB/SbLznGGooM4U7LJGcAWCnhWN1ZxESKCrlZwrE6AvjNQhttzpmBVPUK7fQix7tPGevuIsc6y0Ib7VmZwKYAfrZslKsp99NesCu/nTbsqYxHTnmJlXjjXdcx1hqWDX42241SvRmPcMjYr5X7aw3xQo6YoyzjtlfGqxb3HADgb0MNvcJB51QHndcjxfjBMbE3FS2nSTl02fwCs8XbaqJaMTtHDi/Ymw4656T5K3jSMbFPxL2DLfdphrrlBLOahCa1jWUssjVp+MyjIqcWHRyb3Fx2xBfQS7mnyRLbs5VyL8nrAjqyy1Hec4jFhzzPQuOFnr0oFahyvF39xb2jRf/lljEvVcYi/7GJIeIrGW+JDTrEQR9t0JmAbYKTFPm6F381ZK/XsIrFyf4ngJXFveTlOoPjgTQ5TgyZ4qDPdzpPDSJHuyjBOFVs43fF/CSJgNO+pEx+Aa4ot2YAF8TQNKo5WiLytIdZrrtQxYyXdDVn9QswJ/Y9R7BFor0NYG/FLtSBIyWmWk6/9yrXyWh3jOLjXZYtpO8qz3zANGSSAU3iANYZwDTLGzyLF4LiQz90OFle5Te9ncOjNp/HeJ7H1M4GEbss11EspGQ1zSQDwD7eyTFEitYeF293e8+Zw9U+NEwVmWVAoxAPBbTljdCmh8tG8TzHOeT6QCXmx3XCJa/a8g6jYeYZYPqLazleSIqcvznhYlCMzRV8zyB+5h9FJE1kW79mCJQMWButhAFyo1yHvWilqoFVPEYNL6bP8ZMzoMLILAOWlMCAq1h7KabdVSID6EvMBBaXwIBDi9RuIo58a9UMoPTRX8Skvk04xnJKNEScNr2IYNt6JUkktc75QRYTRFIGELaNEctjNgq67Y3ksB3o6pAybK9EHhfazCKzX7b0WC4L7fMiY3qqPY4ZylVODd73LNKPnOlejFq5C2dTjgPwHp9kn+XQ8t5F5gOvF4O50xW/c5Dor8hRLTZzgeNUW05QhMUflkWXtiNy8gSPiYLoYZ7c3ZsTRMYtbZxjCfIqtDPF3z+E7qDvKjbeP1kT0fyzkdFeL3PyNNH0SIz9pDOHO5rXSASmJv2IUkMhGDCLfQKRsi8cx6prS7YjOWtGEzc/iWvrsmPevHYTAsZ7gljKWJcMmMrGt/oEamVLt884KaNeYcDG4hr5MYJEO7HQf3BGJIRKSgwAy/3rAlh8CsJdgWmaoDAAihgK0lO2kyCSvFBQGEDeJxNDK7j494hNdYKyBxAeSMOZ4ExHCtECBwP6KqEqdS3UZD4AaUGIwYBTxPWRCBAPCyL3K5IBN7YgjSd5GPCqhQE9lAzL4CBPkmtYGDAtRQzoYhgEG0u0Z7U4ZhoEkuEMGWBAZ6PPzHFYFFoJtHbiAEblwWwMoDNAWhjQxeh7O2RfwYYeGTk/JQx4xcGAx0QfZd4Eg96COMrhMjFP2FNCZcDLop9MKwWMFH227J2K4FhBHMX6ZI0BZ4g++jsYnC2IO83BALL5hMqAl0Q/+Qlsuc5UeiHYOhDHi/65Rt8SrkhyDNtf+lWQAcNYzg/gUphzHQyQwQFXIiDIOHuyOJrQEioiSysnA3xtTceXSn6MYHC1IO5A0f9pChmwUOj6u3oUjYriZkEcxfmbeC7BxGtbkE4p7qIEecxbi37K1AkGdwviqCSlieGifwrXj2jgKIaZLKbGlVio1YdlmNbC75GZ+S1+m6UhjiygJjYQ/bRhBwOZ3bidUq5ARjyvjHDQhl8El8l5R9FPL08wGCOIo0AqX6jKKISDoUoVl2qPqv0GAsJ4QRyJHCjpp1LODkYYYSmLPOcYLW6UchmCwYuCuO8tImacuK9ROQyVEwcruv/HbH42UaPENtEXHQzGKm/3JEUUdbRkO04oc+ngblxTrlnZm8iwaGJDS1YlhdIEg4csqlwzJ75dxJvaRlw0VUZMRwbTruJjfz8WW3FaX1Z9bf1Upf1ozkeeYInUm83iqBtH953PtqEljlJrweCGmLp1E1c67KpoHVEF2wz+Wg/zRMqZjV66YDAswWQpdqjgxLkiRtRcS7ZmjowolLZ8IcGzQdmC9k5AuLShrM+29rjppUujUfbkHXy6TVI7wmxB/c+Bjp4AXOq7BcCpIi9XnlI3Y9/C78rnXqckdr/BBToi4XOuU8RiI4eX9FC0HPNANpifXej5cpIUE6+YJlTswet28SyJOK36bk+l6N4/nADer4SDk/R+paKK1vaer0DGA7nQRzz7LVtJzWs/G1FtMqZztFIQRDtc2TDJo0gUYl6DwxCD0AbWtYv55whtHAVVNbP1yZ57GxOWHTAjosmS+3SMKl7BYGcOA2/Lb+h+rKcnTWy4w7OoZlRCJ4/6WMyhqQ+fXdrwnjGgtf3vse6iNKXZXlMYOsrx9lMF9hxFYG0uxjeDF3IKv4maFlPF1XMb+GxBCRe3ZvWfMZQLxysHtWmWUpYrKBtvc2gHpjShm6OOEIUQ+tyiJhO0utI5PJAOELmonRzBwbIlLdqRA//XB61xNM1mb2tBphTlyJEjByqL/wBCCBD4A5eJLgAAAABJRU5ErkJggg==';
   // 바로가기 주소(URL)에서 호스트명을 뽑아 파비콘(사이트 아이콘) 이미지 주소를 만든다.
   // 사이트가 직접 내려주는 favicon.ico를 먼저 시도하고(구글이 색인하지 않은
   // 사내망/DDNS 사이트 등에서도 실제 방문 시 보이는 아이콘이 그대로 뜨도록),
