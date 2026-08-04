@@ -1,0 +1,72 @@
+name: 카드매출 백필 (과거 데이터 한 번에 채우기, 수동 실행 전용)
+
+# 평소 자동 동기화(card-sales-sync.yml)는 최근 며칠치만 매일 채우는 반면,
+# 이 워크플로우는 지정한 기간(기본: 2026-01-01 ~ 오늘) 전체를 한 번만
+# 긁어와 채워 넣는 별도 작업이다. 자동으로 반복 실행되지 않도록
+# workflow_dispatch(수동 실행)만 트리거로 둔다 - cron 없음.
+#
+# 거래 고유 id로 upsert되므로 여러 번 실행해도 안전하다(멱등) - 특정
+# 구간이 실패해도 그 구간만 다시 실행하면 된다(start_date/end_date를
+# 좁혀서 재실행).
+on:
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: "시작일 (YYYY-MM-DD, 비워두면 2026-01-01)"
+        required: false
+        default: ""
+      end_date:
+        description: "종료일 (YYYY-MM-DD, 비워두면 오늘)"
+        required: false
+        default: ""
+      target:
+        description: "대상 (both / moneyon / semplus)"
+        required: false
+        default: "both"
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 의존성 설치
+        working-directory: automation
+        run: |
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
+
+      - name: 머니온(서울) 백필
+        if: ${{ github.event.inputs.target == 'both' || github.event.inputs.target == 'moneyon' }}
+        working-directory: automation
+        env:
+          MONEYON_ID: ${{ secrets.MONEYON_ID }}
+          MONEYON_PW: ${{ secrets.MONEYON_PW }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: python backfill_moneyon.py "${{ github.event.inputs.start_date }}" "${{ github.event.inputs.end_date }}"
+
+      - name: SemPlus(화성) 백필
+        if: ${{ github.event.inputs.target == 'both' || github.event.inputs.target == 'semplus' }}
+        working-directory: automation
+        env:
+          SEMPLUS_ID: ${{ secrets.SEMPLUS_ID }}
+          SEMPLUS_PW: ${{ secrets.SEMPLUS_PW }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: python backfill_semplus.py "${{ github.event.inputs.start_date }}" "${{ github.event.inputs.end_date }}"
+
+      # 실패 시점 화면을 스크린샷으로 남겨 GitHub Actions 아티팩트로
+      # 업로드한다(daily 동기화 워크플로우와 동일한 패턴).
+      - name: 실패 스크린샷 업로드
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cardsales-backfill-debug
+          path: |
+            automation/semplus_login_debug.png
+            automation/moneyon_backfill_debug.png
+          if-no-files-found: ignore
