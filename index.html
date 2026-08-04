@@ -125,6 +125,17 @@
     #pagePurchase .q-flat::placeholder { color:#aab4c2; }
     #pagePurchase .inv-toolbar .qic { width:26px !important; min-width:26px; height:26px; border-radius:6px !important; flex:0 0 auto; }
     #pagePurchase .inv-toolbar .qic svg { width:15px; height:15px; }
+    /* 기타>링크 툴바 — 매입처 툴바와 동일 스타일 */
+    #pageLinks .inv-toolbar { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin: calc(var(--mpy)*-1) calc(var(--mpx)*-1) 14px; min-height:var(--snh,36px); padding:4px var(--mpx); background:#fff; border:0; border-bottom:1px solid #e5e5e5; box-shadow:0 2px 6px rgba(15,23,42,.06); box-sizing:border-box; }
+    #pageLinks .inv-flat-label { font-size:12.5px; font-weight:700; color:#14305c; white-space:nowrap; flex-shrink:0; }
+    #pageLinks .inv-flat-div { width:1px; height:18px; background:#e5e5e5; flex-shrink:0; margin:0 4px; }
+    #pageLinks .q-flat { box-sizing:border-box; height:26px; padding:4px 6px; margin:0; border:none !important; border-radius:0 !important; background:transparent; outline:none; font-size:13px; font-family:inherit; color:#14305c; }
+    #pageLinks input.q-flat { width:300px; max-width:100%; }
+    #pageLinks .q-flat:hover { background:rgba(27,58,107,.045); }
+    #pageLinks .q-flat:focus { background:#f2f4f7; }
+    #pageLinks .q-flat::placeholder { color:#aab4c2; }
+    #pageLinks .inv-toolbar .qic { width:26px !important; min-width:26px; height:26px; border-radius:6px !important; flex:0 0 auto; }
+    #pageLinks .inv-toolbar .qic svg { width:15px; height:15px; }
     /* 자료실 툴바 — 재고/매입처 툴바와 동일 스타일 */
     #pageFiles .inv-toolbar { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin: calc(var(--mpy)*-1) calc(var(--mpx)*-1) 14px; min-height:var(--snh,36px); padding:4px var(--mpx); background:#fff; border:0; border-bottom:1px solid #e5e5e5; box-shadow:0 2px 6px rgba(15,23,42,.06); box-sizing:border-box; }
     #pageFiles .inv-flat-label { font-size:12.5px; font-weight:700; color:#14305c; white-space:nowrap; flex-shrink:0; }
@@ -2618,8 +2629,14 @@
   <div id="pageLinks" class="page-section">
     <div class="q-toolbar inv-toolbar">
       <span class="inv-flat-label">링크</span>
+      <input type="text" id="linksSearch" class="q-flat" placeholder="이름/링크 검색…" autocomplete="off">
+      <span class="inv-flat-div"></span>
       <span style="flex:1"></span>
+      <input type="file" id="linksUploadFile" accept=".xlsx,.xls" style="display:none">
       <button class="qic" id="linksAddBtn" data-tip="링크 추가" aria-label="링크 추가" style="border-color:#1B3A6B;color:#1B3A6B"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+      <span class="qic-div" style="width:1px;align-self:stretch;background:#d3dae4;margin:2px 4px"></span>
+      <button class="qic" id="linksUploadBtn" onclick="openLinksExcelGuide()" data-tip="엑셀 업로드" aria-label="엑셀 업로드" style="border-color:#16a34a;color:#16a34a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></button>
+      <button class="qic" id="linksExcelBtn" onclick="confirmLinksExcelDownload()" data-tip="엑셀 다운로드" aria-label="엑셀 다운로드" style="border-color:#1B3A6B;color:#1B3A6B"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"/><path d="M7.5 11.5 12 16l4.5-4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></button>
     </div>
     <div id="linksList"></div>
   </div>
@@ -13453,6 +13470,7 @@ function reloadState() {
 
   // ─── 기타 > 링크 (사용자가 직접 이름+URL을 등록하는 바로가기 목록) ──────────
   function renderLinksPage() {
+    const q = (document.getElementById('linksSearch')?.value || '').trim().toLowerCase();
     const listEl = document.getElementById('linksList');
     if (!listEl) return;
     if (!linksList.length) {
@@ -13460,7 +13478,12 @@ function reloadState() {
         등록된 링크가 없습니다.<br>"＋ 링크 추가"로 자주 쓰는 사이트를 등록하세요.</div>`;
       return;
     }
-    const arr = linksList.slice().sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
+    const filtered = linksList.filter(l => !q || (l.name||'').toLowerCase().includes(q) || (l.url||'').toLowerCase().includes(q));
+    if (!filtered.length) {
+      listEl.innerHTML = `<div style="text-align:center;padding:40px;color:#bbb;font-size:13px">검색 결과가 없습니다.</div>`;
+      return;
+    }
+    const arr = filtered.slice().sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
     let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">';
     arr.forEach(l => {
       html += `<div style="position:relative;background:#fff;border:1px solid #e5e9f0;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06)" onclick="window.open('${esc(l.url)}','_blank')">
@@ -13533,6 +13556,110 @@ function reloadState() {
       renderLinksPage();
     });
   };
+
+  // 링크 엑셀 다운로드 (매입처 다운로드와 동일한 방식: xlsx-js-style 로 헤더 강조 스타일 적용)
+  window.confirmLinksExcelDownload = function(){ showConfirmModal('엑셀 다운로드','링크 목록을 엑셀 파일로 다운로드할까요?', function(){ exportLinksExcel(); }, '다운로드', '#1B3A6B'); };
+  window.exportLinksExcel = async function(){
+    try{
+      var list = linksList.slice().sort(function(a,b){ return (a.createdAt||0) - (b.createdAt||0); });
+      if(!list.length){ showInfoModal('알림', '등록된 링크가 없습니다.'); return; }
+      await _ensureXlsxLib();
+      var aoa=[['이름','링크(URL)']];
+      list.forEach(function(l){ aoa.push([ l.name||'', l.url||'' ]); });
+      var ws=XLSX.utils.aoa_to_sheet(aoa);
+      ws['!cols']=[{wch:20},{wch:50}];
+      var thin={style:'thin',color:{rgb:'808080'}};
+      var border={top:thin,bottom:thin,left:thin,right:thin};
+      var hStyle={font:{name:'맑은 고딕',sz:9,bold:true},alignment:{horizontal:'center',vertical:'center',wrapText:true},fill:{patternType:'solid',fgColor:{rgb:'FFFF00'}},border:border};
+      var lft={font:{name:'맑은 고딕',sz:9},alignment:{horizontal:'left',vertical:'center',wrapText:true},border:border};
+      var R=aoa.length, NC=2;
+      for(var r=0;r<R;r++){ for(var c=0;c<NC;c++){
+        var ref=XLSX.utils.encode_cell({r:r,c:c}); var cl=ws[ref]; if(!cl) continue;
+        cl.s = (r===0) ? hStyle : lft;
+      }}
+      var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'링크');
+      var d=new Date(); var ds=d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
+      XLSX.writeFile(wb,'링크목록_'+ds+'.xlsx');
+    }catch(e){ showInfoModal('알림', '엑셀 내보내기 실패: '+e.message); }
+  };
+  // 링크 엑셀 업로드 (예시 형식: 이름 | 링크(URL))
+  window.doLinksExcelUpload = function(){ if(!_guardW()) return;
+    var f = window._lkPendingFile;
+    if(!f){ showInfoModal('파일 선택','엑셀 파일을 선택하세요.'); return; }
+    var ov = document.getElementById('linksExcelGuideOverlay'); if(ov) ov.style.display='none';
+    window._lkPendingFile = null;
+    importLinksFromXlsx(f);
+  };
+  window.openLinksExcelGuide = function(){ if(!_guardW()) return;
+    var ov = document.getElementById('linksExcelGuideOverlay');
+    if(!ov){
+      ov=document.createElement('div'); ov.id='linksExcelGuideOverlay';
+      ov.style.cssText='position:fixed;inset:0;z-index:100002;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px';
+      document.body.appendChild(ov);
+      ov.addEventListener('click',function(e){ if(e.target===ov) ov.style.display='none'; });
+    }
+    ov.innerHTML='<div style="width:100%;max-width:480px;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 14px 44px rgba(27,58,107,.22);max-height:84vh;display:flex;flex-direction:column">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:2px solid #1B3A6B"><span style="font-size:16px;font-weight:700;color:#1B3A6B">엑셀 업로드</span></div>'
+      +'<div style="padding:18px 20px;overflow:auto;font-size:13px;color:#374151;line-height:1.7">'
+      +'<p style="margin:0 0 12px">첫 행에 <b>제목(헤더)</b>을 넣고, 아래 <b>순서대로</b> 열을 배치하세요.</p>'
+      +'<table style="width:100%;border-collapse:collapse;margin:8px 0 14px;font-size:12px">'
+        +'<thead><tr style="background:#1B3A6B;color:#fff;text-align:left"><th style="padding:8px 10px">열(순서)</th><th style="padding:8px 10px">설명</th></tr></thead>'
+        +'<tbody>'
+        +'<tr style="border-bottom:1px solid #eef2f7"><td style="padding:8px 10px;font-weight:700">이름</td><td style="padding:8px 10px">링크 버튼에 표시할 이름</td></tr>'
+        +'<tr><td style="padding:8px 10px;font-weight:700">링크(URL)</td><td style="padding:8px 10px">이동할 주소 (http/https 생략 가능)</td></tr>'
+        +'</tbody></table>'
+      +'<div style="font-weight:700;color:#1B3A6B;margin:6px 0">작성 예시</div>'
+      +'<div style="overflow-x:auto;margin-bottom:8px"><table style="border-collapse:collapse;font-size:11.5px;white-space:nowrap">'
+        +'<thead><tr style="background:#eaf1fb;color:#14305c;text-align:center"><th style="padding:6px 5px;border:1px solid #aac4e6;white-space:nowrap">이름</th><th style="padding:6px 5px;border:1px solid #aac4e6;white-space:nowrap">링크(URL)</th></tr></thead>'
+        +'<tbody>'
+        +'<tr><td style="padding:6px 5px;border:1px solid #e5e7eb;white-space:nowrap">주차관제</td><td style="padding:6px 5px;border:1px solid #e5e7eb;white-space:nowrap">http://guro09.iptime.org/nxpmsc/login</td></tr>'
+        +'</tbody></table></div>'
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:8px;padding:14px 20px;border-top:1px solid #e5e5e5"><span id="lkUpFileName" style="margin-right:auto;font-size:12px;color:#9ca3af;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px">선택된 파일 없음</span><button class="btn" onclick="document.getElementById(\'linksExcelGuideOverlay\').style.display=\'none\'">닫기</button><button class="btn" onclick="document.getElementById(\'linksUploadFile\').click()">파일 선택</button><button class="btn btn-primary" id="lkUpDoBtn" onclick="doLinksExcelUpload()">업로드</button></div>'
+      +'</div>';
+    window._lkPendingFile=null;
+    var nm=document.getElementById('lkUpFileName'); if(nm){ nm.textContent='선택된 파일 없음'; nm.style.color='#9ca3af'; }
+    ov.style.display='flex';
+  };
+  function importLinksFromXlsx(file) {
+    if (typeof XLSX === 'undefined') {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s.onload = () => importLinksFromXlsx(file);
+      s.onerror = () => showInfoModal('알림', '엑셀 라이브러리 로드 실패 (네트워크 확인)');
+      document.head.appendChild(s);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const wb = XLSX.read(data, {type:'array'});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+        const entries = [];
+        for (let i = 1; i < rows.length; i++) {
+          const r = rows[i] || [];
+          const name = String(r[0] || '').trim();
+          let url  = String(r[1] || '').trim();
+          if (!name && !url) continue;
+          if (!name || !url) continue;
+          if (url.indexOf('://') < 0) url = 'http://' + url;
+          entries.push({ name, url });
+        }
+        if (!entries.length) { showInfoModal('알림', '파싱된 데이터가 없습니다. 시트 형식을 확인해 주세요.'); return; }
+        showConfirmModal('링크 추가', `엑셀에서 ${entries.length}개 링크를 읽었습니다.\n\n기존 목록에 추가할까요?`, function(){
+          entries.forEach(en => linksList.push({ id: uid(), name: en.name, url: en.url, createdAt: Date.now() }));
+          saveAll();
+          renderLinksPage();
+          showInfoModal('알림', `${entries.length}개 링크 추가됨`);
+        }, '추가', '#1B3A6B');
+      } catch (err) {
+        showInfoModal('알림', '엑셀 파싱 오류: ' + (err && err.message ? err.message : err));
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
 
   // 엑셀 업로드 (예시 형식: 업체명 | 대리점명 | 이메일 | 담당자 | 연락처 — fill-down 처리)
   window.confirmPurchaseExcelDownload = function(){ showConfirmModal('엑셀 다운로드','매입처 목록을 엑셀 파일로 다운로드할까요?', function(){ exportPurchaseExcel(); }, '다운로드', '#1B3A6B'); };
@@ -13658,10 +13785,18 @@ function reloadState() {
   updatePurchaseFilterUI();
   document.getElementById('purchaseAddBtn')?.addEventListener('click', () => openPurchaseModal());
   document.getElementById('linksAddBtn')?.addEventListener('click', () => openLinksModal());
+  document.getElementById('linksSearch')?.addEventListener('input', () => renderLinksPage());
   document.getElementById('purchaseUploadFile')?.addEventListener('change', (e) => {
     const f = e.target.files && e.target.files[0];
     window._purPendingFile = f || null;
     const nm = document.getElementById('purUpFileName');
+    if(nm){ nm.textContent = f ? f.name : '선택된 파일 없음'; nm.style.color = f ? '#14305c' : '#9ca3af'; }
+    e.target.value = '';
+  });
+  document.getElementById('linksUploadFile')?.addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0];
+    window._lkPendingFile = f || null;
+    const nm = document.getElementById('lkUpFileName');
     if(nm){ nm.textContent = f ? f.name : '선택된 파일 없음'; nm.style.color = f ? '#14305c' : '#9ca3af'; }
     e.target.value = '';
   });
