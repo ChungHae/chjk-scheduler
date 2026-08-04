@@ -157,6 +157,13 @@ async def login(page):
         # 원인 파악을 돕기 위해, 화면에 남아있는 오류 메시지가 있다면 함께 남긴다.
         # (비밀번호 값 자체가 아니라 "비밀번호가 일치하지 않습니다" 같은 안내
         #  문구만 찾는 것이므로 자격증명이 로그에 노출되지 않는다.)
+        # 로그인 화면 자체에 늘 떠 있는 라벨(체크박스/링크 등)은 오류 메시지가
+        # 아니므로 제외한다 - 예: "아이디저장" 체크박스 라벨이 "아이디"
+        # 키워드에 걸려 오탐되는 문제가 있었음.
+        _NOISE_LINES = {
+            "아이디저장", "회원가입", "비밀번호 찾기", "아이디/비밀번호 찾기",
+            "사업자번호/고객ID", "비밀번호", "1대1 문의", "아이디",
+        }
         err_text = None
         try:
             for f in page.frames:
@@ -166,8 +173,14 @@ async def login(page):
                     continue
                 for line in body_text.splitlines():
                     line = line.strip()
-                    if line and len(line) < 80 and any(
-                        kw in line for kw in ("비밀번호", "아이디", "일치", "오류", "잠금", "실패", "인증")
+                    if (
+                        line and len(line) < 80
+                        and line not in _NOISE_LINES
+                        and any(
+                            kw in line for kw in
+                            ("일치하지", "잠겼", "잠김", "차단", "다시 시도", "존재하지 않는",
+                             "오류가", "실패했습니다", "인증번호를 입력", "확인해 주세요")
+                        )
                     ):
                         err_text = line
                         break
@@ -259,6 +272,9 @@ def _to_record(rec: dict) -> dict:
     }
 
 
+DEBUG_SCREENSHOT_PATH = "semplus_login_debug.png"
+
+
 async def main():
     async with async_playwright() as pw:
         browser = await pw.chromium.launch()
@@ -276,6 +292,18 @@ async def main():
             if records:
                 write_transactions("hwaseong", records)
                 print("Firebase 기록 완료 (branch=hwaseong)")
+        except Exception:
+            # 실패 시점의 화면을 스크린샷으로 남겨 GitHub Actions 아티팩트로
+            # 업로드한다 - 텍스트 오류 메시지만으로 원인을 못 좁힐 때, 이
+            # 스크린샷을 다운로드해서 대화창에 올려주시면 화면을 직접 보고
+            # 원인을 파악할 수 있다. (비밀번호 칸은 항상 점(●)으로
+            # 마스킹되어 보이므로 실제 비밀번호 문자가 찍히는 일은 없다.)
+            try:
+                await page.screenshot(path=DEBUG_SCREENSHOT_PATH, full_page=True)
+                print(f"[디버그] 실패 시점 스크린샷 저장: {DEBUG_SCREENSHOT_PATH}")
+            except Exception:
+                pass
+            raise
         finally:
             await browser.close()
 
