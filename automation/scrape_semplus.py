@@ -27,9 +27,11 @@ SemPlus는 WebSquare라는 구형 전자정부 프레임워크 기반 사이트�
    맞는지 반드시 확인이 필요하다 (특히 로그인 폼과 메뉴 클릭 부분).
 """
 import asyncio
+import datetime as _dt
 import os
 import sys
 import tempfile
+from decimal import Decimal
 
 import openpyxl
 from playwright.async_api import async_playwright
@@ -304,41 +306,109 @@ async def download_excel(page) -> str:
     return path
 
 
+def _json_safe(v):
+    """Firebase(REST API/Admin SDK)는 JSON으로 직렬화 가능한 값만 받는다.
+    openpyxl은 날짜/시간 셀을 datetime.datetime/date 객체로 돌려주는데,
+    이걸 그대로 Firebase에 쓰려고 하면
+    "Invalid data; couldn't parse JSON object..." 오류가 난다(실제로
+    발생했던 오류). 날짜/시간/Decimal 값을 문자열/숫자로 안전하게 바꾼다."""
+    if isinstance(v, (_dt.datetime, _dt.date, _dt.time)):
+        return v.isoformat()
+    if isinstance(v, Decimal):
+        return float(v)
+    return v
+
+
+# 엑셀 맨 위 몇 줄은 제목/조회조건 요약("요약정보" 등)이라 진짜 헤더가 아닐 수
+# 있다(실제로 1행을 헤더로 가정했다가 빈 헤더만 잡힌 적이 있음) - 아래
+# 키워드 중 2개 이상이 있는 첫 행을 진짜 헤더 행으로 판단한다.
+_HEADER_HINTS = ("가맹점명", "카드번호", "승인번호", "거래금액", "전표", "고객ID")
+
+
+def _find_header_row(rows):
+    for idx, row in enumerate(rows):
+        cells = [str(c).strip() if c is not None else "" for c in row]
+        hits = sum(1 for c in cells if c in _HEADER_HINTS)
+        if hits >= 2:
+            return idx, cells
+    return None, None
+
+
 def parse_excel(path: str):
     wb = openpyxl.load_workbook(path, data_only=True)
     ws = wb.active
     rows = list(ws.iter_rows(values_only=True))
     if not rows:
         return []
-    header = [str(h).strip() if h else "" for h in rows[0]]
+    header_idx, header = _find_header_row(rows)
+    if header_idx is None:
+        # 못 찾으면 예전처럼 첫 행을 시도(안전한 fallback) - 다만 이 경우
+        # 헤더가 실제와 다를 가능성이 있으므로 호출부에서 헤더 샘플을 찍어
+        # 확인할 수 있게 해둔다.
+        header_idx, header = 0, [str(h).strip() if h else "" for h in rows[0]]
     records = []
-    for row in rows[1:]:
+    for row in rows[header_idx + 1:]:
         if not any(row):
             continue
-        rec = dict(zip(header, row))
+        rec = {k: _json_safe(v) for k, v in zip(header, row)}
         records.append(rec)
     return records
 
 
+def _first_present(rec, *keys):
+    for k in keys:
+        v = rec.get(k)
+        if v not in (None, ""):
+            return v
+    return None
+
+
 def _to_record(rec: dict) -> dict:
-    """SemPlus 엑셀 1행(헤더: 전표/NO/고객ID/단말기ID/가맹점명/발급사/카드번호/
-    거래금액/승인번호/거래일자/거래시간/... ) → 공통 스키마로 정규화.
-    ※ 실제 엑셀 헤더명은 workflow_dispatch 첫 실행 후 로그로 확인하고
-      아래 매핑을 정확한 헤더 문자열에 맞게 다듬을 것.
+    """SemPlus 엑셀 1행 → 공통 스키마로 정규화.
+    실제 화면(신용거래 목록)에서 확인된 컬럼: 전표/NO/상세보기/고객ID/
+    단말기ID/가맹점명/발급사/대리점/체크/카드번호/봉사료/부가세/거래금액/
+    승인번호/할부/원거래일자 - 화면상으로는 "거래일자"에 해당하는 별도
+    컬럼이 안 보였는데(조회기간으로 이미 필터된 목록이라 그럴 수 있음),
+    엑셀에는 있을 수도 있어 여러 후보 헤더명을 넉넉히 시도한다.
+    ※ 실행 로그의 "헤더 샘플" 출력으로 실제 헤더명을 확인해, 아래 후보에
+      없는 이름이면 이 매핑을 다듬을 것.
     """
-    date = str(rec.get("거래일자") or "").replace("-", "")
-    txn_id = rec.get("전표") or f"{date}_{rec.get('승인번호')}_{rec.get('거래시간')}"
+    date_raw = _first_present(rec, "거래일자", "매입일자", "승인일자", "거래일", "일자")
+    date = str(date_raw or "").replace("-", "").replace(".", "")[:8]
+
+    # 승인번호가 카드사에서 발급하는 실제 고유 식별자라 우선 사용한다.
+    # "전표"는 화면에서 보면 데이터 값이 아니라 "전표보기" 같은 액션
+    # 링크의 라벨일 수 있어(그렇다면 모든 행에서 값이 똑같아 서로 다른
+    # 거래를 구분 못 하게 됨), 승인번호를 최우선으로 둔다.
+    approval_no = _first_present(rec, "승인번호")
+    txn_id = (
+        approval_no
+        or _first_present(rec, "전표")
+        or f"{date}_{rec.get('NO')}_{rec.get('카드번호')}"
+    )
+
+    supply_amt = _first_present(rec, "공급금액")
+    amount = _first_present(rec, "거래금액") or 0
+    tax_amt = _first_present(rec, "부가세") or 0
+    if supply_amt is None:
+        # "공급금액" 컬럼이 따로 없으면(실제로 화면엔 안 보였음) 거래금액에서
+        # 부가세를 뺀 값으로 추정한다.
+        try:
+            supply_amt = float(amount) - float(tax_amt)
+        except (TypeError, ValueError):
+            supply_amt = 0
+
     return {
-        "id": txn_id,
-        "date": date[:8],
-        "time": str(rec.get("거래시간") or ""),
-        "merchant": rec.get("가맹점명") or "",
-        "txnType": rec.get("체크") or "신용",
-        "cardNoMasked": rec.get("카드번호") or "",
-        "approvalNo": rec.get("승인번호") or "",
-        "amount": rec.get("거래금액") or 0,
-        "supplyAmt": rec.get("공급금액") or 0,
-        "taxAmt": rec.get("부가세") or 0,
+        "id": str(txn_id),
+        "date": date,
+        "time": str(_first_present(rec, "거래시간", "시간") or ""),
+        "merchant": _first_present(rec, "가맹점명") or "",
+        "txnType": _first_present(rec, "체크") or "신용",
+        "cardNoMasked": _first_present(rec, "카드번호") or "",
+        "approvalNo": str(approval_no or ""),
+        "amount": amount,
+        "supplyAmt": supply_amt,
+        "taxAmt": tax_amt,
         "source": "semplus",
         "raw": {k: v for k, v in rec.items()},
     }
@@ -361,6 +431,25 @@ async def main():
             if raw_records:
                 print("헤더 샘플:", list(raw_records[0].keys()))
             records = [_to_record(r) for r in raw_records]
+
+            # 화면(신용거래 목록)에 거래일자 컬럼이 안 보였던 적이 있어,
+            # 엑셀에도 실제로 날짜 컬럼이 없으면 date가 빈 문자열로 남는다.
+            # 그 상태로 Firebase에 쓰면 teamdata_test_cardsales/hwaseong/
+            # (빈 문자열)/... 아래로 전부 뒤섞이므로, 빈 날짜는 오늘 날짜로
+            # 대체하고 - 정확한 날짜 컬럼명을 찾을 때까지 임시방편임을 -
+            # 로그에 크게 남긴다.
+            missing_date = [r for r in records if not r.get("date")]
+            if missing_date:
+                today_str = _dt.date.today().strftime("%Y%m%d")
+                print(
+                    f"[경고] {len(missing_date)}건은 엑셀에서 거래일자를 찾지 못해 "
+                    f"오늘 날짜({today_str})로 임시 기록합니다 - 위 '헤더 샘플'을 "
+                    "확인해 실제 날짜 컬럼명을 _to_record()의 date_raw 후보 목록에 "
+                    "추가해야 합니다."
+                )
+                for r in missing_date:
+                    r["date"] = today_str
+
             if records:
                 write_transactions("hwaseong", records)
                 print("Firebase 기록 완료 (branch=hwaseong)")
