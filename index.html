@@ -2232,8 +2232,11 @@
   <button class="page-tab" data-page="inventory">재고</button>
   <button class="page-tab" data-page="purchase">매입처</button>
   <button class="page-tab" data-page="files">자료실</button>
-  <button class="page-tab" data-page="armatch">입출금</button>
+  <button class="page-tab" id="tabAccounting">회계</button>
   <button class="page-tab" id="tabEtc">기타</button>
+</nav>
+<nav class="sub-nav" id="acctSubNav" style="display:none">
+  <button class="sub-tab" data-page="armatch">입출금</button>
 </nav>
 <nav class="sub-nav" id="etcSubNav" style="display:none">
   <button class="sub-tab" data-page="links">바로가기</button>
@@ -14080,14 +14083,17 @@ function reloadState() {
     try{ if(typeof _qLeaveGuard==='function' && _qLeaveGuard(page)) return; }catch(_e){}
     var _SCHED=['personal','weekly','biz'];
     var _ETC=['links'];
+    var _ACCT=['armatch'];
     document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
     if(_SCHED.indexOf(page)>=0){ var _ts=document.getElementById('tabSchedule'); if(_ts) _ts.classList.add('active'); _lastSched=page; }
     else if(_ETC.indexOf(page)>=0){ var _te=document.getElementById('tabEtc'); if(_te) _te.classList.add('active'); }
+    else if(_ACCT.indexOf(page)>=0){ var _ta=document.getElementById('tabAccounting'); if(_ta) _ta.classList.add('active'); }
     else { document.querySelectorAll('.page-tab').forEach(t => { if(t.dataset.page===page) t.classList.add('active'); }); }
     var _subnav=document.getElementById('scheduleSubNav'); if(_subnav) _subnav.style.display = _SCHED.indexOf(page)>=0 ? 'flex' : 'none';
     var _fnav=document.getElementById('fileGroupTabs'); if(_fnav) _fnav.style.display = (page==='files') ? 'flex' : 'none';
     var _enav=document.getElementById('estimateSubNav'); if(_enav) _enav.style.display = (page==='estimate') ? 'flex' : 'none';
     var _etcnav=document.getElementById('etcSubNav'); if(_etcnav) _etcnav.style.display = _ETC.indexOf(page)>=0 ? 'flex' : 'none';
+    var _acctnav=document.getElementById('acctSubNav'); if(_acctnav) _acctnav.style.display = _ACCT.indexOf(page)>=0 ? 'flex' : 'none';
     document.querySelectorAll('.sub-tab').forEach(t => t.classList.toggle('active', t.dataset.page === page));
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
     const pageMap = { weekly:'pageWeekly', biz:'pageBiz', assign:'pageAssign', personal:'pagePersonal', finance:'pageFinance', ar:'pageAr', inventory:'pageInventory', purchase:'pagePurchase', files:'pageFiles', estimate:'pageEstimate', armatch:'pageArmatch', links:'pageLinks' };
@@ -14149,6 +14155,7 @@ function reloadState() {
   });
   (function(){ var ts=document.getElementById('tabSchedule'); if(ts) ts.addEventListener('click', function(){ switchPage('personal'); }); })();
   (function(){ var te=document.getElementById('tabEtc'); if(te) te.addEventListener('click', function(){ switchPage('links'); }); })();
+  (function(){ var ta=document.getElementById('tabAccounting'); if(ta) ta.addEventListener('click', function(){ switchPage('armatch'); }); })();
   (function(){ var lg=document.querySelector('.brand-logo'); if(lg){ lg.style.cursor='pointer'; lg.title='처음 화면'; lg.addEventListener('click', function(){ switchPage('personal'); }); } })();
 
   // ─── 개인 일정 페이지 ──────────────────────────────────
