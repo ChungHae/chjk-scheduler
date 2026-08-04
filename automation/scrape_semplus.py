@@ -100,10 +100,27 @@ async def login(page):
     id_field = await _find_first_in_frame(pw_frame, ID_FIELD_CANDIDATES)
     pw_field = await _find_first_in_frame(pw_frame, PW_FIELD_CANDIDATES)
     if not id_field or not pw_field:
-        raise RuntimeError("SemPlus 로그인 입력칸을 찾지 못했습니다 - 화면 구조 확인 필요.")
+        raise RuntimeError("SemPlus 입력칸을 찾지 못했습니다 - 화면 구조 확인 필요.")
 
-    await id_field.fill(os.environ["SEMPLUS_ID"])
-    await pw_field.fill(os.environ["SEMPLUS_PW"])
+    # WebSquare의 w2input 위젯은 화면에 보이는 값과 별개로, 내부적으로는
+    # 키 입력 이벤트(keydown/keyup)를 하나하나 받아서 자기만의 데이터
+    # 모델에 반영하는 경우가 많다. Playwright의 fill()은 값을 한 번에
+    # 넣고 input 이벤트 한 번만 보내기 때문에, 화면엔 값이 보여도 위젯의
+    # 내부 모델은 비어 있거나 예전 값 그대로라 로그인 버튼을 눌러도
+    # 실제로는 빈 아이디/비밀번호로 시도된 것처럼 실패할 수 있다.
+    # → 진짜 타이핑처럼 한 글자씩 키 이벤트를 보내는 press_sequentially를 사용.
+    await id_field.click()
+    await id_field.fill("")
+    await id_field.press_sequentially(os.environ["SEMPLUS_ID"], delay=40)
+
+    await pw_field.click()
+    await pw_field.fill("")
+    await pw_field.press_sequentially(os.environ["SEMPLUS_PW"], delay=40)
+
+    # 일부 WebSquare 위젯은 blur 시점에야 값 검증/모델 확정을 하므로,
+    # 로그인 버튼을 누르기 전에 Tab으로 포커스를 옮겨 blur를 발생시킨다.
+    await pw_field.press("Tab")
+    await page.wait_for_timeout(300)
 
     submit = await _find_first_in_frame(pw_frame, LOGIN_SUBMIT_CANDIDATES)
     if submit:
@@ -137,7 +154,31 @@ async def login(page):
             )
 
     if await _first_frame_with(page, 'text=로그아웃', timeout=8000) is None:
-        raise RuntimeError("SemPlus 로그인 실패로 보입니다 (로그아웃 링크를 찾을 수 없음).")
+        # 원인 파악을 돕기 위해, 화면에 남아있는 오류 메시지가 있다면 함께 남긴다.
+        # (비밀번호 값 자체가 아니라 "비밀번호가 일치하지 않습니다" 같은 안내
+        #  문구만 찾는 것이므로 자격증명이 로그에 노출되지 않는다.)
+        err_text = None
+        try:
+            for f in page.frames:
+                try:
+                    body_text = await f.locator("body").inner_text(timeout=1000)
+                except Exception:
+                    continue
+                for line in body_text.splitlines():
+                    line = line.strip()
+                    if line and len(line) < 80 and any(
+                        kw in line for kw in ("비밀번호", "아이디", "일치", "오류", "잠금", "실패", "인증")
+                    ):
+                        err_text = line
+                        break
+                if err_text:
+                    break
+        except Exception:
+            pass
+        msg = "SemPlus 로그인 실패로 보입니다 (로그아웃 링크를 찾을 수 없음)."
+        if err_text:
+            msg += f" 화면 표시 메시지로 추정: {err_text!r}"
+        raise RuntimeError(msg)
 
 
 async def open_credit_transaction_list(page):
