@@ -83,6 +83,32 @@ async def _find_first_in_frame(frame, selectors, timeout=3000):
     return None
 
 
+async def _first_visible(scope, selector, timeout=8000):
+    """selector에 매칭되는 요소가 여러 개일 수 있다 - WebSquare는 같은 글자가
+    서로 다른(하나는 숨겨진) 메뉴에 동시에 들어있는 경우가 많다. 실제로
+    "text=신용거래"가 '거래내역' 드롭다운의 '신용거래'뿐 아니라 '일마감'
+    드롭다운의 '신용거래집계' 항목에도 부분 문자열로 걸려서, 화면에 없는
+    (visible 아닌) 엉뚱한 요소를 클릭하려다 30초 타임아웃이 난 적이 있다.
+    그래서 매칭된 요소들 중 실제로 화면에 보이는(visible) 첫 번째 것만
+    고른다."""
+    deadline = asyncio.get_event_loop().time() + timeout / 1000
+    while asyncio.get_event_loop().time() < deadline:
+        try:
+            loc = scope.locator(selector)
+            n = await loc.count()
+            for i in range(n):
+                item = loc.nth(i)
+                try:
+                    if await item.is_visible():
+                        return item
+                except Exception:
+                    continue
+        except Exception:
+            pass
+        await asyncio.sleep(0.3)
+    return None
+
+
 async def login(page):
     await page.goto(BASE_URL, wait_until="domcontentloaded")
     try:
@@ -195,28 +221,52 @@ async def login(page):
 
 
 async def open_credit_transaction_list(page):
-    # 상단 메뉴 "거래내역" 클릭 → 드롭다운의 "신용거래" 클릭
-    menu_frame = await _first_frame_with(page, 'text=거래내역')
+    # 상단 메뉴 "거래내역" 클릭 → 드롭다운의 "신용거래" 클릭.
+    # "신용거래"는 정확히 일치(text="...")하는 것만, 그리고 그 중에서도
+    # 실제로 화면에 보이는(visible) 것만 골라 클릭한다 - '일마감' 메뉴의
+    # 숨겨진 '신용거래집계' 항목을 잘못 클릭하려다 타임아웃 났던 버그를
+    # 재발 방지하기 위함.
+    menu_frame = await _first_frame_with(page, 'text="거래내역"')
     if not menu_frame:
         raise RuntimeError("'거래내역' 메뉴를 찾지 못했습니다.")
-    await menu_frame.locator('text=거래내역').first.click()
+    top_item = await _first_visible(menu_frame, 'text="거래내역"')
+    if not top_item:
+        raise RuntimeError("'거래내역' 메뉴가 화면에 보이지 않습니다.")
+    await top_item.click()
     await page.wait_for_timeout(500)
 
-    sub_frame = await _first_frame_with(page, 'text=신용거래')
+    sub_frame = await _first_frame_with(page, 'text="신용거래"')
     if not sub_frame:
         raise RuntimeError("'신용거래' 하위 메뉴를 찾지 못했습니다.")
-    await sub_frame.locator('text=신용거래').first.click()
+    sub_item = await _first_visible(sub_frame, 'text="신용거래"', timeout=5000)
+    if not sub_item:
+        raise RuntimeError(
+            "'신용거래' 하위 메뉴가 화면에 보이지 않습니다 "
+            "(거래내역 드롭다운이 열리지 않았을 수 있음)."
+        )
+    await sub_item.click()
     await page.wait_for_timeout(1000)
 
 
 async def search_last_week(page):
+    # 아래 두 항목도 같은 종류의 오탐(다른 숨겨진 메뉴에 같은 글자가
+    # 부분적으로 포함된 경우)이 있을 수 있으므로, 화면에 보이는 것만
+    # 고르는 _first_visible을 함께 사용한다.
     week_btn_frame = await _first_frame_with(page, 'text=1주일')
     if not week_btn_frame:
         raise RuntimeError("'1주일' 조회기간 버튼을 찾지 못했습니다.")
-    await week_btn_frame.locator('text=1주일').first.click()
+    week_btn = await _first_visible(week_btn_frame, 'text=1주일')
+    if not week_btn:
+        raise RuntimeError("'1주일' 조회기간 버튼이 화면에 보이지 않습니다.")
+    await week_btn.click()
 
     search_frame = await _first_frame_with(page, 'text=검색')
-    await search_frame.locator('text=검색').first.click()
+    if not search_frame:
+        raise RuntimeError("'검색' 버튼을 찾지 못했습니다.")
+    search_btn = await _first_visible(search_frame, 'text=검색')
+    if not search_btn:
+        raise RuntimeError("'검색' 버튼이 화면에 보이지 않습니다.")
+    await search_btn.click()
     await page.wait_for_timeout(2000)
 
 
@@ -224,8 +274,11 @@ async def download_excel(page) -> str:
     excel_frame = await _first_frame_with(page, 'text=엑셀')
     if not excel_frame:
         raise RuntimeError("'엑셀' 다운로드 버튼을 찾지 못했습니다.")
+    excel_btn = await _first_visible(excel_frame, 'text=엑셀')
+    if not excel_btn:
+        raise RuntimeError("'엑셀' 다운로드 버튼이 화면에 보이지 않습니다.")
     async with page.expect_download(timeout=20000) as dl_info:
-        await excel_frame.locator('text=엑셀').first.click()
+        await excel_btn.click()
     download = await dl_info.value
     path = os.path.join(tempfile.gettempdir(), "semplus_credit_tran.xlsx")
     await download.save_as(path)
