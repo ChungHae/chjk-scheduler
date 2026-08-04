@@ -27,7 +27,7 @@ from playwright.async_api import async_playwright
 
 from common_firebase import write_transactions
 
-LOGIN_URL = "https://www.moneyon.com/"
+LOGIN_URL = "https://www.moneyon.com/login/loginForm.do"
 DETAIL_URL = "https://www.moneyon.com/sales/auth/salesDetail.do?menu_no1=s1&menu_no2=4"
 DETAIL_ENDPOINT_MARKER = "getSalesDetail.do"
 
@@ -35,16 +35,20 @@ DETAIL_ENDPOINT_MARKER = "getSalesDetail.do"
 LOOKBACK_DAYS = 7
 
 # 로그인 폼 후보 선택자들 - 위에서부터 순서대로 시도
+# (2026-08-04 workflow_dispatch 첫 실행에서 "로그인 입력칸을 찾지 못했습니다" 오류 발생 →
+#  실제 로그인 폼(https://www.moneyon.com/login/loginForm.do)의 DOM을 직접 확인해
+#  정확한 필드명(#user_id, #password, #loginBtn)을 반영함)
 ID_FIELD_CANDIDATES = [
+    '#user_id', 'input[name="user_id"]',
     'input[name="usr_id"]', 'input[name="mbr_id"]', 'input[name="userId"]',
     'input[name="id"]', 'input[placeholder*="아이디"]', 'input[placeholder*="ID"]',
     '#usr_id', '#mbr_id', '#userId', '#id',
 ]
 PW_FIELD_CANDIDATES = [
-    'input[type="password"]',
+    '#password', 'input[type="password"]',
 ]
 LOGIN_SUBMIT_CANDIDATES = [
-    'button:has-text("로그인")', 'a:has-text("로그인")', 'input[type="submit"][value*="로그인"]',
+    '#loginBtn', 'button:has-text("로그인")', 'a:has-text("로그인")', 'input[type="submit"][value*="로그인"]',
 ]
 
 
