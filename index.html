@@ -13570,8 +13570,13 @@ function reloadState() {
   // 계속 살려둔다 — 사내망·개인 서버는 "실패"가 아니라 "느릴 뿐"인 경우가 많아
   // (실제로 브라우저로 직접 들어가면 보이는 사이트들), 늦게라도 원본이 로드되면
   // 자동으로 진짜 아이콘으로 교체해 준다. 반대로 도메인 자체가 외부에 전혀 노출되지
-  // 않아 원천적으로 어떤 방법으로도 찾을 수 없는 경우(구글도 실패)에는 빈 회색
-  // 박스 대신 `_LINK_DEFAULT_ICON`(귀여운 기본 아이콘)로 마무리한다.
+  // 않아 원천적으로 어떤 방법으로도 찾을 수 없는 경우에는 빈 회색 박스 대신
+  // `_LINK_DEFAULT_ICON`(귀여운 기본 아이콘)로 마무리한다.
+  // ※ 주의: 구글 파비콘 서비스는 색인된 아이콘이 없는 도메인에도 네트워크 오류 없이
+  // "성공" 응답을 내려주는데, 이때는 항상 sz=64 요청과 무관하게 훨씬 작은(16px 안팎)
+  // 이미지가 온다(요청한 64px짜리 진짜 아이콘과 구분됨) — 그래서 로드 성공 이벤트만으로는
+  // "진짜 찾았는지"를 알 수 없어, naturalWidth로 그 작은 기본 이미지인지 판별해
+  // 이 경우에도 귀여운 기본 아이콘으로 교체한다.
   function _wireLinkFavicons(){
     document.querySelectorAll('#linksList img.lk-favicon').forEach(function(img){
       if (!img.hasAttribute('data-fallback')) return; // 이미 기본 아이콘(_LINK_DEFAULT_ICON) 확정된 경우
@@ -13579,14 +13584,18 @@ function reloadState() {
       var fallback = img.getAttribute('data-fallback');
       var settled = false;
       var toDefault = function(){ img.onerror = null; img.src = _LINK_DEFAULT_ICON; };
+      var onFallbackLoad = function(){
+        if (img.naturalWidth && img.naturalWidth < 32) toDefault(); // 구글의 "못 찾음" 자리표시 이미지
+      };
       var trySlowFallback = function(){
         if (settled) return;
         img.onerror = toDefault;
+        img.addEventListener('load', onFallbackLoad, { once:true });
         img.src = fallback;
         // 폴백을 먼저 보여주고, 원본 favicon.ico 요청은 별도 Image로 계속 시도한다
         // (성공 시각에 제한을 두지 않음 — 사내망 접속은 몇 초 이상 걸릴 수 있음).
         var probe = new Image();
-        probe.onload = function(){ settled = true; img.onerror = null; img.src = primary; };
+        probe.onload = function(){ settled = true; img.onerror = null; img.removeEventListener('load', onFallbackLoad); img.src = primary; };
         probe.src = primary;
       };
       img.addEventListener('error', trySlowFallback, { once:true });
