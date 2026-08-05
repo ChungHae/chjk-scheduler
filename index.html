@@ -2696,7 +2696,6 @@
             <th style="padding:9px 8px;text-align:left;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">가맹점/단말기</th>
             <th style="padding:9px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">카드사</th>
             <th style="padding:9px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">카드번호</th>
-            <th style="padding:9px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">구분</th>
             <th style="padding:9px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">할부</th>
             <th style="padding:9px 8px;text-align:right;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">공급가액</th>
             <th style="padding:9px 8px;text-align:right;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">부가세</th>
@@ -2705,7 +2704,7 @@
           </tr>
         </thead>
         <tbody id="csTable">
-          <tr><td colspan="11" style="padding:40px;text-align:center;color:#ccc">불러오는 중…</td></tr>
+          <tr><td colspan="10" style="padding:40px;text-align:center;color:#ccc">불러오는 중…</td></tr>
         </tbody>
       </table>
     </div>
@@ -3620,9 +3619,10 @@
   const _CS_BRANCH_LABEL = { seoul:'서울', hwaseong:'화성' };
   function _csFmtTime(t){ t=String(t||''); return t.length>=4 ? (t.slice(0,2)+':'+t.slice(2,4)) : t; }
   function _csPad2(n){ return (n<10?'0':'')+n; }
-  // 카드사(발급사)/신용·체크 구분/할부 정보는 2026-08-05 스크래퍼 개편으로
-  // 머니온·SemPlus 양쪽 모두에서 실제로 확보되는 필드임을 확인함(둘 다에
-  // 공통으로 있는 항목만 아래 상세 표에 보여준다 - "교집합만 표시" 요청).
+  // 카드사(발급사)/할부 정보는 머니온·SemPlus 양쪽 모두에서 실제로 확보되는
+  // 필드임을 확인함(둘 다에 공통으로 있는 항목만 아래 상세 표에 보여준다 -
+  // "교집합만 표시" 요청). 신용/체크 구분은 머니온 쪽엔 애초에 이 정보가
+  // 없는 것으로 확인돼(2026-08-05) 사용자 요청으로 양쪽 모두에서 뺐다.
   // 할부 원본값은 소스마다 형식이 다를 수 있어("00"/빈값/개월수 등) 화면
   // 표시 직전에 통일해서 보여준다.
   function _csNormInstallment(v){
@@ -3743,7 +3743,7 @@
     if(!tbody) return;
     if(!_csSelectedDate){
       if(head) head.textContent='';
-      tbody.innerHTML='<tr><td colspan="11" style="padding:40px;text-align:center;color:#ccc">달력에서 거래가 있는 날짜를 선택하세요.</td></tr>';
+      tbody.innerHTML='<tr><td colspan="10" style="padding:40px;text-align:center;color:#ccc">달력에서 거래가 있는 날짜를 선택하세요.</td></tr>';
       return;
     }
     var y=_csSelectedDate.slice(0,4), m=_csSelectedDate.slice(4,6), d=_csSelectedDate.slice(6,8);
@@ -3755,7 +3755,7 @@
     });
     rows.sort(function(a,b){ return String(a.time||'').localeCompare(String(b.time||'')); });
     if(!rows.length){
-      tbody.innerHTML='<tr><td colspan="11" style="padding:40px;text-align:center;color:#ccc">해당 날짜의 카드매출 데이터가 없습니다.</td></tr>';
+      tbody.innerHTML='<tr><td colspan="10" style="padding:40px;text-align:center;color:#ccc">해당 날짜의 카드매출 데이터가 없습니다.</td></tr>';
       return;
     }
     tbody.innerHTML = rows.map(function(r){
@@ -3765,7 +3765,6 @@
         '<td style="padding:7px 8px;text-align:left;border-bottom:1px solid #f0f0f0">'+esc(r.merchant||'')+'</td>'+
         '<td style="padding:7px 8px;text-align:center;border-bottom:1px solid #f0f0f0">'+esc(r.issuer||'-')+'</td>'+
         '<td style="padding:7px 8px;text-align:center;border-bottom:1px solid #f0f0f0">'+esc(r.cardNoMasked||'')+'</td>'+
-        '<td style="padding:7px 8px;text-align:center;border-bottom:1px solid #f0f0f0">'+esc(r.txnType||'')+'</td>'+
         '<td style="padding:7px 8px;text-align:center;border-bottom:1px solid #f0f0f0">'+esc(_csNormInstallment(r.installment))+'</td>'+
         '<td style="padding:7px 8px;text-align:right;border-bottom:1px solid #f0f0f0">'+(Number(r.supplyAmt)||0).toLocaleString()+'</td>'+
         '<td style="padding:7px 8px;text-align:right;border-bottom:1px solid #f0f0f0">'+(Number(r.taxAmt)||0).toLocaleString()+'</td>'+
@@ -3803,14 +3802,14 @@
   async function renderCardSalesPage(){
     var tbody=document.getElementById('csTable');
     if(!tbody) return;
-    if(!_fbDbUrl){ _misuNote('csSummaryGrid','로그인 후 표시됩니다.'); tbody.innerHTML='<tr><td colspan="11" style="padding:40px;text-align:center;color:#ccc">로그인 후 표시됩니다.</td></tr>'; return; }
+    if(!_fbDbUrl){ _misuNote('csSummaryGrid','로그인 후 표시됩니다.'); tbody.innerHTML='<tr><td colspan="10" style="padding:40px;text-align:center;color:#ccc">로그인 후 표시됩니다.</td></tr>'; return; }
     try{
       await _csLoadAllData();
       if(_csMonth===undefined){ _csPickInitialSelection(); }
       _csRenderAll();
     }catch(e){
       _misuNote('csSummaryGrid','카드매출 데이터를 불러오지 못했습니다.');
-      tbody.innerHTML='<tr><td colspan="11" style="padding:40px;text-align:center;color:#ccc">불러오지 못했습니다.</td></tr>';
+      tbody.innerHTML='<tr><td colspan="10" style="padding:40px;text-align:center;color:#ccc">불러오지 못했습니다.</td></tr>';
     }
   }
   function _csUpdateBranchFilterUI(){
