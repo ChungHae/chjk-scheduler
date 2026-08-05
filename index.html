@@ -2693,7 +2693,7 @@
           <tr>
             <th style="padding:9px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">지점</th>
             <th style="padding:9px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">시간</th>
-            <th style="padding:9px 8px;text-align:left;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">가맹점/단말기</th>
+            <th style="padding:9px 8px;text-align:left;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">가맹점</th>
             <th style="padding:9px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">카드사</th>
             <th style="padding:9px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">카드번호</th>
             <th style="padding:9px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">할부</th>
@@ -3617,8 +3617,36 @@
   // ─── 회계 > 카드매출 (머니온/SemPlus 자동 동기화 데이터 표시) ───
   let _csBranchFilter = 'all';
   const _CS_BRANCH_LABEL = { seoul:'서울', hwaseong:'화성' };
-  function _csFmtTime(t){ t=String(t||''); return t.length>=4 ? (t.slice(0,2)+':'+t.slice(2,4)) : t; }
+  // 2026-08-05 시간 표시 버그 발견: 머니온/SemPlus 둘 다 원본 시간값이
+  // 파이썬 쪽에서 datetime.time.isoformat()으로 저장되면서 "10:45:10"
+  // 같이 콜론이 이미 포함된 문자열로 바뀌었는데, 이 함수는 옛날처럼
+  // 콜론 없는 6자리 숫자("104510")라고 가정하고 앞 4글자를 잘라 콜론을
+  // 끼워 넣고 있었다 - 그래서 "10:45:10"을 "10"+":"+"":4""로 잘못 잘라
+  // "10::4" 같은 깨진 값이 나왔다(사용자가 실제로 이 증상을 보고 발견).
+  // 콜론이 이미 있으면 그대로 시:분만 취하고, 없으면 예전 방식(콜론 없는
+  // 숫자 문자열)도 방어적으로 계속 지원한다.
+  function _csFmtTime(t){
+    t = String(t||'');
+    if(!t) return '';
+    var m = t.match(/^(\d{1,2}):(\d{2})/);
+    if(m) return _csPad2(+m[1])+':'+m[2];
+    var digits = t.replace(/\D/g,'');
+    return digits.length>=4 ? (digits.slice(0,2)+':'+digits.slice(2,4)) : t;
+  }
   function _csPad2(n){ return (n<10?'0':'')+n; }
+  // 2026-08-05 사용자 요청: 서울(머니온) 가맹점명이 "(주)충해전기(L)"처럼
+  // 회사명 앞에 "(주)"가, 뒤에 단말기/지점 구분용으로 보이는 괄호 코드가
+  // 붙어 있어 원래 회사 표기("충해전기(주)")와 다르게 보이는 문제 - 화면
+  // 표시 직전에 "(주)회사명(코드)" 형태를 "회사명(주)"로 정규화한다.
+  // 이 패턴과 정확히 일치하지 않는 가맹점명(예: 괄호가 없거나 "(주)"로
+  // 시작하지 않는 경우)은 원본 그대로 보여준다(다른 가맹점명에 영향 없음).
+  function _csNormMerchantName(v){
+    var s = String(v||'').trim();
+    if(!s) return s;
+    var m = s.match(/^\(주\)\s*(.+?)\s*\([^()]*\)$/);
+    if(m) return m[1].trim()+'(주)';
+    return s;
+  }
   // 카드사(발급사)/할부 정보는 머니온·SemPlus 양쪽 모두에서 실제로 확보되는
   // 필드임을 확인함(둘 다에 공통으로 있는 항목만 아래 상세 표에 보여준다 -
   // "교집합만 표시" 요청). 신용/체크 구분은 머니온 쪽엔 애초에 이 정보가
@@ -3762,7 +3790,7 @@
       return '<tr>'+
         '<td style="padding:7px 8px;text-align:center;border-bottom:1px solid #f0f0f0">'+(_CS_BRANCH_LABEL[r._branch]||'')+'</td>'+
         '<td style="padding:7px 8px;text-align:center;border-bottom:1px solid #f0f0f0">'+_csFmtTime(r.time)+'</td>'+
-        '<td style="padding:7px 8px;text-align:left;border-bottom:1px solid #f0f0f0">'+esc(r.merchant||'')+'</td>'+
+        '<td style="padding:7px 8px;text-align:left;border-bottom:1px solid #f0f0f0">'+esc(_csNormMerchantName(r.merchant))+'</td>'+
         '<td style="padding:7px 8px;text-align:center;border-bottom:1px solid #f0f0f0">'+esc(r.issuer||'-')+'</td>'+
         '<td style="padding:7px 8px;text-align:center;border-bottom:1px solid #f0f0f0">'+esc(r.cardNoMasked||'')+'</td>'+
         '<td style="padding:7px 8px;text-align:center;border-bottom:1px solid #f0f0f0">'+esc(_csNormInstallment(r.installment))+'</td>'+
