@@ -139,7 +139,41 @@ async def _first_visible_anywhere(page, selector, timeout=8000):
     return None
 
 
+async def _is_logged_in(page) -> bool:
+    """로그아웃 링크가 보이면 로그인된 상태로 판단(로그인 성공 판정과 동일 기준)."""
+    return (await _first_frame_with(page, 'text=로그아웃', timeout=3000)) is not None
+
+
 async def login(page):
+    """SemPlus 로그인 (재시도 포함).
+
+    2026-08-05 실제 운영에서 관측된 간헐 실패에 대응:
+    야간 자동 실행/백필에서 "로그아웃 링크를 찾을 수 없음"으로 실패했다가
+    그냥 다시 돌리면 성공하는 일이 있었다(사이트 응답 지연으로 추정).
+    그래서 최대 3회까지 재시도하되,
+      - SMS 2차 인증 요구는 재시도해도 사람이 필요하므로 즉시 실패 처리,
+      - 재시도 진입 시 이미 로그인돼 있으면(직전 시도가 판정 타임아웃 때문에
+        실패로 보였을 뿐 실제로는 성공) 그대로 통과한다.
+    """
+    last_err = None
+    for attempt in range(1, 4):
+        try:
+            if attempt > 1 and await _is_logged_in(page):
+                print(f"[안내] SemPlus 로그인 재확인: {attempt-1}회차 시도가 실제로는 성공한 상태였음 - 계속 진행")
+                return
+            await _login_once(page)
+            return
+        except RuntimeError as e:
+            if "2차 인증" in str(e):
+                raise
+            last_err = e
+            if attempt < 3:
+                print(f"[경고] SemPlus 로그인 {attempt}회차 실패: {e} - 10초 후 재시도합니다.")
+                await page.wait_for_timeout(10000)
+    raise last_err
+
+
+async def _login_once(page):
     await page.goto(BASE_URL, wait_until="domcontentloaded")
     try:
         # WebSquare는 백그라운드 폴링(남은시간 카운트다운 등) 때문에 완전히
@@ -209,7 +243,9 @@ async def login(page):
                 "수 있는지 문의가 필요합니다."
             )
 
-    if await _first_frame_with(page, 'text=로그아웃', timeout=8000) is None:
+    # (2026-08-05) 사이트 응답이 느린 날 성공 판정이 8초 안에 안 끝나 실패로
+    # 오인되는 일이 있어 판정 대기시간을 15초로 늘림.
+    if await _first_frame_with(page, 'text=로그아웃', timeout=15000) is None:
         # 원인 파악을 돕기 위해, 화면에 남아있는 오류 메시지가 있다면 함께 남긴다.
         # (비밀번호 값 자체가 아니라 "비밀번호가 일치하지 않습니다" 같은 안내
         #  문구만 찾는 것이므로 자격증명이 로그에 노출되지 않는다.)
@@ -295,15 +331,31 @@ async def search_last_week(page):
 
 
 async def download_excel(page) -> str:
-    excel_btn = await _first_visible_anywhere(page, 'text=엑셀')
-    if not excel_btn:
-        raise RuntimeError("'엑셀' 다운로드 버튼이 화면에 보이지 않습니다.")
-    async with page.expect_download(timeout=20000) as dl_info:
-        await excel_btn.click()
-    download = await dl_info.value
-    path = os.path.join(tempfile.gettempdir(), "semplus_credit_tran.xlsx")
-    await download.save_as(path)
-    return path
+    """엑셀 다운로드 (긴 타임아웃 + 1회 재시도).
+
+    2026-08-05 야간 자동 실행에서 "Timeout 20000ms exceeded while waiting for
+    event 'download'"로 실패한 사례가 실제로 있었다 - 서버가 엑셀 파일을
+    만드는 데 20초 넘게 걸린 것으로 보인다(머니온도 같은 증상을 타임아웃
+    60초로 늘려 해결). 타임아웃을 60초로 늘리고, 그래도 실패하면 버튼을
+    다시 찾아 한 번 더 시도한다(클릭이 씹혔을 가능성 대비)."""
+    last_err = None
+    for attempt in (1, 2):
+        excel_btn = await _first_visible_anywhere(page, 'text=엑셀')
+        if not excel_btn:
+            raise RuntimeError("'엑셀' 다운로드 버튼이 화면에 보이지 않습니다.")
+        try:
+            async with page.expect_download(timeout=60000) as dl_info:
+                await excel_btn.click()
+            download = await dl_info.value
+            path = os.path.join(tempfile.gettempdir(), "semplus_credit_tran.xlsx")
+            await download.save_as(path)
+            return path
+        except Exception as e:
+            last_err = e
+            if attempt == 1:
+                print(f"[경고] 엑셀 다운로드 1회차 실패({e}) - 5초 후 한 번 더 시도합니다.")
+                await page.wait_for_timeout(5000)
+    raise last_err
 
 
 def _json_safe(v):
