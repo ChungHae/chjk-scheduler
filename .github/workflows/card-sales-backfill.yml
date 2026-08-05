@@ -23,6 +23,10 @@ on:
         description: "대상 (both / moneyon / semplus)"
         required: false
         default: "both"
+      reset:
+        description: "재실행 전 기존 카드매출 데이터를 지우고 새로 채울지 (true/false) - 날짜/항목 매핑 수정 후 깨끗하게 다시 채울 때 true로"
+        required: false
+        default: "false"
 
 jobs:
   backfill:
@@ -53,6 +57,7 @@ jobs:
           MONEYON_ID: ${{ secrets.MONEYON_ID }}
           MONEYON_PW: ${{ secrets.MONEYON_PW }}
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          CARD_SALES_RESET: ${{ github.event.inputs.reset }}
         run: python backfill_moneyon.py "${{ github.event.inputs.start_date }}" "${{ github.event.inputs.end_date }}"
 
       - name: SemPlus(화성) 백필
@@ -63,6 +68,7 @@ jobs:
           SEMPLUS_ID: ${{ secrets.SEMPLUS_ID }}
           SEMPLUS_PW: ${{ secrets.SEMPLUS_PW }}
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          CARD_SALES_RESET: ${{ github.event.inputs.reset }}
         run: python backfill_semplus.py "${{ github.event.inputs.start_date }}" "${{ github.event.inputs.end_date }}"
 
       # 실패 시점 화면을 스크린샷으로 남겨 GitHub Actions 아티팩트로
