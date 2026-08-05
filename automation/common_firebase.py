@@ -44,8 +44,9 @@ def get_db():
 def write_transactions(branch: str, records: list):
     """
     branch: 'seoul' | 'hwaseong'
-    records: [{id, date(YYYYMMDD), time, merchant, txnType, cardNoMasked,
-               approvalNo, amount, supplyAmt, taxAmt, source, raw}, ...]
+    records: [{id, date(YYYYMMDD), time, merchant, issuer, installment,
+               cardNoMasked, approvalNo, amount, supplyAmt, taxAmt, source,
+               raw}, ...]
 
     거래 고유 id를 key로 사용해 upsert하므로, 같은 거래를 여러 번
     다시 긁어와도 중복되지 않고 덮어쓰기만 된다(멱등성).

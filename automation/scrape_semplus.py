@@ -365,13 +365,18 @@ def _first_present(rec, *keys):
 
 def _to_record(rec: dict) -> dict:
     """SemPlus 엑셀 1행 → 공통 스키마로 정규화.
-    실제 화면(신용거래 목록)에서 확인된 컬럼: 전표/NO/상세보기/고객ID/
-    단말기ID/가맹점명/발급사/대리점/체크/카드번호/봉사료/부가세/거래금액/
-    승인번호/할부/원거래일자 - 화면상으로는 "거래일자"에 해당하는 별도
-    컬럼이 안 보였는데(조회기간으로 이미 필터된 목록이라 그럴 수 있음),
-    엑셀에는 있을 수도 있어 여러 후보 헤더명을 넉넉히 시도한다.
-    ※ 실행 로그의 "헤더 샘플" 출력으로 실제 헤더명을 확인해, 아래 후보에
-      없는 이름이면 이 매핑을 다듬을 것.
+
+    2026-08-05 사용자가 실제로 받은 엑셀 파일을 직접 확인해, 아래 25개
+    컬럼이 실제 헤더인 것을 확인함: NO/고객ID/단말기ID/가맹점명/발급사/
+    대리점/체크/카드번호/봉사료/부가세/거래금액/승인번호/할부/원거래일자/
+    거래일자/거래시간/매입사/가맹점번호/매입일자/입금예정일자/정산상태/
+    거래유형/수수료/입금예정액/인증거래값 - "거래일자"·"거래시간"은 걱정과
+    달리 실제로 존재함이 이때 확인됨. 다만 "공급금액"이라는 컬럼은 없어서
+    거래금액에서 부가세를 뺀 값으로 계산해 채운다.
+
+    ※ 신용/체크 구분(체크 컬럼)은 2026-08-05 사용자 요청으로 표시하지 않기로
+      해서 더 이상 읽지 않음(머니온 쪽엔 애초에 이 정보가 없어 통일성을
+      위해 SemPlus 쪽도 함께 제외 - scrape_moneyon.py 참고).
     """
     date_raw = _first_present(rec, "거래일자", "매입일자", "승인일자", "거래일", "일자")
     date = str(date_raw or "").replace("-", "").replace(".", "")[:8]
@@ -398,19 +403,11 @@ def _to_record(rec: dict) -> dict:
         except (TypeError, ValueError):
             supply_amt = 0
 
-    # 2026-08-05 카드매출 화면 개편(달력 + 항목 보강): "체크" 컬럼 원본값이
-    # 화면/엑셀마다 "Y"/"N"·"체크"/공백 등 형식이 다를 수 있어, 값 형식에
-    # 상관없이 신용/체크로만 통일해 표시한다(머니온 쪽과 동일한 표기로 맞춰
-    # 두 소스를 나란히 보여줄 때 헷갈리지 않도록).
-    check_raw = str(_first_present(rec, "체크") or "").strip()
-    is_check = check_raw not in ("", "N", "n", "0", "아니오", "아니요", "신용")
-
     return {
         "id": str(txn_id),
         "date": date,
         "time": str(_first_present(rec, "거래시간", "시간") or ""),
         "merchant": _first_present(rec, "가맹점명") or "",
-        "txnType": "체크" if is_check else "신용",
         "issuer": str(_first_present(rec, "발급사") or ""),
         "installment": str(_first_present(rec, "할부") or ""),
         "cardNoMasked": _first_present(rec, "카드번호") or "",

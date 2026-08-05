@@ -3,9 +3,14 @@
 
 평소 매일 자동 동기화(scrape_moneyon.py)는 최근 7일치만 가져오지만,
 이 스크립트는 지정한 기간(기본: 2026-01-01 ~ 오늘) 전체를 한 번만 긁어와
-Firebase에 채워 넣는다. 로그인/조회/파싱 로직은 전부 scrape_moneyon.py
-것을 그대로 재사용하고, 여기서는 "긴 기간을 여러 구간으로 나눠 반복
-조회하는" 부분만 새로 만든다.
+Firebase에 채워 넣는다. 로그인/조회/엑셀다운로드/파싱 로직은 전부
+scrape_moneyon.py 것을 그대로 재사용하고, 여기서는 "긴 기간을 여러 구간으로
+나눠 반복 조회하는" 부분만 새로 만든다.
+
+2026-08-05: scrape_moneyon.py가 JSON API 가로채기 방식에서 엑셀 다운로드
+방식으로 바뀌면서, 구간마다 "조회 → 저장 버튼으로 엑셀 받기 → 파싱"을
+반복하도록 함께 바뀜(예전의 page_no 페이지네이션은 더 이상 필요 없음 -
+엑셀 저장은 조회된 전체 건을 한 파일로 받아오는 방식이라서).
 
 거래 고유 id를 key로 upsert하므로 중복 실행해도 안전하다(멱등).
 
@@ -38,7 +43,7 @@ import sys
 
 from playwright.async_api import async_playwright
 
-from scrape_moneyon import DETAIL_URL, _to_record, fetch_detail_page, login
+from scrape_moneyon import DETAIL_URL, _to_record, download_excel, login, parse_excel, search_range
 from common_firebase import write_transactions, reset_branch
 import os as _os
 
@@ -102,7 +107,7 @@ async def main():
     failed = []
     async with async_playwright() as pw:
         browser = await pw.chromium.launch()
-        page = await browser.new_page()
+        page = await browser.new_page(accept_downloads=True)
         try:
             await login(page)
             await page.goto(DETAIL_URL, wait_until="domcontentloaded")
@@ -113,20 +118,10 @@ async def main():
                 to_str = ce.strftime("%y%m%d")
                 print(f"[{i}/{len(chunks)}] {cs} ~ {ce} 조회 중...")
                 try:
-                    all_rows = []
-                    page_no = 1
-                    while True:
-                        data = await fetch_detail_page(page, fr_str, to_str, page_no)
-                        rows = data.get("data") or []
-                        all_rows.extend(rows)
-                        total_rows = data.get("TOTROWS", len(rows))
-                        if len(all_rows) >= total_rows or not rows:
-                            break
-                        page_no += 1
-                        if page_no > 50:  # 안전장치: 무한루프 방지(원본 스크립트와 동일)
-                            print(f"  [경고] 페이지가 50페이지를 넘어 중단합니다(TOTROWS={total_rows})")
-                            break
-                    records = [_to_record(r) for r in all_rows if r]
+                    await search_range(page, fr_str, to_str)
+                    xlsx_path = await download_excel(page)
+                    raw_records = parse_excel(xlsx_path)
+                    records = [_to_record(r) for r in raw_records]
                     if records:
                         write_transactions("seoul", records)
                     total += len(records)
