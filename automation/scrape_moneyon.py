@@ -106,7 +106,11 @@ async def fetch_detail_page(page, date_fr: str, date_to: str, page_no: int):
         except Exception:
             pass
 
-    async with page.expect_response(lambda r: DETAIL_ENDPOINT_MARKER in r.url, timeout=20000) as resp_info:
+    # 2026-08-05 백필 첫 실행에서, 최근 구간(현재로부터 최근 며칠)은 성공하지만
+    # 오래된 과거 구간(예: 2026-01~07월)은 매번 20초 타임아웃으로 실패하는 것을
+    # 확인함 - 오래된/넓은 기간일수록 서버 쪽 조회에 시간이 더 걸릴 가능성을
+    # 고려해 넉넉하게 60초로 늘림.
+    async with page.expect_response(lambda r: DETAIL_ENDPOINT_MARKER in r.url, timeout=60000) as resp_info:
         await page.evaluate("() => { if (typeof doSearch === 'function') doSearch(); }")
     resp = await resp_info.value
     return await resp.json()
