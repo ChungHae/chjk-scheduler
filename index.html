@@ -2654,17 +2654,27 @@
   <!-- ─── 회계 > 카드매출 페이지 ─── -->
   <div id="pageCardSales" class="page-section">
     <style>
-      #pageCardSales .cs-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-      #pageCardSales .cs-cal-weekhead{text-align:center;font-size:11.5px;color:#9ca3af;padding:4px 0;font-weight:600}
-      #pageCardSales .cs-cal-cell{min-height:60px;border:1px solid #eef1f5;border-radius:6px;padding:5px 4px;background:#fff}
-      #pageCardSales .cs-cal-cell.cs-cal-empty{border:none;background:transparent}
+      /* 2026-08-05 디자인 통일: 달력·년월 네비는 개인일정(월간 달력)과 동일하게,
+         지점 필터는 재고 탭 필터와 동일하게(각진 모서리 포함).
+         - 필터: 재고 탭은 #pageInventory .btn { border-radius:0 !important } 규칙으로
+           각진 버튼이 됨 → 같은 방식으로 카드매출 필터도 각지게 통일 */
+      #pageCardSales #csBranchFilter .btn { border-radius:0 !important; }
+      /* 달력 골격: 개인일정 월간 달력의 flex 기둥 + 7열 그리드 구조를 그대로 사용 */
+      #pageCardSales .cs-cal-wrap{display:flex;flex-direction:column;height:calc(100vh - 248px);min-height:420px}
+      #pageCardSales .cs-cal-weekrow{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:5px}
+      #pageCardSales .cs-cal-weekhead{text-align:center;font-size:16px;font-weight:700;padding:7px 0;color:#333}
+      #pageCardSales .cs-cal-grid{flex:1;display:grid;grid-template-columns:repeat(7,1fr);gap:4px;min-height:0}
+      /* 셀: 개인일정 날짜 셀과 동일 (흰 배경/#ececec 테두리/각진 모서리, 주말·타월·공휴일 #f1f4f9) */
+      #pageCardSales .cs-cal-cell{background:#fff;border:1px solid #ececec;border-radius:0;height:100%;min-height:0;padding:5px 6px;display:flex;flex-direction:column;gap:3px;overflow:hidden;box-sizing:border-box}
+      #pageCardSales .cs-cal-cell.cs-cal-dim{background:#f1f4f9}
+      #pageCardSales .cs-cal-cell.cs-cal-today{border:2px solid #1B3A6B}
+      #pageCardSales .cs-cal-cell.cs-cal-selected{border:2px solid #1B3A6B;background:#eaf1fb}
       #pageCardSales .cs-cal-cell.cs-cal-has-data{cursor:pointer}
-      #pageCardSales .cs-cal-cell.cs-cal-has-data:hover{border-color:#c7d6ea;background:#f8fafc}
-      #pageCardSales .cs-cal-cell.cs-cal-today .cs-cal-daynum{color:#1B3A6B;font-weight:800}
-      #pageCardSales .cs-cal-cell.cs-cal-selected{border-color:#1B3A6B;background:#eaf1fb;box-shadow:inset 0 0 0 1px #1B3A6B}
-      #pageCardSales .cs-cal-daynum{font-size:12px;color:#555;margin-bottom:3px}
+      #pageCardSales .cs-cal-cell.cs-cal-has-data:hover{background:#f4f8fe}
+      /* 날짜 숫자 칩: 개인일정과 동일 (오늘=네이비 배경 흰 글씨, 각진 모서리) */
+      #pageCardSales .cs-cal-daynum{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;border-radius:0;font-size:12px;font-weight:700;padding:0 4px;flex-shrink:0}
       #pageCardSales .cs-cal-badges{display:flex;flex-direction:column;gap:2px}
-      #pageCardSales .cs-cal-badge{font-size:10px;font-weight:700;border-radius:4px;padding:1px 4px;line-height:1.5;white-space:nowrap;display:inline-block}
+      #pageCardSales .cs-cal-badge{font-size:10px;font-weight:700;border-radius:0;padding:1px 4px;line-height:1.5;white-space:nowrap;display:inline-block}
     </style>
     <!-- 2026-08-05 디자인 개편: 상단 "카드매출" 제목 제거, 요약은 간략한 칩으로
          맨 위에, 년월 표시는 달력 바로 위 가운데 + 지점 필터는 같은 행 우측,
@@ -2674,10 +2684,12 @@
     </div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
       <span style="flex:1"></span>
-      <div style="display:flex;align-items:center;gap:8px">
-        <button type="button" class="qic" id="csPrevMonth" aria-label="이전 달" style="border-color:#d3dae4;color:#555">‹</button>
-        <span id="csMonthLabel" style="font-size:13.5px;font-weight:700;color:#1a1a1a;min-width:80px;text-align:center;white-space:nowrap"></span>
-        <button type="button" class="qic" id="csNextMonth" aria-label="다음 달" style="border-color:#d3dae4;color:#555">›</button>
+      <!-- 년월 네비: 개인일정 달력 네비(week-nav/wknav-arrow/week-label/wknav-today)와 동일한 클래스 사용 -->
+      <div class="week-nav">
+        <button type="button" class="wknav-arrow" id="csPrevMonth" aria-label="이전 달">←</button>
+        <span class="week-label" id="csMonthLabel"></span>
+        <button type="button" class="wknav-arrow" id="csNextMonth" aria-label="다음 달">→</button>
+        <button type="button" class="wknav-today" id="csTodayBtn">오늘</button>
       </div>
       <span style="flex:1;display:flex;justify-content:flex-end">
         <div id="csBranchFilter" style="display:flex;gap:4px">
@@ -3727,31 +3739,51 @@
   }
 
   function _csBuildCalendarHtml(){
+    // 2026-08-05 개인일정 월간 달력 디자인을 그대로 따름:
+    // 앞뒤 주를 채우는 타월 날짜 표시, 주말/공휴일/타월 셀 #f1f4f9 배경,
+    // 오늘 날짜는 네이비 칩 + 2px 네이비 테두리, 요일 헤더는 일=빨강/토=네이비,
+    // 공휴일 이름 표시, 각진(라운딩 0) 셀.
     var y=_csMonth.y, m=_csMonth.m;
     var first=new Date(y, m-1, 1);
     var startWeekday=first.getDay();
     var daysInMonth=new Date(y, m, 0).getDate();
+    var rows=Math.ceil((startWeekday+daysInMonth)/7);
+    var total=rows*7;
     var now=new Date();
     var todayStr=''+now.getFullYear()+_csPad2(now.getMonth()+1)+_csPad2(now.getDate());
-    var weekHead=['일','월','화','수','목','금','토'].map(function(w){ return '<div class="cs-cal-weekhead">'+w+'</div>'; }).join('');
+    var weekHead=['일','월','화','수','목','금','토'].map(function(w,i){
+      return '<div class="cs-cal-weekhead" style="color:'+(i===0?'#dc2626':i===6?'#1b3a6b':'#333')+'">'+w+'</div>';
+    }).join('');
     var cells='';
-    for(var i=0;i<startWeekday;i++) cells+='<div class="cs-cal-cell cs-cal-empty"></div>';
-    for(var day=1; day<=daysInMonth; day++){
-      var ymd = ''+y+_csPad2(m)+_csPad2(day);
-      var cnt = _csCountsForDate(ymd);
-      var showSeoul = (_csBranchFilter==='all'||_csBranchFilter==='seoul') && cnt.seoul>0;
-      var showHwa = (_csBranchFilter==='all'||_csBranchFilter==='hwaseong') && cnt.hwaseong>0;
-      var hasData = showSeoul || showHwa;
-      var cls='cs-cal-cell'+(hasData?' cs-cal-has-data':'')+(ymd===_csSelectedDate?' cs-cal-selected':'')+(ymd===todayStr?' cs-cal-today':'');
+    for(var idx=0; idx<total; idx++){
+      var d=new Date(y, m-1, idx-startWeekday+1);
+      var ymd=''+d.getFullYear()+_csPad2(d.getMonth()+1)+_csPad2(d.getDate());
+      var dow=d.getDay();
+      var inMonth=(d.getMonth()===m-1);
+      var hol=(typeof getHoliday==='function')?getHoliday(d.getFullYear()+'-'+_csPad2(d.getMonth()+1)+'-'+_csPad2(d.getDate())):null;
+      var cnt=_csCountsForDate(ymd);
+      var showSeoul=(_csBranchFilter==='all'||_csBranchFilter==='seoul') && cnt.seoul>0;
+      var showHwa=(_csBranchFilter==='all'||_csBranchFilter==='hwaseong') && cnt.hwaseong>0;
+      var hasData=showSeoul||showHwa;
+      var isTod=(ymd===todayStr);
+      var dim=(!inMonth || !!hol || dow===0 || dow===6);
+      var cls='cs-cal-cell'+(dim?' cs-cal-dim':'')+(hasData?' cs-cal-has-data':'')+(ymd===_csSelectedDate?' cs-cal-selected':'')+(isTod?' cs-cal-today':'');
+      var dateColor=isTod?'#fff':(!inMonth?'#9ca3af':(hol||dow===0)?'#dc2626':dow===6?'#1b3a6b':'#1a1a1a');
       var badges='';
       if(showSeoul) badges += '<span class="cs-cal-badge" style="background:#EAF1FB;color:#1B3A6B">서울 '+cnt.seoul+'</span>';
       if(showHwa) badges += '<span class="cs-cal-badge" style="background:#fdf1e3;color:#b45309">화성 '+cnt.hwaseong+'</span>';
       cells += '<div class="'+cls+'"'+(hasData?' data-ymd="'+ymd+'"':'')+'>'+
-        '<div class="cs-cal-daynum">'+day+'</div>'+
+        '<div style="display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden">'+
+          '<span class="cs-cal-daynum" style="background:'+(isTod?'#1B3A6B':'transparent')+';color:'+dateColor+'">'+d.getDate()+'</span>'+
+          (hol?'<span style="font-size:9px;color:#dc2626;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(hol)+'</span>':'')+
+        '</div>'+
         (badges?'<div class="cs-cal-badges">'+badges+'</div>':'')+
         '</div>';
     }
-    return '<div class="cs-cal-grid">'+weekHead+cells+'</div>';
+    return '<div class="cs-cal-wrap">'+
+      '<div class="cs-cal-weekrow">'+weekHead+'</div>'+
+      '<div class="cs-cal-grid" style="grid-template-rows:repeat('+rows+',1fr)">'+cells+'</div>'+
+      '</div>';
   }
 
   function _csRenderSummary(){
@@ -3866,6 +3898,17 @@
   _csUpdateBranchFilterUI();
   document.getElementById('csPrevMonth')?.addEventListener('click', () => { if(_csMonth) _csChangeMonth(-1); });
   document.getElementById('csNextMonth')?.addEventListener('click', () => { if(_csMonth) _csChangeMonth(1); });
+  // 개인일정 네비와 동일한 '오늘' 버튼: 이번 달로 이동, 오늘 거래가 있으면 오늘을,
+  // 없으면 이번 달의 가장 최근 거래일을 선택(월 이동 시와 같은 규칙)
+  document.getElementById('csTodayBtn')?.addEventListener('click', () => {
+    if(!_csMonth || !_csCache) return;
+    var now=new Date();
+    _csMonth={ y:now.getFullYear(), m:now.getMonth()+1 };
+    var todayStr=''+_csMonth.y+_csPad2(_csMonth.m)+_csPad2(now.getDate());
+    var c=_csCountsForDate(todayStr);
+    if(c.seoul>0||c.hwaseong>0){ _csSelectedDate=todayStr; _csRenderAll(); }
+    else { _csChangeMonth(0); }
+  });
   document.getElementById('csCalendar')?.addEventListener('click', (ev) => {
     var cell = ev.target.closest('.cs-cal-has-data');
     if(!cell || !_csCache) return;
