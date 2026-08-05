@@ -2653,6 +2653,19 @@
 
   <!-- ─── 회계 > 카드매출 페이지 ─── -->
   <div id="pageCardSales" class="page-section">
+    <style>
+      #pageCardSales .cs-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+      #pageCardSales .cs-cal-weekhead{text-align:center;font-size:11.5px;color:#9ca3af;padding:4px 0;font-weight:600}
+      #pageCardSales .cs-cal-cell{min-height:60px;border:1px solid #eef1f5;border-radius:6px;padding:5px 4px;background:#fff}
+      #pageCardSales .cs-cal-cell.cs-cal-empty{border:none;background:transparent}
+      #pageCardSales .cs-cal-cell.cs-cal-has-data{cursor:pointer}
+      #pageCardSales .cs-cal-cell.cs-cal-has-data:hover{border-color:#c7d6ea;background:#f8fafc}
+      #pageCardSales .cs-cal-cell.cs-cal-today .cs-cal-daynum{color:#1B3A6B;font-weight:800}
+      #pageCardSales .cs-cal-cell.cs-cal-selected{border-color:#1B3A6B;background:#eaf1fb;box-shadow:inset 0 0 0 1px #1B3A6B}
+      #pageCardSales .cs-cal-daynum{font-size:12px;color:#555;margin-bottom:3px}
+      #pageCardSales .cs-cal-badges{display:flex;flex-direction:column;gap:2px}
+      #pageCardSales .cs-cal-badge{font-size:10px;font-weight:700;border-radius:4px;padding:1px 4px;line-height:1.5;white-space:nowrap;display:inline-block}
+    </style>
     <div class="q-toolbar inv-toolbar">
       <span class="inv-flat-label">카드매출</span>
       <div id="csBranchFilter" style="display:flex;gap:4px">
@@ -2661,28 +2674,38 @@
         <button type="button" class="btn pf-btn" data-branch="hwaseong" style="font-size:11.5px;padding:3px 11px">화성(SemPlus)</button>
       </div>
       <span class="inv-flat-div"></span>
-      <input type="date" id="csDate" class="q-flat" style="width:150px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <button type="button" class="qic" id="csPrevMonth" aria-label="이전 달" style="border-color:#d3dae4;color:#555">‹</button>
+        <span id="csMonthLabel" style="font-size:13.5px;font-weight:700;color:#1a1a1a;min-width:80px;text-align:center;white-space:nowrap"></span>
+        <button type="button" class="qic" id="csNextMonth" aria-label="다음 달" style="border-color:#d3dae4;color:#555">›</button>
+      </div>
       <span style="flex:1"></span>
       <span id="csSyncMeta" style="font-size:11px;color:#9ca3af;white-space:nowrap"></span>
     </div>
     <div id="csSummaryGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0">
       <div style="color:#9ca3af;font-size:13px;padding:14px">불러오는 중…</div>
     </div>
+    <div id="csCalendar" style="margin-bottom:14px"></div>
+    <div id="csDetailHead" style="font-size:13px;font-weight:700;color:#1a1a1a;margin:4px 0 8px"></div>
     <div style="overflow:auto">
-      <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <table style="width:100%;border-collapse:collapse;font-size:12.5px">
         <thead>
           <tr>
-            <th style="padding:10px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">지점</th>
-            <th style="padding:10px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">거래시간</th>
-            <th style="padding:10px 8px;text-align:left;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">가맹점/단말기</th>
-            <th style="padding:10px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">거래유형</th>
-            <th style="padding:10px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">카드번호</th>
-            <th style="padding:10px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">승인번호</th>
-            <th style="padding:10px 8px;text-align:right;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">거래금액</th>
+            <th style="padding:9px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">지점</th>
+            <th style="padding:9px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">시간</th>
+            <th style="padding:9px 8px;text-align:left;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">가맹점/단말기</th>
+            <th style="padding:9px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">카드사</th>
+            <th style="padding:9px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">카드번호</th>
+            <th style="padding:9px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">구분</th>
+            <th style="padding:9px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">할부</th>
+            <th style="padding:9px 8px;text-align:right;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">공급가액</th>
+            <th style="padding:9px 8px;text-align:right;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">부가세</th>
+            <th style="padding:9px 8px;text-align:right;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">합계</th>
+            <th style="padding:9px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">승인번호</th>
           </tr>
         </thead>
         <tbody id="csTable">
-          <tr><td colspan="7" style="padding:40px;text-align:center;color:#ccc">불러오는 중…</td></tr>
+          <tr><td colspan="11" style="padding:40px;text-align:center;color:#ccc">불러오는 중…</td></tr>
         </tbody>
       </table>
     </div>
@@ -3596,64 +3619,198 @@
   let _csBranchFilter = 'all';
   const _CS_BRANCH_LABEL = { seoul:'서울', hwaseong:'화성' };
   function _csFmtTime(t){ t=String(t||''); return t.length>=4 ? (t.slice(0,2)+':'+t.slice(2,4)) : t; }
-  async function renderCardSalesPage(){
-    var tbody=document.getElementById('csTable'), metaEl=document.getElementById('csSyncMeta');
-    if(!tbody) return;
-    if(!_fbDbUrl){ _misuNote('csSummaryGrid','로그인 후 표시됩니다.'); tbody.innerHTML='<tr><td colspan="7" style="padding:40px;text-align:center;color:#ccc">로그인 후 표시됩니다.</td></tr>'; return; }
-    var dateEl=document.getElementById('csDate');
-    var ymd=(dateEl && dateEl.value) ? dateEl.value.replace(/-/g,'') : (function(){var d=new Date();var p=function(n){return (n<10?'0':'')+n;};return ''+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate());})();
-    var branches = _csBranchFilter==='all' ? ['seoul','hwaseong'] : [_csBranchFilter];
-    tbody.innerHTML='<tr><td colspan="7" style="padding:40px;text-align:center;color:#ccc">불러오는 중…</td></tr>';
-    try{
-      var results = await Promise.all(branches.map(function(b){
-        return _fbFetch(`${_fbDbUrl}/teamdata_test_cardsales/${b}/${ymd}.json`).then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
-      }));
-      var metas = await Promise.all(branches.map(function(b){
-        return _fbFetch(`${_fbDbUrl}/teamdata_test_cardsales/_meta/${b}.json`).then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
-      }));
-      var rows=[];
-      branches.forEach(function(b,i){
-        var d=results[i];
-        if(d && typeof d==='object'){
-          Object.keys(d).forEach(function(k){ var rec=d[k]; if(rec) rows.push(Object.assign({}, rec, {_branch:b})); });
-        }
+  function _csPad2(n){ return (n<10?'0':'')+n; }
+  // 카드사(발급사)/신용·체크 구분/할부 정보는 2026-08-05 스크래퍼 개편으로
+  // 머니온·SemPlus 양쪽 모두에서 실제로 확보되는 필드임을 확인함(둘 다에
+  // 공통으로 있는 항목만 아래 상세 표에 보여준다 - "교집합만 표시" 요청).
+  // 할부 원본값은 소스마다 형식이 다를 수 있어("00"/빈값/개월수 등) 화면
+  // 표시 직전에 통일해서 보여준다.
+  function _csNormInstallment(v){
+    var s = String(v==null?'':v).trim();
+    if(!s || /^0+$/.test(s) || s.indexOf('일시불')!==-1) return '일시불';
+    if(/^\d+$/.test(s)) return parseInt(s,10)+'개월';
+    return s;
+  }
+
+  // _csCache: {seoul:{ '20260805':[record,...] , ...}, hwaseong:{...}}
+  // 전체 이력을 한 번에 받아 메모리에 캐시해 두고(현재 거래량 규모에서는
+  // 충분히 가벼움), 달을 이동하거나 지점 필터를 바꿀 때는 재조회 없이
+  // 캐시에서만 다시 그린다. ※ 데이터가 매우 많아지면 월 단위로 나눠 받는
+  // 방식으로 바꿀 필요가 있음.
+  let _csCache = null;
+  let _csMetaCache = null;
+  let _csMonth;        // {y, m(1-12)} - 처음엔 undefined, 데이터 로드 후 자동 결정
+  let _csSelectedDate; // 'YYYYMMDD' | null - 처음엔 undefined
+
+  async function _csLoadAllData(force){
+    if(_csCache && !force) return;
+    var branches=['seoul','hwaseong'];
+    var results = await Promise.all(branches.map(function(b){
+      return _fbFetch(`${_fbDbUrl}/teamdata_test_cardsales/${b}.json`).then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
+    }));
+    var metas = await Promise.all(branches.map(function(b){
+      return _fbFetch(`${_fbDbUrl}/teamdata_test_cardsales/_meta/${b}.json`).then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
+    }));
+    _csCache={}; _csMetaCache={};
+    branches.forEach(function(b,i){
+      var byDate={}, tree=results[i];
+      if(tree && typeof tree==='object'){
+        Object.keys(tree).forEach(function(ymd){
+          if(!/^\d{8}$/.test(ymd)) return; // 방어적으로, 날짜 형식이 아닌 키는 무시
+          var dayObj=tree[ymd];
+          if(dayObj && typeof dayObj==='object'){
+            byDate[ymd] = Object.keys(dayObj).map(function(k){ return dayObj[k]; }).filter(Boolean);
+          }
+        });
+      }
+      _csCache[b]=byDate;
+      _csMetaCache[b]=metas[i];
+    });
+  }
+
+  function _csPickInitialSelection(){
+    var dates=[];
+    ['seoul','hwaseong'].forEach(function(b){ Object.keys(_csCache[b]||{}).forEach(function(d){ dates.push(d); }); });
+    dates.sort();
+    var latest = dates.length ? dates[dates.length-1] : null;
+    if(latest){
+      _csSelectedDate = latest;
+      _csMonth = { y:+latest.slice(0,4), m:+latest.slice(4,6) };
+    } else {
+      var now=new Date();
+      _csSelectedDate = null;
+      _csMonth = { y: now.getFullYear(), m: now.getMonth()+1 };
+    }
+  }
+
+  function _csCountsForDate(ymd){
+    return {
+      seoul: ((_csCache.seoul||{})[ymd]||[]).length,
+      hwaseong: ((_csCache.hwaseong||{})[ymd]||[]).length,
+    };
+  }
+
+  function _csBuildCalendarHtml(){
+    var y=_csMonth.y, m=_csMonth.m;
+    var first=new Date(y, m-1, 1);
+    var startWeekday=first.getDay();
+    var daysInMonth=new Date(y, m, 0).getDate();
+    var now=new Date();
+    var todayStr=''+now.getFullYear()+_csPad2(now.getMonth()+1)+_csPad2(now.getDate());
+    var weekHead=['일','월','화','수','목','금','토'].map(function(w){ return '<div class="cs-cal-weekhead">'+w+'</div>'; }).join('');
+    var cells='';
+    for(var i=0;i<startWeekday;i++) cells+='<div class="cs-cal-cell cs-cal-empty"></div>';
+    for(var day=1; day<=daysInMonth; day++){
+      var ymd = ''+y+_csPad2(m)+_csPad2(day);
+      var cnt = _csCountsForDate(ymd);
+      var showSeoul = (_csBranchFilter==='all'||_csBranchFilter==='seoul') && cnt.seoul>0;
+      var showHwa = (_csBranchFilter==='all'||_csBranchFilter==='hwaseong') && cnt.hwaseong>0;
+      var hasData = showSeoul || showHwa;
+      var cls='cs-cal-cell'+(hasData?' cs-cal-has-data':'')+(ymd===_csSelectedDate?' cs-cal-selected':'')+(ymd===todayStr?' cs-cal-today':'');
+      var badges='';
+      if(showSeoul) badges += '<span class="cs-cal-badge" style="background:#EAF1FB;color:#1B3A6B">서울 '+cnt.seoul+'</span>';
+      if(showHwa) badges += '<span class="cs-cal-badge" style="background:#fdf1e3;color:#b45309">화성 '+cnt.hwaseong+'</span>';
+      cells += '<div class="'+cls+'"'+(hasData?' data-ymd="'+ymd+'"':'')+'>'+
+        '<div class="cs-cal-daynum">'+day+'</div>'+
+        (badges?'<div class="cs-cal-badges">'+badges+'</div>':'')+
+        '</div>';
+    }
+    return '<div class="cs-cal-grid">'+weekHead+cells+'</div>';
+  }
+
+  function _csRenderSummary(){
+    var prefix=''+_csMonth.y+_csPad2(_csMonth.m);
+    var totalCnt=0, totalAmt=0, byBranch={seoul:0,hwaseong:0};
+    ['seoul','hwaseong'].forEach(function(b){
+      if(_csBranchFilter!=='all' && _csBranchFilter!==b) return;
+      var byDate=_csCache[b]||{};
+      Object.keys(byDate).forEach(function(ymd){
+        if(ymd.slice(0,6)!==prefix) return;
+        (byDate[ymd]||[]).forEach(function(r){ totalCnt++; byBranch[b]++; totalAmt += Number(r.amount)||0; });
       });
-      rows.sort(function(a,b){ return String(a.time||'').localeCompare(String(b.time||'')); });
+    });
+    var cards=[['이번 달 거래건수', totalCnt.toLocaleString()+'건', true, '#1B3A6B']];
+    if(_csBranchFilter==='all'){
+      cards.push(['서울(머니온)', byBranch.seoul.toLocaleString()+'건', false, '#EAF1FB']);
+      cards.push(['화성(SemPlus)', byBranch.hwaseong.toLocaleString()+'건', false, '#EAF1FB']);
+    }
+    cards.push(['이번 달 거래금액', _misuFmtWon(totalAmt)+'원', false, '#eafaf1']);
+    _misuRenderCards('csSummaryGrid', cards);
+  }
 
-      var totalAmt=0, totalCnt=rows.length;
-      var byBranch={seoul:0,hwaseong:0};
-      rows.forEach(function(r){ var amt=Number(r.amount)||0; totalAmt+=amt; if(byBranch[r._branch]!=null) byBranch[r._branch]+=amt; });
-      var cards=[['총 거래건수', totalCnt.toLocaleString()+'건', true, '#1B3A6B']];
-      if(_csBranchFilter==='all'){
-        cards.push(['서울(머니온)', _misuFmtWon(byBranch.seoul)+'원', false, '#EAF1FB']);
-        cards.push(['화성(SemPlus)', _misuFmtWon(byBranch.hwaseong)+'원', false, '#EAF1FB']);
-      }
-      cards.push(['총 거래금액', _misuFmtWon(totalAmt)+'원', false, '#eafaf1']);
-      _misuRenderCards('csSummaryGrid', cards);
+  function _csRenderDetailTable(){
+    var tbody=document.getElementById('csTable'), head=document.getElementById('csDetailHead');
+    if(!tbody) return;
+    if(!_csSelectedDate){
+      if(head) head.textContent='';
+      tbody.innerHTML='<tr><td colspan="11" style="padding:40px;text-align:center;color:#ccc">달력에서 거래가 있는 날짜를 선택하세요.</td></tr>';
+      return;
+    }
+    var y=_csSelectedDate.slice(0,4), m=_csSelectedDate.slice(4,6), d=_csSelectedDate.slice(6,8);
+    if(head) head.textContent = y+'년 '+(+m)+'월 '+(+d)+'일 거래내역';
+    var branches = _csBranchFilter==='all' ? ['seoul','hwaseong'] : [_csBranchFilter];
+    var rows=[];
+    branches.forEach(function(b){
+      ((_csCache[b]||{})[_csSelectedDate]||[]).forEach(function(r){ rows.push(Object.assign({}, r, {_branch:b})); });
+    });
+    rows.sort(function(a,b){ return String(a.time||'').localeCompare(String(b.time||'')); });
+    if(!rows.length){
+      tbody.innerHTML='<tr><td colspan="11" style="padding:40px;text-align:center;color:#ccc">해당 날짜의 카드매출 데이터가 없습니다.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(function(r){
+      return '<tr>'+
+        '<td style="padding:7px 8px;text-align:center;border-bottom:1px solid #f0f0f0">'+(_CS_BRANCH_LABEL[r._branch]||'')+'</td>'+
+        '<td style="padding:7px 8px;text-align:center;border-bottom:1px solid #f0f0f0">'+_csFmtTime(r.time)+'</td>'+
+        '<td style="padding:7px 8px;text-align:left;border-bottom:1px solid #f0f0f0">'+esc(r.merchant||'')+'</td>'+
+        '<td style="padding:7px 8px;text-align:center;border-bottom:1px solid #f0f0f0">'+esc(r.issuer||'-')+'</td>'+
+        '<td style="padding:7px 8px;text-align:center;border-bottom:1px solid #f0f0f0">'+esc(r.cardNoMasked||'')+'</td>'+
+        '<td style="padding:7px 8px;text-align:center;border-bottom:1px solid #f0f0f0">'+esc(r.txnType||'')+'</td>'+
+        '<td style="padding:7px 8px;text-align:center;border-bottom:1px solid #f0f0f0">'+esc(_csNormInstallment(r.installment))+'</td>'+
+        '<td style="padding:7px 8px;text-align:right;border-bottom:1px solid #f0f0f0">'+(Number(r.supplyAmt)||0).toLocaleString()+'</td>'+
+        '<td style="padding:7px 8px;text-align:right;border-bottom:1px solid #f0f0f0">'+(Number(r.taxAmt)||0).toLocaleString()+'</td>'+
+        '<td style="padding:7px 8px;text-align:right;border-bottom:1px solid #f0f0f0;font-weight:700">'+(Number(r.amount)||0).toLocaleString()+'</td>'+
+        '<td style="padding:7px 8px;text-align:center;border-bottom:1px solid #f0f0f0">'+esc(r.approvalNo||'')+'</td>'+
+      '</tr>';
+    }).join('');
+  }
 
-      if(metaEl){
-        var syncTexts = branches.map(function(b,i){ var m=metas[i]; return m && m.lastSyncedAt ? (_CS_BRANCH_LABEL[b]+' '+m.lastSyncedAt.slice(0,16).replace('T',' ')) : null; }).filter(Boolean);
-        metaEl.textContent = syncTexts.length ? ('마지막 동기화 · '+syncTexts.join(' / ')) : '';
-      }
+  function _csRenderAll(){
+    var lbl=document.getElementById('csMonthLabel'); if(lbl) lbl.textContent=_csMonth.y+'년 '+_csMonth.m+'월';
+    _csRenderSummary();
+    var cal=document.getElementById('csCalendar'); if(cal) cal.innerHTML=_csBuildCalendarHtml();
+    _csRenderDetailTable();
+    var metaEl=document.getElementById('csSyncMeta');
+    if(metaEl && _csMetaCache){
+      var syncTexts=['seoul','hwaseong'].map(function(b){ var mt=_csMetaCache[b]; return mt && mt.lastSyncedAt ? (_CS_BRANCH_LABEL[b]+' '+mt.lastSyncedAt.slice(0,16).replace('T',' ')) : null; }).filter(Boolean);
+      metaEl.textContent = syncTexts.length ? ('마지막 동기화 · '+syncTexts.join(' / ')) : '';
+    }
+  }
 
-      if(!rows.length){
-        tbody.innerHTML='<tr><td colspan="7" style="padding:40px;text-align:center;color:#ccc">해당 날짜의 카드매출 데이터가 없습니다.</td></tr>';
-      } else {
-        tbody.innerHTML = rows.map(function(r){
-          return '<tr>'+
-            '<td style="padding:8px;text-align:center;border-bottom:1px solid #f0f0f0">'+(_CS_BRANCH_LABEL[r._branch]||'')+'</td>'+
-            '<td style="padding:8px;text-align:center;border-bottom:1px solid #f0f0f0">'+_csFmtTime(r.time)+'</td>'+
-            '<td style="padding:8px;text-align:left;border-bottom:1px solid #f0f0f0">'+esc(r.merchant||'')+'</td>'+
-            '<td style="padding:8px;text-align:center;border-bottom:1px solid #f0f0f0">'+esc(r.txnType||'')+'</td>'+
-            '<td style="padding:8px;text-align:center;border-bottom:1px solid #f0f0f0">'+esc(r.cardNoMasked||'')+'</td>'+
-            '<td style="padding:8px;text-align:center;border-bottom:1px solid #f0f0f0">'+esc(r.approvalNo||'')+'</td>'+
-            '<td style="padding:8px;text-align:right;border-bottom:1px solid #f0f0f0">'+(Number(r.amount)||0).toLocaleString()+'</td>'+
-          '</tr>';
-        }).join('');
-      }
+  function _csChangeMonth(delta){
+    var d=new Date(_csMonth.y, _csMonth.m-1+delta, 1);
+    _csMonth = { y:d.getFullYear(), m:d.getMonth()+1 };
+    var prefix=''+_csMonth.y+_csPad2(_csMonth.m);
+    var candidates=[];
+    ['seoul','hwaseong'].forEach(function(b){
+      Object.keys(_csCache[b]||{}).forEach(function(ymd){ if(ymd.slice(0,6)===prefix) candidates.push(ymd); });
+    });
+    candidates.sort();
+    _csSelectedDate = candidates.length ? candidates[candidates.length-1] : null;
+    _csRenderAll();
+  }
+
+  async function renderCardSalesPage(){
+    var tbody=document.getElementById('csTable');
+    if(!tbody) return;
+    if(!_fbDbUrl){ _misuNote('csSummaryGrid','로그인 후 표시됩니다.'); tbody.innerHTML='<tr><td colspan="11" style="padding:40px;text-align:center;color:#ccc">로그인 후 표시됩니다.</td></tr>'; return; }
+    try{
+      await _csLoadAllData();
+      if(_csMonth===undefined){ _csPickInitialSelection(); }
+      _csRenderAll();
     }catch(e){
       _misuNote('csSummaryGrid','카드매출 데이터를 불러오지 못했습니다.');
-      tbody.innerHTML='<tr><td colspan="7" style="padding:40px;text-align:center;color:#ccc">불러오지 못했습니다.</td></tr>';
+      tbody.innerHTML='<tr><td colspan="11" style="padding:40px;text-align:center;color:#ccc">불러오지 못했습니다.</td></tr>';
     }
   }
   function _csUpdateBranchFilterUI(){
@@ -3666,11 +3823,18 @@
     });
   }
   _csUpdateBranchFilterUI();
-  document.getElementById('csDate')?.addEventListener('change', () => renderCardSalesPage());
+  document.getElementById('csPrevMonth')?.addEventListener('click', () => { if(_csMonth) _csChangeMonth(-1); });
+  document.getElementById('csNextMonth')?.addEventListener('click', () => { if(_csMonth) _csChangeMonth(1); });
+  document.getElementById('csCalendar')?.addEventListener('click', (ev) => {
+    var cell = ev.target.closest('.cs-cal-has-data');
+    if(!cell || !_csCache) return;
+    _csSelectedDate = cell.dataset.ymd;
+    _csRenderAll();
+  });
   document.querySelectorAll('#csBranchFilter .pf-btn').forEach(b => b.addEventListener('click', () => {
     _csBranchFilter = b.dataset.branch;
     _csUpdateBranchFilterUI();
-    renderCardSalesPage();
+    if(_csCache) _csRenderAll();
   }));
 
   async function _syncGet() {
@@ -14270,35 +14434,11 @@ function reloadState() {
     }
     if (page === 'links')     renderLinksPage();
     if (page === 'cardsales'){
-      var _csd=document.getElementById('csDate');
-      if(_csd && !_csd.value){
-        // 2026-08-05: 그냥 "오늘" 날짜를 기본값으로 넣으면, 아직 오늘자 동기화가
-        // 안 됐거나 오늘 거래가 없을 때 "카드매출 데이터가 없습니다"로 보여서
-        // 마치 전체가 하나도 안 보이는 것처럼 오해할 수 있었음(실제 문의 발생).
-        // 그래서 각 지점 _meta의 lastSyncedDates 중 가장 최근 날짜를 기본값으로
-        // 쓰고, 정보가 없을 때만 오늘 날짜로 fallback 한다.
-        (function(){
-          var _p=function(n){return (n<10?'0':'')+n;};
-          var _today=(function(){var d=new Date(); return d.getFullYear()+'-'+_p(d.getMonth()+1)+'-'+_p(d.getDate());})();
-          var _fallback=_today;
-          var _apply=function(){ _csd.value=_fallback; renderCardSalesPage(); };
-          if(!_fbDbUrl){ _apply(); return; }
-          Promise.all(['seoul','hwaseong'].map(function(b){
-            return _fbFetch(`${_fbDbUrl}/teamdata_test_cardsales/_meta/${b}.json`).then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
-          })).then(function(metas){
-            var latest=null;
-            metas.forEach(function(m){
-              if(m && Array.isArray(m.lastSyncedDates)){
-                m.lastSyncedDates.forEach(function(d){ if(typeof d==='string' && (!latest || d>latest)) latest=d; });
-              }
-            });
-            if(latest && latest.length===8){ _fallback = latest.slice(0,4)+'-'+latest.slice(4,6)+'-'+latest.slice(6,8); }
-            _apply();
-          }).catch(_apply);
-        })();
-      } else {
-        renderCardSalesPage();
-      }
+      // 2026-08-05: 달력 화면으로 개편 - 진입 시 renderCardSalesPage()가 전체
+      // 이력을 한 번 불러온 뒤, 데이터가 있는 가장 최근 날짜/달을 자동으로
+      // 선택해서 보여준다(빈 "오늘" 날짜만 보고 전체가 안 보이는 것처럼
+      // 오해했던 문제의 근본 해결).
+      renderCardSalesPage();
     }
   }
   document.querySelectorAll('.page-tab[data-page], .sub-tab').forEach(tab => {
