@@ -41,8 +41,13 @@ jobs:
           pip install -r requirements.txt
           playwright install --with-deps chromium
 
+      # continue-on-error: 머니온 쪽이 일부 구간 실패(exit 1)해도 SemPlus
+      # 백필은 별개로 계속 진행되어야 하므로 여기서 잡(job)이 멈추지 않게 한다.
+      # (2026-08-05 첫 실행에서 머니온이 일부 구간 실패로 exit 1 → 이 옵션이
+      #  없어서 SemPlus 스텝이 아예 실행되지 않은 문제를 확인함)
       - name: 머니온(서울) 백필
         if: ${{ github.event.inputs.target == 'both' || github.event.inputs.target == 'moneyon' }}
+        continue-on-error: true
         working-directory: automation
         env:
           MONEYON_ID: ${{ secrets.MONEYON_ID }}
@@ -52,6 +57,7 @@ jobs:
 
       - name: SemPlus(화성) 백필
         if: ${{ github.event.inputs.target == 'both' || github.event.inputs.target == 'semplus' }}
+        continue-on-error: true
         working-directory: automation
         env:
           SEMPLUS_ID: ${{ secrets.SEMPLUS_ID }}
@@ -60,9 +66,11 @@ jobs:
         run: python backfill_semplus.py "${{ github.event.inputs.start_date }}" "${{ github.event.inputs.end_date }}"
 
       # 실패 시점 화면을 스크린샷으로 남겨 GitHub Actions 아티팩트로
-      # 업로드한다(daily 동기화 워크플로우와 동일한 패턴).
+      # 업로드한다(daily 동기화 워크플로우와 동일한 패턴). 위에서 continue-on-error를
+      # 켰기 때문에 failure()만으로는 감지가 안 돼 always()로 변경(파일이 없으면
+      # if-no-files-found: ignore 덕분에 그냥 건너뛴다).
       - name: 실패 스크린샷 업로드
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: cardsales-backfill-debug
