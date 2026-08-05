@@ -116,20 +116,56 @@ async def fetch_detail_page(page, date_fr: str, date_to: str, page_no: int):
     return await resp.json()
 
 
+def _valid_yyyymmdd(v) -> str:
+    """"00000000"(미확정)나 빈 값은 실제 날짜가 아니므로 걸러낸다."""
+    s = str(v or "").replace("-", "")[:8]
+    return s if (len(s) == 8 and s != "00000000") else ""
+
+
 def _to_record(row: dict) -> dict:
-    """머니온 getSalesDetail.do 응답 1건 → 공통 스키마로 정규화."""
-    date = row.get("money_rcv_date") or row.get("transaction_date") or ""
+    """머니온 getSalesDetail.do 응답 1건 → 공통 스키마로 정규화.
+
+    2026-08-05 카드매출 화면 개편(달력 + 항목 보강) 작업 중, 실제 응답 JSON을
+    직접 캡처해 필드명을 재확인함 - 기존 코드가 아래 3가지를 잘못 매핑하고
+    있었던 것을 발견해 함께 고침:
+      - "amount"(거래금액 합계)는 input_amt가 아니라 total_amt(=amount 필드
+        자체)여야 함. input_amt는 수수료를 뗀 "실입금액"이라 다른 값이었음
+        (예: 합계 104,016원인데 input_amt는 102,456원 - 수수료 1,560원 차이).
+      - "supplyAmt"(공급가액)는 service_amt가 아니라 supply_amt여야 함.
+        service_amt는 실제로 확인해보니 그냥 "0"으로만 찍히는 무관한 필드.
+      - "taxAmt"(세액/부가세)는 tax_gain_amt가 아니라 tax_amt여야 함.
+        tax_gain_amt는 이름과 달리 실제로는 공급가액과 같은 값이 찍힘
+        (세액이 아님 - 이름만 보고 매핑했다가 생긴 오류로 추정).
+    추가로 카드사/할부/신용·체크 구분도 이번에 새로 확인한 실제 필드로 채움:
+      - issuer(카드사/발급사): isu_name/mbr_isu_name (예: "신한","삼성" 등 -
+        화면의 "매입사" 컬럼과 동일한 값. SemPlus의 "발급사"에 대응).
+      - installment(할부): install_period ("00"=일시불, 그 외엔 개월수).
+      - txnType(신용/체크 구분): check_card_flag (공백="신용", "Y"="체크").
+    """
+    date = (
+        _valid_yyyymmdd(row.get("auth_date"))
+        or _valid_yyyymmdd(row.get("money_rcv_date"))
+        or _valid_yyyymmdd(row.get("settle_date"))
+        or _valid_yyyymmdd(row.get("transaction_date"))
+        or ""
+    )
+    install_period = str(row.get("install_period") or "").strip()
+    installment = "" if install_period in ("", "00") else install_period
+    check_flag = str(row.get("check_card_flag") or "").strip()
     return {
         "id": row.get("transaction_id") or row.get("reference_no") or row.get("serial_no"),
-        "date": str(date).replace("-", "")[:8],
+        "date": date,
         "time": row.get("tran_time") or "",
         "merchant": row.get("jijum_name") or "",
-        "txnType": row.get("capture_status_name") or row.get("tran_code") or "",
+        "txnType": "체크" if check_flag else "신용",
+        "settleStatus": row.get("capture_status_name") or row.get("result_name") or "",
+        "issuer": row.get("isu_name") or row.get("mbr_isu_name") or "",
+        "installment": installment,
         "cardNoMasked": row.get("card_no") or "",
         "approvalNo": row.get("reference_no") or "",
-        "amount": row.get("input_amt") or 0,
-        "supplyAmt": row.get("service_amt") or 0,
-        "taxAmt": row.get("tax_gain_amt") or 0,
+        "amount": row.get("total_amt") or row.get("amount") or row.get("input_amt") or 0,
+        "supplyAmt": row.get("supply_amt") or 0,
+        "taxAmt": row.get("tax_amt") or 0,
         "source": "moneyon",
         "raw": row,
     }

@@ -68,6 +68,18 @@ def write_transactions(branch: str, records: list):
     })
 
 
+def reset_branch(branch: str):
+    """해당 지점의 카드매출 데이터를 전부 삭제한다(동기화 데이터라 소스에서
+    다시 채울 수 있으므로 안전 - 사용자가 직접 입력한 데이터가 아님).
+
+    2026-08-05 머니온 날짜 필드 버그 수정(입금일 → 실제 거래일) 이후, 기존에
+    잘못된 날짜로 이미 기록된 데이터가 새 날짜 경로에 중복으로 남는 것을
+    막기 위해 백필 재실행 전 한 번 정리할 용도로 추가함."""
+    dbm = get_db()
+    dbm.reference(f"{CARD_SALES_ROOT}/{branch}").delete()
+    dbm.reference(f"{CARD_SALES_ROOT}/_meta/{branch}").delete()
+
+
 def _safe_key(raw_id: str) -> str:
     # Firebase 키에는 '.', '#', '$', '/', '[', ']' 사용 불가
     return "".join(c if c not in ".#$/[]" else "_" for c in str(raw_id))

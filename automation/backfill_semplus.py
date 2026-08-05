@@ -41,7 +41,8 @@ from scrape_semplus import (
     open_credit_transaction_list,
     parse_excel,
 )
-from common_firebase import write_transactions
+from common_firebase import write_transactions, reset_branch
+import os as _os
 
 CHUNK_MAX_DAYS = 35  # 실제 조회 화면에서 확인된 제한(35일 이내로만 조회 가능)
 DEFAULT_START = _dt.date(2026, 1, 1)
@@ -112,6 +113,13 @@ async def main():
     end = _parse_date_arg(sys.argv, 2, _dt.date.today())
     chunks = _date_chunks(start, end, CHUNK_MAX_DAYS)
     print(f"SemPlus 백필: {start} ~ {end}, {len(chunks)}개 구간(최대 {CHUNK_MAX_DAYS}일씩)으로 나눠 조회합니다.")
+
+    # 카드매출 화면 개편(발급사/할부 항목 추가)에 맞춰 기존 데이터를 깨끗하게
+    # 다시 채우고 싶을 때 CARD_SALES_RESET=1로 재실행하면 기존 데이터를 지우고
+    # 새로 받는다(동기화 데이터라 안전).
+    if _os.environ.get("CARD_SALES_RESET") in ("1", "true", "True"):
+        print("[안내] CARD_SALES_RESET=1 - 기존 화성(SemPlus) 카드매출 데이터를 삭제하고 새로 채웁니다.")
+        reset_branch("hwaseong")
 
     failed = []
     async with async_playwright() as pw:

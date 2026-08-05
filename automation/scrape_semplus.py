@@ -398,12 +398,21 @@ def _to_record(rec: dict) -> dict:
         except (TypeError, ValueError):
             supply_amt = 0
 
+    # 2026-08-05 카드매출 화면 개편(달력 + 항목 보강): "체크" 컬럼 원본값이
+    # 화면/엑셀마다 "Y"/"N"·"체크"/공백 등 형식이 다를 수 있어, 값 형식에
+    # 상관없이 신용/체크로만 통일해 표시한다(머니온 쪽과 동일한 표기로 맞춰
+    # 두 소스를 나란히 보여줄 때 헷갈리지 않도록).
+    check_raw = str(_first_present(rec, "체크") or "").strip()
+    is_check = check_raw not in ("", "N", "n", "0", "아니오", "아니요", "신용")
+
     return {
         "id": str(txn_id),
         "date": date,
         "time": str(_first_present(rec, "거래시간", "시간") or ""),
         "merchant": _first_present(rec, "가맹점명") or "",
-        "txnType": _first_present(rec, "체크") or "신용",
+        "txnType": "체크" if is_check else "신용",
+        "issuer": str(_first_present(rec, "발급사") or ""),
+        "installment": str(_first_present(rec, "할부") or ""),
         "cardNoMasked": _first_present(rec, "카드번호") or "",
         "approvalNo": str(approval_no or ""),
         "amount": amount,

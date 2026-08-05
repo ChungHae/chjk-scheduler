@@ -39,7 +39,8 @@ import sys
 from playwright.async_api import async_playwright
 
 from scrape_moneyon import DETAIL_URL, _to_record, fetch_detail_page, login
-from common_firebase import write_transactions
+from common_firebase import write_transactions, reset_branch
+import os as _os
 
 CHUNK_MAX_DAYS = 31  # 머니온 화면에서 실제로 확인된 제한("31일 이내")
 MAX_LOOKBACK_DAYS = 180  # 머니온 화면에서 실제로 확인된 제한("180일 이내의 자료만 조회 가능")
@@ -88,6 +89,15 @@ async def main():
 
     chunks = _date_chunks(start, end, CHUNK_MAX_DAYS)
     print(f"머니온 백필: {start} ~ {end}, {len(chunks)}개 구간(최대 {CHUNK_MAX_DAYS}일씩)으로 나눠 조회합니다.")
+
+    # 2026-08-05: 날짜 필드 매핑 버그 수정(입금일 money_rcv_date → 실제 거래일
+    # auth_date) 이후, 기존에 잘못된 날짜로 이미 기록된 데이터가 새 날짜 경로에
+    # 중복으로 남지 않도록, CARD_SALES_RESET=1 이면 재조회 전에 기존 데이터를
+    # 통째로 지우고 새로 채운다(동기화 데이터라 안전 - 사용자가 직접 입력한
+    # 값이 아니라 언제든 소스에서 다시 받아올 수 있음).
+    if _os.environ.get("CARD_SALES_RESET") in ("1", "true", "True"):
+        print("[안내] CARD_SALES_RESET=1 - 기존 서울(머니온) 카드매출 데이터를 삭제하고 새로 채웁니다.")
+        reset_branch("seoul")
 
     failed = []
     async with async_playwright() as pw:
