@@ -2666,26 +2666,29 @@
       #pageCardSales .cs-cal-badges{display:flex;flex-direction:column;gap:2px}
       #pageCardSales .cs-cal-badge{font-size:10px;font-weight:700;border-radius:4px;padding:1px 4px;line-height:1.5;white-space:nowrap;display:inline-block}
     </style>
-    <div class="q-toolbar inv-toolbar">
-      <span class="inv-flat-label">카드매출</span>
-      <div id="csBranchFilter" style="display:flex;gap:4px">
-        <button type="button" class="btn pf-btn" data-branch="all" style="font-size:11.5px;padding:3px 11px">전체</button>
-        <button type="button" class="btn pf-btn" data-branch="seoul" style="font-size:11.5px;padding:3px 11px">서울(머니온)</button>
-        <button type="button" class="btn pf-btn" data-branch="hwaseong" style="font-size:11.5px;padding:3px 11px">화성(SemPlus)</button>
-      </div>
-      <span class="inv-flat-div"></span>
+    <!-- 2026-08-05 디자인 개편: 상단 "카드매출" 제목 제거, 요약은 간략한 칩으로
+         맨 위에, 년월 표시는 달력 바로 위 가운데 + 지점 필터는 같은 행 우측,
+         마지막 동기화는 달력 바로 아래 우측 정렬 -->
+    <div id="csSummaryGrid" style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 12px">
+      <div style="color:#9ca3af;font-size:13px">불러오는 중…</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="flex:1"></span>
       <div style="display:flex;align-items:center;gap:8px">
         <button type="button" class="qic" id="csPrevMonth" aria-label="이전 달" style="border-color:#d3dae4;color:#555">‹</button>
         <span id="csMonthLabel" style="font-size:13.5px;font-weight:700;color:#1a1a1a;min-width:80px;text-align:center;white-space:nowrap"></span>
         <button type="button" class="qic" id="csNextMonth" aria-label="다음 달" style="border-color:#d3dae4;color:#555">›</button>
       </div>
-      <span style="flex:1"></span>
-      <span id="csSyncMeta" style="font-size:11px;color:#9ca3af;white-space:nowrap"></span>
+      <span style="flex:1;display:flex;justify-content:flex-end">
+        <div id="csBranchFilter" style="display:flex;gap:4px">
+          <button type="button" class="btn pf-btn" data-branch="all" style="font-size:11.5px;padding:3px 11px">전체</button>
+          <button type="button" class="btn pf-btn" data-branch="seoul" style="font-size:11.5px;padding:3px 11px">서울(머니온)</button>
+          <button type="button" class="btn pf-btn" data-branch="hwaseong" style="font-size:11.5px;padding:3px 11px">화성(SemPlus)</button>
+        </div>
+      </span>
     </div>
-    <div id="csSummaryGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0">
-      <div style="color:#9ca3af;font-size:13px;padding:14px">불러오는 중…</div>
-    </div>
-    <div id="csCalendar" style="margin-bottom:14px"></div>
+    <div id="csCalendar"></div>
+    <div style="text-align:right;margin:4px 0 12px"><span id="csSyncMeta" style="font-size:11px;color:#9ca3af;white-space:nowrap"></span></div>
     <div id="csDetailHead" style="font-size:13px;font-weight:700;color:#1a1a1a;margin:4px 0 8px"></div>
     <div style="overflow:auto">
       <table style="width:100%;border-collapse:collapse;font-size:12.5px">
@@ -3762,13 +3765,19 @@
         (byDate[ymd]||[]).forEach(function(r){ totalCnt++; byBranch[b]++; totalAmt += Number(r.amount)||0; });
       });
     });
-    var cards=[['이번 달 거래건수', totalCnt.toLocaleString()+'건', true, '#1B3A6B']];
-    if(_csBranchFilter==='all'){
-      cards.push(['서울(머니온)', byBranch.seoul.toLocaleString()+'건', false, '#EAF1FB']);
-      cards.push(['화성(SemPlus)', byBranch.hwaseong.toLocaleString()+'건', false, '#EAF1FB']);
+    // 2026-08-05 사용자 요청: 큼직한 카드형 대신 작은 한 줄 요약 칩으로 간략하게 표시
+    var g=document.getElementById('csSummaryGrid');
+    if(!g) return;
+    function _chip(label, val, bg, vc){
+      return '<span style="background:'+bg+';border-radius:4px;padding:4px 10px;font-size:12px;color:#6b7280;white-space:nowrap">'+label+' <b style="color:'+vc+';font-weight:700">'+val+'</b></span>';
     }
-    cards.push(['이번 달 거래금액', _misuFmtWon(totalAmt)+'원', false, '#eafaf1']);
-    _misuRenderCards('csSummaryGrid', cards);
+    var chips=[_chip('이번 달 거래건수', totalCnt.toLocaleString()+'건', '#EAF1FB', '#1B3A6B')];
+    if(_csBranchFilter==='all'){
+      chips.push(_chip('서울(머니온)', byBranch.seoul.toLocaleString()+'건', '#f3f6fa', '#1a1a1a'));
+      chips.push(_chip('화성(SemPlus)', byBranch.hwaseong.toLocaleString()+'건', '#f3f6fa', '#1a1a1a'));
+    }
+    chips.push(_chip('이번 달 거래금액', _misuFmtWon(totalAmt)+'원', '#eafaf1', '#0f7a3d'));
+    g.innerHTML = chips.join('');
   }
 
   function _csRenderDetailTable(){
