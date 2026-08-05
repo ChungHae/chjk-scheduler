@@ -19,6 +19,21 @@ SemPlus 신용거래 조회 화면은 한 번에 조회 가능한 기간이 35�
 0건으로 기록되고 다음 구간으로 계속 진행된다("안 되면 되는 날부터"
 요구사항을 별도 분기 없이 자연스럽게 만족).
 
+2026-08-05 중요 버그 수정: 이전 버전은 드롭다운 항목을 화면 전체에서
+text="01월" 같은 글자로만 찾아 클릭했는데, WebSquare 화면에는 같은
+글자가 드롭다운 목록 밖(달력 라벨 등)에도 있을 수 있어 엉뚱한 요소를
+클릭하고도 "성공"으로 지나가는 조용한 실패가 가능했다. 실제로 백필을
+두 번(어제/오늘) 돌렸을 때 7개 구간 전부가 매번 정확히 2건씩(총 14건)
+나왔는데, 같은 날 daily 동기화(1주일 조회)는 4행을 파싱했다 - 즉 조회
+기간이 실제로는 바뀌지 않고 매번 기본 화면 결과만 다운로드했을 가능성이
+크다. 그래서 이번 버전은
+  (1) 드롭다운 항목을 해당 드롭다운의 목록(id가 박스 id로 시작하는
+      요소들) 안에서 우선 찾고,
+  (2) 선택 후 드롭다운에 표시된 글자를 다시 읽어 원하는 값으로 바뀌었는지
+      검증하며(안 바뀌었으면 그 구간을 실패로 처리),
+  (3) 다운로드한 엑셀의 거래일자가 요청한 구간을 벗어나면 그 구간을
+      실패로 처리한다(조용히 엉뚱한 데이터를 기록하지 않도록).
+
 실행:
   python backfill_semplus.py [시작일 YYYY-MM-DD] [종료일 YYYY-MM-DD]
   인자를 생략(또는 빈 문자열)하면 시작일=2026-01-01, 종료일=오늘.
@@ -60,22 +75,65 @@ def _date_chunks(start: _dt.date, end: _dt.date, max_days: int):
     return chunks
 
 
+async def _read_box_label(page, box_id: str) -> str:
+    """드롭다운 박스에 현재 표시된 글자를 읽는다(검증용). 못 읽으면 빈 문자열."""
+    box = await _first_visible_anywhere(page, f'#{box_id}', timeout=3000)
+    if not box:
+        return ""
+    try:
+        return (await box.inner_text()).strip()
+    except Exception:
+        return ""
+
+
 async def _select_dropdown(page, box_id: str, option_text: str):
     """WebSquare의 w2selectbox(커스텀 드롭다운) 위젯 - id를 가진 버튼을 눌러
-    목록을 열고, 정확히 option_text와 일치하는(화면에 보이는) 항목을 클릭한다.
-    (로그인/메뉴 클릭에서 겪었던 것과 같은 종류의 커스텀 위젯이라, 같은
-    파일의 _first_visible_anywhere를 그대로 재사용해 "실제로 보이는 첫
-    항목"만 고른다.)"""
-    btn = await _first_visible_anywhere(page, f'#{box_id}')
-    if not btn:
-        raise RuntimeError(f"'{box_id}' 드롭다운을 화면에서 찾지 못했습니다.")
-    await btn.click()
-    await page.wait_for_timeout(200)
-    opt = await _first_visible_anywhere(page, f'text="{option_text}"', timeout=3000)
-    if not opt:
-        raise RuntimeError(f"'{box_id}' 드롭다운에서 '{option_text}' 항목을 찾지 못했습니다.")
-    await opt.click()
-    await page.wait_for_timeout(200)
+    목록을 열고, 그 드롭다운의 목록 안에서 option_text와 일치하는 항목을
+    클릭한 뒤, 실제로 선택이 반영됐는지 표시 글자를 다시 읽어 검증한다.
+
+    (2026-08-05 수정) 예전엔 화면 전체에서 text=로만 항목을 찾아, 목록
+    밖의 같은 글자를 클릭하고도 성공한 것처럼 지나가는 조용한 실패가
+    가능했다 - 이제 id가 박스 id로 시작하는 요소(WebSquare가 목록을
+    "{box_id}_itemTable_..." 같은 id로 그림) 안에서 우선 찾고, 선택 후
+    반드시 검증한다."""
+    for attempt in (1, 2):
+        # 이미 원하는 값이면 그대로 통과 (재실행/재시도 시 불필요한 클릭 방지)
+        current = await _read_box_label(page, box_id)
+        if option_text in current:
+            return
+
+        btn = await _first_visible_anywhere(page, f'#{box_id}')
+        if not btn:
+            raise RuntimeError(f"'{box_id}' 드롭다운을 화면에서 찾지 못했습니다.")
+        await btn.click()
+        await page.wait_for_timeout(300)
+
+        # 1순위: 해당 드롭다운의 목록(id가 박스 id로 시작) 안에서 찾기,
+        # 2순위: (혹시 목록 id 규칙이 다르면) 화면 전체에서 찾기.
+        opt = await _first_visible_anywhere(
+            page, f'[id^="{box_id}_"] >> text="{option_text}"', timeout=2000
+        )
+        if not opt:
+            opt = await _first_visible_anywhere(
+                page, f'text="{option_text}"', timeout=2000
+            )
+        if not opt:
+            raise RuntimeError(
+                f"'{box_id}' 드롭다운에서 '{option_text}' 항목을 찾지 못했습니다."
+            )
+        await opt.click()
+        await page.wait_for_timeout(300)
+
+        # 선택이 실제로 반영됐는지 검증
+        after = await _read_box_label(page, box_id)
+        if option_text in after:
+            return
+        # 반영 안 됐으면 한 번 더 시도(2회째도 실패하면 아래에서 오류)
+
+    raise RuntimeError(
+        f"'{box_id}' 드롭다운을 '{option_text}'(으)로 바꾸지 못했습니다 "
+        f"(현재 표시: '{after}'). 조회 기간이 적용되지 않아 이 구간을 실패 처리합니다."
+    )
 
 
 async def search_range(page, start: _dt.date, end: _dt.date):
@@ -95,11 +153,45 @@ async def search_range(page, start: _dt.date, end: _dt.date):
     await _select_dropdown(page, "sbx_TrToMon", f"{end.month:02d}월")
     await _select_dropdown(page, "sbx_TrToDay", f"{end.day:02d}일")
 
+    # 설정된 값을 로그로 남겨 나중에 검증할 수 있게 한다.
+    labels = []
+    for box_id in ("sbx_TrYyyy", "sbx_TrFromMon", "sbx_TrFromDay", "sbx_TrToMon", "sbx_TrToDay"):
+        labels.append(await _read_box_label(page, box_id))
+    print(f"  조회기간 설정 확인: {' / '.join(labels)}")
+
     search_btn = await _first_visible_anywhere(page, "text=검색")
     if not search_btn:
         raise RuntimeError("'검색' 버튼이 화면에 보이지 않습니다.")
     await search_btn.click()
     await page.wait_for_timeout(2000)
+
+
+def _check_record_dates(records, cs: _dt.date, ce: _dt.date):
+    """다운로드한 레코드들의 거래일자가 요청 구간 안인지 검증.
+    구간 밖 날짜가 있으면 (조회 기간이 적용되지 않았다는 뜻이므로)
+    오류를 던져 해당 구간을 실패로 처리한다. 날짜를 아예 못 읽은
+    레코드는 판단 불가라 그대로 둔다. 반환값: (최소날짜, 최대날짜) 문자열."""
+    seen = []
+    bad = []
+    for r in records:
+        d = str(r.get("date") or "")
+        if len(d) == 8 and d.isdigit():
+            try:
+                dt = _dt.date(int(d[:4]), int(d[4:6]), int(d[6:8]))
+            except ValueError:
+                continue
+            seen.append(d)
+            if not (cs <= dt <= ce):
+                bad.append(d)
+    if bad:
+        raise RuntimeError(
+            f"다운로드한 데이터의 거래일자가 요청 구간({cs}~{ce}) 밖입니다 "
+            f"(예: {sorted(set(bad))[:5]}). 조회 기간이 화면에 적용되지 않은 "
+            "것으로 보여 이 구간을 실패 처리합니다."
+        )
+    if seen:
+        return min(seen), max(seen)
+    return "", ""
 
 
 def _parse_date_arg(argv, idx, default):
@@ -137,10 +229,12 @@ async def main():
                     xlsx_path = await download_excel(page)
                     raw_records = parse_excel(xlsx_path)
                     records = [_to_record(r) for r in raw_records]
+                    dmin, dmax = _check_record_dates(records, cs, ce)
                     if records:
                         write_transactions("hwaseong", records)
                     total += len(records)
-                    print(f"  → {len(records)}건 기록 (누적 {total}건)")
+                    span = f", 거래일자 {dmin}~{dmax}" if dmin else ""
+                    print(f"  → {len(records)}건 기록 (누적 {total}건{span})")
                 except Exception as e:
                     print(f"  [경고] {cs}~{ce} 구간 실패: {e} - 건너뛰고 계속 진행합니다.")
                     failed.append((cs, ce, str(e)))
