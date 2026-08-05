@@ -310,14 +310,94 @@ async def open_credit_transaction_list(page):
     await page.wait_for_timeout(1000)
 
 
+async def _read_box_label(page, box_id: str) -> str:
+    """드롭다운 박스에 현재 표시된 글자를 읽는다(검증용). 못 읽으면 빈 문자열."""
+    box = await _first_visible_anywhere(page, f'#{box_id}', timeout=3000)
+    if not box:
+        return ""
+    try:
+        return (await box.inner_text()).strip()
+    except Exception:
+        return ""
+
+
+async def _select_dropdown(page, box_id: str, option_text: str):
+    """WebSquare w2selectbox 드롭다운을 열어 option_text 항목을 클릭하고,
+    실제로 선택이 반영됐는지 표시 글자를 다시 읽어 검증한다.
+    (백필에서 검증된 방식과 동일 - 목록 밖의 같은 글자를 잘못 클릭하고도
+    성공한 척 지나가는 조용한 실패를 막는다.)"""
+    after = ""
+    for attempt in (1, 2):
+        current = await _read_box_label(page, box_id)
+        if option_text in current:
+            return
+        btn = await _first_visible_anywhere(page, f'#{box_id}')
+        if not btn:
+            raise RuntimeError(f"'{box_id}' 드롭다운을 화면에서 찾지 못했습니다.")
+        await btn.click()
+        await page.wait_for_timeout(300)
+        opt = await _first_visible_anywhere(
+            page, f'[id^="{box_id}_"] >> text="{option_text}"', timeout=2000
+        )
+        if not opt:
+            opt = await _first_visible_anywhere(page, f'text="{option_text}"', timeout=2000)
+        if not opt:
+            raise RuntimeError(f"'{box_id}' 드롭다운에서 '{option_text}' 항목을 찾지 못했습니다.")
+        await opt.click()
+        await page.wait_for_timeout(300)
+        after = await _read_box_label(page, box_id)
+        if option_text in after:
+            return
+    raise RuntimeError(
+        f"'{box_id}' 드롭다운을 '{option_text}'(으)로 바꾸지 못했습니다 (현재 표시: '{after}')."
+    )
+
+
+async def search_range(page, start: _dt.date, end: _dt.date):
+    """조회기간을 start~end(같은 해 안)로 직접 지정해 검색한다.
+    실제 화면에서 확인된 위젯 id: sbx_TrYyyy, sbx_TrFromMon, sbx_TrFromDay,
+    sbx_TrToMon, sbx_TrToDay (백필에서 검증된 방식)."""
+    if start.year != end.year:
+        raise ValueError(f"조회기간은 같은 해 안이어야 합니다 (요청: {start} ~ {end}).")
+    await _select_dropdown(page, "sbx_TrYyyy", f"{start.year}년")
+    await _select_dropdown(page, "sbx_TrFromMon", f"{start.month:02d}월")
+    await _select_dropdown(page, "sbx_TrFromDay", f"{start.day:02d}일")
+    await _select_dropdown(page, "sbx_TrToMon", f"{end.month:02d}월")
+    await _select_dropdown(page, "sbx_TrToDay", f"{end.day:02d}일")
+    labels = []
+    for box_id in ("sbx_TrYyyy", "sbx_TrFromMon", "sbx_TrFromDay", "sbx_TrToMon", "sbx_TrToDay"):
+        labels.append(await _read_box_label(page, box_id))
+    print(f"  조회기간 설정 확인: {' / '.join(labels)}")
+
+    search_btn = await _first_visible_anywhere(page, 'text=검색')
+    if not search_btn:
+        raise RuntimeError("'검색' 버튼이 화면에 보이지 않습니다.")
+    await search_btn.click()
+    await page.wait_for_timeout(2000)
+
+
 async def search_last_week(page):
-    # '검색' 버튼 찾기가 실제로 실패한 적이 있음 - 원인으로 가장 유력한
-    # 것은, WebSquare가 '신용거래' 탭 내용을 별도 iframe으로 그려 넣는데
-    # _first_frame_with가 "'검색'이라는 글자가 존재하는 첫 frame"을
-    # 골랐지만 그 frame에서는 해당 글자가 숨겨진 채로만 있고, 실제로
-    # 보이는 '검색' 버튼은 다른 frame에 있었을 가능성. 그래서 frame을
-    # 하나로 좁히지 않고 페이지 전체 frame을 다 뒤지는
-    # _first_visible_anywhere로 통일한다.
+    """최근 1주일 조회.
+
+    (2026-08-05 수정) 원래는 화면의 '1주일' 퀵버튼을 눌렀는데, 같은 날
+    백필은 성공(날짜 드롭다운 직접 설정)하고 이 방식만 두 번 연속
+    "다운로드 이벤트가 아예 발생하지 않는" 실패를 냈다 - 퀵버튼 클릭이
+    조용히 빗나가 조회 조건이 엉뚱하게 잡혔을 가능성이 커서, 백필에서
+    검증된 '드롭다운 직접 설정 + 반영 검증' 방식으로 같은 기간(오늘 포함
+    최근 7일)을 지정하도록 바꿨다. 연초처럼 7일 범위가 해를 넘어가면
+    1월 1일부터로 잘라서 조회한다(연도 셀렉트가 1개뿐이라 해를 못 넘김).
+    드롭다운 방식이 실패하면 예전 '1주일' 퀵버튼 방식으로 한 번 더
+    시도한다(안전망)."""
+    end = _dt.date.today()
+    start = end - _dt.timedelta(days=6)
+    if start.year != end.year:
+        start = _dt.date(end.year, 1, 1)
+    try:
+        await search_range(page, start, end)
+        return
+    except Exception as e:
+        print(f"[경고] 날짜 드롭다운 방식 조회 실패({e}) - '1주일' 퀵버튼 방식으로 재시도합니다.")
+
     week_btn = await _first_visible_anywhere(page, 'text=1주일')
     if not week_btn:
         raise RuntimeError("'1주일' 조회기간 버튼이 화면에 보이지 않습니다.")
@@ -475,10 +555,26 @@ def _to_record(rec: dict) -> dict:
 DEBUG_SCREENSHOT_PATH = "semplus_login_debug.png"
 
 
+def _log_dialog(dialog):
+    """(2026-08-05) 다운로드 이벤트가 아예 안 뜨는 실패가 있었는데, 사이트가
+    alert 창(예: '조회된 데이터가 없습니다')을 띄우면 Playwright가 조용히
+    닫아버려 로그에 아무것도 안 남는다 - 원인 파악을 위해 대화상자 내용을
+    로그로 남기고 닫는다."""
+    try:
+        print(f"[안내] 사이트 대화상자 감지: {dialog.message!r}")
+    except Exception:
+        pass
+    try:
+        asyncio.get_event_loop().create_task(dialog.dismiss())
+    except Exception:
+        pass
+
+
 async def main():
     async with async_playwright() as pw:
         browser = await pw.chromium.launch()
         page = await browser.new_page(accept_downloads=True)
+        page.on("dialog", _log_dialog)
         try:
             await login(page)
             await open_credit_transaction_list(page)
