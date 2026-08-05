@@ -2707,21 +2707,22 @@
     <div style="text-align:right;margin:4px 0 12px"><span id="csSyncMeta" style="font-size:11px;color:#9ca3af;white-space:nowrap"></span></div>
     <div id="csDetailHead" style="font-size:13px;font-weight:700;color:#1a1a1a;margin:4px 0 8px"></div>
     <div style="overflow:auto">
-      <!-- 2026-08-05 사용자 요청: 내용에 따라 칸 너비가 흔들리지 않도록
-           table-layout:fixed + colgroup으로 각 칸 너비 고정 (가맹점만 남은
-           너비를 차지). 넘치는 내용은 말줄임(...) 처리 - 아래 style 참고 -->
+      <!-- 2026-08-05 사용자 요청: 칸 너비 고정. 처음의 자동 배분 모습(전체
+           너비를 자연스럽게 나눠 가진 비율)이 가장 보기 좋았다는 피드백에
+           따라, 픽셀 대신 그 비율을 퍼센트로 고정한다 - 내용이 바뀌어도
+           칸이 흔들리지 않으면서 처음과 같은 배분 유지. 넘치면 말줄임 처리 -->
       <table class="cs-detail" style="width:100%;min-width:880px;table-layout:fixed;border-collapse:collapse;font-size:12.5px">
         <colgroup>
-          <col style="width:64px"><!-- 지점 -->
-          <col style="width:56px"><!-- 시간 -->
-          <col><!-- 가맹점 (남은 너비) -->
-          <col style="width:64px"><!-- 카드사 -->
-          <col style="width:140px"><!-- 카드번호 -->
-          <col style="width:48px"><!-- 할부 -->
-          <col style="width:92px"><!-- 공급가액 -->
-          <col style="width:84px"><!-- 부가세 -->
-          <col style="width:92px"><!-- 합계 -->
-          <col style="width:92px"><!-- 승인번호 -->
+          <col style="width:7%"><!-- 지점 -->
+          <col style="width:7%"><!-- 시간 -->
+          <col style="width:17%"><!-- 가맹점 -->
+          <col style="width:8%"><!-- 카드사 -->
+          <col style="width:13%"><!-- 카드번호 -->
+          <col style="width:6%"><!-- 할부 -->
+          <col style="width:10%"><!-- 공급가액 -->
+          <col style="width:9%"><!-- 부가세 -->
+          <col style="width:10%"><!-- 합계 -->
+          <col style="width:13%"><!-- 승인번호 -->
         </colgroup>
         <thead>
           <tr>
