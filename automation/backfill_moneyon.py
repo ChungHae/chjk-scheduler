@@ -9,15 +9,21 @@ Firebase에 채워 넣는다. 로그인/조회/파싱 로직은 전부 scrape_mo
 
 거래 고유 id를 key로 upsert하므로 중복 실행해도 안전하다(멱등).
 
-머니온 자체의 조회기간 제한: 화면에서 실제로 확인함 - "조회값을 31일
-이내로 하라"는 안내가 뜸(SemPlus의 35일 제한과는 다름, 더 짧음).
-그래서 31일 단위로 나눠서 조회한다.
-(2026-08-05 백필 실행에서, 정확히 35일짜리였던 구간들만 전부 타임아웃
-나고 31일 미만이었던 마지막 구간만 성공한 것으로 원인 확인됨 - 시간
-문제가 아니라 이 31일 제한 때문이었음.)
+머니온 자체의 조회기간 제한 (2가지, 서로 다름):
+  1) 한 번에 조회 가능한 "폭"이 31일 이내 (화면에서 실제로 확인: "조회값을
+     31일 이내로 하라"는 안내가 뜸 - SemPlus의 35일 제한과는 다름, 더 짧음).
+     그래서 31일 단위로 나눠서 조회한다.
+  2) 조회 시작일이 오늘로부터 180일 이내여야 함(사용자가 머니온 화면에서
+     직접 확인: "180일 이내의 자료만 조회 가능"). 이보다 오래된 과거는
+     머니온 자체에서 아예 조회가 안 되므로, 자동화로도 가져올 수 없다.
+(2026-08-05 백필 실행에서, 31일 제한만 반영해 재실행했는데도 가장 오래된
+ 2개 구간(1~2월)만 계속 타임아웃 나는 것을 확인 - 처음엔 폭 제한(1번)
+ 문제인 줄 알았으나, 실제로는 180일 제한(2번)에 걸린 것이었음. 그래서
+ 아래에서 조회 시작일을 180일 제한 안쪽으로 강제 조정한다.)
 
 특정 초기 구간에 데이터가 없어도 정상 - 해당 구간은 0건으로 기록되고
-다음 구간으로 계속 진행된다.
+다음 구간으로 계속 진행된다. 다만 180일 제한보다 오래된 구간은 애초에
+조회 자체가 안 되므로(0건이 아니라 타임아웃) 아예 건너뛴다.
 
 실행:
   python backfill_moneyon.py [시작일 YYYY-MM-DD] [종료일 YYYY-MM-DD]
@@ -36,6 +42,7 @@ from scrape_moneyon import DETAIL_URL, _to_record, fetch_detail_page, login
 from common_firebase import write_transactions
 
 CHUNK_MAX_DAYS = 31  # 머니온 화면에서 실제로 확인된 제한("31일 이내")
+MAX_LOOKBACK_DAYS = 180  # 머니온 화면에서 실제로 확인된 제한("180일 이내의 자료만 조회 가능")
 DEFAULT_START = _dt.date(2026, 1, 1)
 DEBUG_SCREENSHOT_PATH = "moneyon_backfill_debug.png"
 
@@ -60,6 +67,25 @@ def _parse_date_arg(argv, idx, default):
 async def main():
     start = _parse_date_arg(sys.argv, 1, DEFAULT_START)
     end = _parse_date_arg(sys.argv, 2, _dt.date.today())
+
+    # 180일 제한: 조회 시작일을 "오늘 - 179일"(오늘 포함 180일) 안쪽으로 강제 조정.
+    # 이보다 오래된 기간은 머니온 자체에서 조회가 안 되므로 시도해도 항상 타임아웃만
+    # 나고 끝난다 - 아예 조회 대상에서 제외해 불필요한 실패/시간낭비를 막는다.
+    earliest_available = _dt.date.today() - _dt.timedelta(days=MAX_LOOKBACK_DAYS - 1)
+    if start < earliest_available:
+        print(
+            f"[안내] 머니온은 오늘로부터 {MAX_LOOKBACK_DAYS}일 이내 데이터만 조회 가능합니다. "
+            f"요청하신 시작일({start})은 그보다 오래되어 조회가 불가능하므로, "
+            f"실제 조회는 {earliest_available}부터 진행합니다. "
+            f"({start} ~ {earliest_available - _dt.timedelta(days=1)} 구간은 머니온 자체 "
+            "제한으로 자동조회 불가 - 필요하면 머니온에 별도 문의 필요)"
+        )
+        start = earliest_available
+
+    if start > end:
+        print(f"[안내] 조회 가능한 시작일({start})이 종료일({end})보다 늦어 조회할 구간이 없습니다.")
+        return
+
     chunks = _date_chunks(start, end, CHUNK_MAX_DAYS)
     print(f"머니온 백필: {start} ~ {end}, {len(chunks)}개 구간(최대 {CHUNK_MAX_DAYS}일씩)으로 나눠 조회합니다.")
 
