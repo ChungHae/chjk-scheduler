@@ -14270,8 +14270,35 @@ function reloadState() {
     }
     if (page === 'links')     renderLinksPage();
     if (page === 'cardsales'){
-      var _csd=document.getElementById('csDate'); if(_csd && !_csd.value){ var _d=new Date(); var _p=function(n){return (n<10?'0':'')+n;}; _csd.value = _d.getFullYear()+'-'+_p(_d.getMonth()+1)+'-'+_p(_d.getDate()); }
-      renderCardSalesPage();
+      var _csd=document.getElementById('csDate');
+      if(_csd && !_csd.value){
+        // 2026-08-05: 그냥 "오늘" 날짜를 기본값으로 넣으면, 아직 오늘자 동기화가
+        // 안 됐거나 오늘 거래가 없을 때 "카드매출 데이터가 없습니다"로 보여서
+        // 마치 전체가 하나도 안 보이는 것처럼 오해할 수 있었음(실제 문의 발생).
+        // 그래서 각 지점 _meta의 lastSyncedDates 중 가장 최근 날짜를 기본값으로
+        // 쓰고, 정보가 없을 때만 오늘 날짜로 fallback 한다.
+        (function(){
+          var _p=function(n){return (n<10?'0':'')+n;};
+          var _today=(function(){var d=new Date(); return d.getFullYear()+'-'+_p(d.getMonth()+1)+'-'+_p(d.getDate());})();
+          var _fallback=_today;
+          var _apply=function(){ _csd.value=_fallback; renderCardSalesPage(); };
+          if(!_fbDbUrl){ _apply(); return; }
+          Promise.all(['seoul','hwaseong'].map(function(b){
+            return _fbFetch(`${_fbDbUrl}/teamdata_test_cardsales/_meta/${b}.json`).then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
+          })).then(function(metas){
+            var latest=null;
+            metas.forEach(function(m){
+              if(m && Array.isArray(m.lastSyncedDates)){
+                m.lastSyncedDates.forEach(function(d){ if(typeof d==='string' && (!latest || d>latest)) latest=d; });
+              }
+            });
+            if(latest && latest.length===8){ _fallback = latest.slice(0,4)+'-'+latest.slice(4,6)+'-'+latest.slice(6,8); }
+            _apply();
+          }).catch(_apply);
+        })();
+      } else {
+        renderCardSalesPage();
+      }
     }
   }
   document.querySelectorAll('.page-tab[data-page], .sub-tab').forEach(tab => {
