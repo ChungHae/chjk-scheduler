@@ -9,8 +9,12 @@ Firebase에 채워 넣는다. 로그인/조회/파싱 로직은 전부 scrape_mo
 
 거래 고유 id를 key로 upsert하므로 중복 실행해도 안전하다(멱등).
 
-머니온 자체의 조회기간 제한은 확인되지 않았지만(SemPlus는 35일 제한이
-실제로 확인됨), 안전하게 SemPlus와 동일한 35일 단위로 나눠서 조회한다.
+머니온 자체의 조회기간 제한: 화면에서 실제로 확인함 - "조회값을 31일
+이내로 하라"는 안내가 뜸(SemPlus의 35일 제한과는 다름, 더 짧음).
+그래서 31일 단위로 나눠서 조회한다.
+(2026-08-05 백필 실행에서, 정확히 35일짜리였던 구간들만 전부 타임아웃
+나고 31일 미만이었던 마지막 구간만 성공한 것으로 원인 확인됨 - 시간
+문제가 아니라 이 31일 제한 때문이었음.)
 
 특정 초기 구간에 데이터가 없어도 정상 - 해당 구간은 0건으로 기록되고
 다음 구간으로 계속 진행된다.
@@ -31,7 +35,7 @@ from playwright.async_api import async_playwright
 from scrape_moneyon import DETAIL_URL, _to_record, fetch_detail_page, login
 from common_firebase import write_transactions
 
-CHUNK_MAX_DAYS = 35  # SemPlus에서 확인된 제한과 동일하게 보수적으로 통일
+CHUNK_MAX_DAYS = 31  # 머니온 화면에서 실제로 확인된 제한("31일 이내")
 DEFAULT_START = _dt.date(2026, 1, 1)
 DEBUG_SCREENSHOT_PATH = "moneyon_backfill_debug.png"
 
