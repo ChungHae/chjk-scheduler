@@ -2677,6 +2677,8 @@
       #pageCardSales .cs-cal-daynum{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;border-radius:0;font-size:12px;font-weight:700;padding:0 4px;flex-shrink:0}
       #pageCardSales .cs-cal-badges{display:flex;flex-direction:column;gap:2px}
       #pageCardSales .cs-cal-badge{font-size:10px;font-weight:700;border-radius:0;padding:1px 4px;line-height:1.5;white-space:nowrap;display:inline-block}
+      /* 거래내역 표: 고정 칸 너비에서 넘치는 내용은 말줄임 처리 */
+      #pageCardSales table.cs-detail td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     </style>
     <!-- 2026-08-05 디자인 개편: 상단 "카드매출" 제목 제거, 요약은 간략한 칩으로
          맨 위에, 년월 표시는 달력 바로 위 가운데 + 지점 필터는 같은 행 우측,
@@ -2705,7 +2707,22 @@
     <div style="text-align:right;margin:4px 0 12px"><span id="csSyncMeta" style="font-size:11px;color:#9ca3af;white-space:nowrap"></span></div>
     <div id="csDetailHead" style="font-size:13px;font-weight:700;color:#1a1a1a;margin:4px 0 8px"></div>
     <div style="overflow:auto">
-      <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+      <!-- 2026-08-05 사용자 요청: 내용에 따라 칸 너비가 흔들리지 않도록
+           table-layout:fixed + colgroup으로 각 칸 너비 고정 (가맹점만 남은
+           너비를 차지). 넘치는 내용은 말줄임(...) 처리 - 아래 style 참고 -->
+      <table class="cs-detail" style="width:100%;min-width:880px;table-layout:fixed;border-collapse:collapse;font-size:12.5px">
+        <colgroup>
+          <col style="width:64px"><!-- 지점 -->
+          <col style="width:56px"><!-- 시간 -->
+          <col><!-- 가맹점 (남은 너비) -->
+          <col style="width:64px"><!-- 카드사 -->
+          <col style="width:140px"><!-- 카드번호 -->
+          <col style="width:48px"><!-- 할부 -->
+          <col style="width:92px"><!-- 공급가액 -->
+          <col style="width:84px"><!-- 부가세 -->
+          <col style="width:92px"><!-- 합계 -->
+          <col style="width:92px"><!-- 승인번호 -->
+        </colgroup>
         <thead>
           <tr>
             <th style="padding:9px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">지점</th>
@@ -3772,7 +3789,7 @@
       var cls='cs-cal-cell'+(dim?' cs-cal-dim':'')+(hasData?' cs-cal-has-data':'')+(ymd===_csSelectedDate?' cs-cal-selected':'')+(isTod?' cs-cal-today':'');
       var dateColor=isTod?'#fff':(!inMonth?'#9ca3af':(hol||dow===0)?'#dc2626':dow===6?'#1b3a6b':'#1a1a1a');
       var badges='';
-      if(showSeoul) badges += '<span class="cs-cal-badge" style="background:#EAF1FB;color:#1B3A6B">서울 '+cnt.seoul+'</span>';
+      if(showSeoul) badges += '<span class="cs-cal-badge" style="background:#dcf5e7;color:#15803d">서울 '+cnt.seoul+'</span>';
       if(showHwa) badges += '<span class="cs-cal-badge" style="background:#fdf1e3;color:#b45309">화성 '+cnt.hwaseong+'</span>';
       cells += '<div class="'+cls+'"'+(hasData?' data-ymd="'+ymd+'"':'')+'>'+
         '<div style="display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden">'+
