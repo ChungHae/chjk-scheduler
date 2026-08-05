@@ -35,11 +35,20 @@
 
 주의: 비밀번호 값은 어떤 경우에도 print/log하지 않는다.
 
-※ 이 화면엔 "저장" 버튼이 위쪽 요약표/아래쪽 상세표 두 군데에 있어서,
-  화면에 보이는 것 중 DOM상 더 나중에 나오는(=아래쪽 상세표) 것을 골라야
-  한다 - _last_visible_anywhere가 그 역할을 한다. 사이트 개편으로 이 가정이
-  깨지면 workflow_dispatch로 한 번 수동 실행해 실패 스크린샷
-  (moneyon_backfill_debug.png / 동기화 쪽은 별도 경로)으로 확인 후 고칠 것.
+2026-08-05 백필 재실행에서 6개 구간 전부 "'저장' 버튼을 화면에서 찾지 못했습니다"로
+실패하는 것을 발견해 실제 화면을 다시 열어 DOM을 직접 확인함(read_page로 접근성
+트리 조회). 원인: "저장"은 실제 텍스트 노드가 아니라 아이콘 이미지라서
+text="저장"/has-text("저장") 류의 선택자가 애초에 아무것도 못 찾고 있었음.
+실제로는 아래쪽 상세표 옆 링크의 href가 정확히 javascript:excelDownload(); 이고,
+위쪽 요약표 옆 링크는 href가 javascript:excelDownload_each(); 로 서로 다르다는
+것을 확인함 - 그래서 이제 href 기준으로 정확히 상세표 쪽만 골라 클릭하도록
+고쳤다(더 이상 "화면에 보이는 것 중 마지막" 같은 휴리스틱에 의존하지 않음).
+
+또한 이 버튼을 클릭하면 "처리 중입니다... (처리완료 후 '닫기' 버튼을
+눌러주세요.)"라는 진행 모달이 뜨는 것도 실제로 확인함(서버 쪽에서 엑셀을
+생성하는 데 시간이 걸리는 것으로 보임) - Playwright의 expect_download()는
+브라우저 다운로드 이벤트 자체를 기다리는 것이라 화면에 이 모달이 떠 있어도
+무관하게 동작하지만, 처리 시간을 감안해 다운로드 대기 시간을 넉넉히 늘렸다.
 """
 import asyncio
 import datetime
@@ -73,8 +82,14 @@ LOGIN_SUBMIT_CANDIDATES = [
     '#loginBtn', 'button:has-text("로그인")', 'a:has-text("로그인")', 'input[type="submit"][value*="로그인"]',
 ]
 
-# "저장" 버튼 후보 - 텍스트가 아니라 아이콘/이미지 버튼일 가능성도 있어 넉넉히 시도
+# "저장" 버튼 후보. 2026-08-05 실제 DOM 확인 결과 "저장"은 텍스트가 아니라
+# 아이콘 이미지라서 텍스트 기반 선택자는 전혀 매칭되지 않았음(백필 실패 원인).
+# 실제로 확인된 정확한 선택자는 href="javascript:excelDownload();" 하나뿐이고,
+# 이는 아래쪽 상세표 옆 버튼에만 붙어 있어 위쪽 요약표 버튼(excelDownload_each())과
+# 확실히 구분된다 - 그래서 이걸 최우선으로 시도한다. 나머지는 사이트 개편 시를
+# 대비한 예비 후보.
 SAVE_BTN_CANDIDATES = [
+    'a[href="javascript:excelDownload();"]', 'a[href*="excelDownload()"]',
     'text="저장"', 'a:has-text("저장")', 'button:has-text("저장")',
     '[alt*="저장"]', '[title*="저장"]',
 ]
@@ -166,11 +181,16 @@ async def search_range(page, date_fr: str, date_to: str):
 
 
 async def download_excel(page) -> str:
-    """상세 내역 표(아래쪽) 옆의 "저장" 버튼을 눌러 엑셀로 받는다."""
+    """상세 내역 표(아래쪽) 옆의 "저장" 버튼을 눌러 엑셀로 받는다.
+
+    2026-08-05 확인: 클릭하면 "처리 중입니다..." 진행 모달이 뜨고, 서버가
+    엑셀을 만드는 동안 시간이 걸린 뒤에야 실제 다운로드가 시작된다. 그래서
+    다운로드 대기 시간을 SemPlus보다 넉넉하게 잡는다(처리 시간이 데이터量에
+    따라 달라질 수 있음)."""
     save_btn = await _last_visible_anywhere(page, SAVE_BTN_CANDIDATES)
     if not save_btn:
         raise RuntimeError("'저장' 버튼을 화면에서 찾지 못했습니다.")
-    async with page.expect_download(timeout=20000) as dl_info:
+    async with page.expect_download(timeout=60000) as dl_info:
         await save_btn.click()
     download = await dl_info.value
     path = os.path.join(tempfile.gettempdir(), "moneyon_sales_detail.xlsx")
