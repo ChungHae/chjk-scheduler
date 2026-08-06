@@ -2667,7 +2667,7 @@
       #pageCardSales .cs-cal-weekhead{text-align:center;font-size:13px;font-weight:700;padding:4px 0;color:#333}
       #pageCardSales .cs-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
       /* 셀: 개인일정 날짜 셀과 동일한 디자인(흰 배경/#ececec 테두리/각진 모서리, 주말·타월·공휴일 #f1f4f9)을 작은 크기로 */
-      #pageCardSales .cs-cal-cell{background:#fff;border:1px solid #ececec;border-radius:0;min-height:54px;padding:5px 6px;display:flex;flex-direction:column;gap:3px;overflow:hidden;box-sizing:border-box}
+      #pageCardSales .cs-cal-cell{background:#fff;border:1px solid #ececec;border-radius:0;height:72px;padding:5px 6px;display:flex;flex-direction:column;gap:3px;overflow:hidden;box-sizing:border-box}
       #pageCardSales .cs-cal-cell.cs-cal-dim{background:#f1f4f9}
       #pageCardSales .cs-cal-cell.cs-cal-today{border:2px solid #1B3A6B}
       #pageCardSales .cs-cal-cell.cs-cal-selected{border:2px solid #1B3A6B;background:#eaf1fb}
@@ -2728,13 +2728,13 @@
           <tr>
             <th style="padding:9px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">지점</th>
             <th style="padding:9px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">시간</th>
-            <th style="padding:9px 8px;text-align:left;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">가맹점</th>
+            <th style="padding:9px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">가맹점</th>
             <th style="padding:9px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">카드사</th>
             <th style="padding:9px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">카드번호</th>
             <th style="padding:9px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">할부</th>
-            <th style="padding:9px 8px;text-align:right;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">공급가액</th>
-            <th style="padding:9px 8px;text-align:right;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">부가세</th>
-            <th style="padding:9px 8px;text-align:right;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">합계</th>
+            <th style="padding:9px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">공급가액</th>
+            <th style="padding:9px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">부가세</th>
+            <th style="padding:9px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">합계</th>
             <th style="padding:9px 8px;text-align:center;font-weight:500;font-size:12px;color:#888;border-bottom:1px solid #e5e5e5;white-space:nowrap">승인번호</th>
           </tr>
         </thead>
@@ -3856,7 +3856,7 @@
       return '<tr>'+
         '<td style="padding:7px 8px;text-align:center;border-bottom:1px solid #f0f0f0">'+(_CS_BRANCH_LABEL[r._branch]||'')+'</td>'+
         '<td style="padding:7px 8px;text-align:center;border-bottom:1px solid #f0f0f0">'+_csFmtTime(r.time)+'</td>'+
-        '<td style="padding:7px 8px;text-align:left;border-bottom:1px solid #f0f0f0">'+esc(_csNormMerchantName(r.merchant))+'</td>'+
+        '<td style="padding:7px 8px;text-align:center;border-bottom:1px solid #f0f0f0">'+esc(_csNormMerchantName(r.merchant))+'</td>'+
         '<td style="padding:7px 8px;text-align:center;border-bottom:1px solid #f0f0f0">'+esc(r.issuer||'-')+'</td>'+
         '<td style="padding:7px 8px;text-align:center;border-bottom:1px solid #f0f0f0">'+esc(r.cardNoMasked||'')+'</td>'+
         '<td style="padding:7px 8px;text-align:center;border-bottom:1px solid #f0f0f0">'+esc(_csNormInstallment(r.installment))+'</td>'+
