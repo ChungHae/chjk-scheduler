@@ -3649,7 +3649,7 @@
   function _misuVBarChart(containerId, title, rows){
     var el=document.getElementById(containerId); if(!el) return;
     if(!rows || !rows.length){ el.innerHTML=''; return; }
-    var n=rows.length, W=Math.max(320, n*74), H=280, padL=10, padR=10, padT=26, padB=26, plotH=H-padT-padB;
+    var n=rows.length, W=Math.max(320, n*74), H=300, padL=10, padR=10, padT=26, padB=26, plotH=H-padT-padB;
     var maxv=1; rows.forEach(function(r){ maxv=Math.max(maxv, r.sales||0, r.buy||0); });
     var groupW=(W-padL-padR)/n, barW=Math.min(22, groupW/2.5), gap=13;
     var bars='', labels='';
@@ -3681,7 +3681,7 @@
     var body=rows.map(function(r){
       var a=Number(r.a)||0, w=Math.max(4, Math.round(a/mx*100)), nm=esc(String(r.n||''));
       return '<div style="display:flex;align-items:center;gap:10px;margin:9px 0">'
-        +'<div title="'+nm+'" style="width:120px;flex:0 0 120px;font-size:12px;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right">'+nm+'</div>'
+        +'<div title="'+nm+'" style="width:180px;flex:0 0 180px;font-size:12px;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right">'+nm+'</div>'
         +'<div style="flex:1;background:#f1f4f9;height:18px;position:relative"><div style="width:'+w+'%;height:100%;background:#1B3A6B"></div></div>'
         +'<div style="width:70px;flex:0 0 70px;font-size:12px;font-weight:700;color:#1a1a1a;white-space:nowrap">'+_misuFmtWon(a)+'</div>'
         +'</div>';
