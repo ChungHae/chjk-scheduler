@@ -2683,11 +2683,12 @@
     <!-- 2026-08-05 디자인 개편: 상단 "카드매출" 제목 제거, 요약은 간략한 칩으로
          맨 위에, 년월 표시는 달력 바로 위 가운데 + 지점 필터는 같은 행 우측,
          마지막 동기화는 달력 바로 아래 우측 정렬 -->
-    <div id="csSummaryGrid" style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 12px">
-      <div style="color:#9ca3af;font-size:13px">불러오는 중…</div>
-    </div>
+    <!-- 2026-08-05 사용자 요청: 요약 칩을 년월 네비와 같은 줄(왼쪽)에 표시.
+         왼쪽(칩)·오른쪽(필터)이 같은 flex:1이라 년월 네비는 가운데 유지 -->
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-      <span style="flex:1"></span>
+      <div id="csSummaryGrid" style="flex:1;display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0">
+        <div style="color:#9ca3af;font-size:13px">불러오는 중…</div>
+      </div>
       <!-- 년월 네비: 개인일정 달력 네비(week-nav/wknav-arrow/week-label/wknav-today)와 동일한 클래스 사용 -->
       <div class="week-nav">
         <button type="button" class="wknav-arrow" id="csPrevMonth" aria-label="이전 달">←</button>
@@ -3807,28 +3808,36 @@
   }
 
   function _csRenderSummary(){
+    // 2026-08-05 사용자 요청: "이번 달 -건 / 이번 달 -원 / 서울 -원 / 화성 -원"
+    // 형태로 간략 표시. 금액은 부가세 별도(공급가액 합계)이며 1원 단위까지
+    // 그대로 보여준다. 지점 필터를 걸면 이번 달 건수/금액은 그 지점 기준이
+    // 되고, 서울/화성 개별 금액 칩은 전체 보기에서만 표시한다.
     var prefix=''+_csMonth.y+_csPad2(_csMonth.m);
-    var totalCnt=0, totalAmt=0, byBranch={seoul:0,hwaseong:0};
+    var per={seoul:{cnt:0,sup:0}, hwaseong:{cnt:0,sup:0}};
     ['seoul','hwaseong'].forEach(function(b){
-      if(_csBranchFilter!=='all' && _csBranchFilter!==b) return;
       var byDate=_csCache[b]||{};
       Object.keys(byDate).forEach(function(ymd){
         if(ymd.slice(0,6)!==prefix) return;
-        (byDate[ymd]||[]).forEach(function(r){ totalCnt++; byBranch[b]++; totalAmt += Number(r.amount)||0; });
+        (byDate[ymd]||[]).forEach(function(r){ per[b].cnt++; per[b].sup += Number(r.supplyAmt)||0; });
       });
     });
-    // 2026-08-05 사용자 요청: 큼직한 카드형 대신 작은 한 줄 요약 칩으로 간략하게 표시
+    var branches = _csBranchFilter==='all' ? ['seoul','hwaseong'] : [_csBranchFilter];
+    var totalCnt=0, totalSup=0;
+    branches.forEach(function(b){ totalCnt+=per[b].cnt; totalSup+=per[b].sup; });
     var g=document.getElementById('csSummaryGrid');
     if(!g) return;
+    function _won(v){ return Math.round(v).toLocaleString(); }
     function _chip(label, val, bg, vc){
       return '<span style="background:'+bg+';border-radius:4px;padding:4px 10px;font-size:12px;color:#6b7280;white-space:nowrap">'+label+' <b style="color:'+vc+';font-weight:700">'+val+'</b></span>';
     }
-    var chips=[_chip('이번 달 거래건수', totalCnt.toLocaleString()+'건', '#EAF1FB', '#1B3A6B')];
+    var chips=[
+      _chip('이번 달', totalCnt.toLocaleString()+'건', '#EAF1FB', '#1B3A6B'),
+      _chip('이번 달', _won(totalSup)+'원', '#f3f6fa', '#1a1a1a')
+    ];
     if(_csBranchFilter==='all'){
-      chips.push(_chip('서울(머니온)', byBranch.seoul.toLocaleString()+'건', '#f3f6fa', '#1a1a1a'));
-      chips.push(_chip('화성(SemPlus)', byBranch.hwaseong.toLocaleString()+'건', '#f3f6fa', '#1a1a1a'));
+      chips.push(_chip('서울', _won(per.seoul.sup)+'원', '#dcf5e7', '#15803d'));
+      chips.push(_chip('화성', _won(per.hwaseong.sup)+'원', '#fdf1e3', '#b45309'));
     }
-    chips.push(_chip('이번 달 거래금액', _misuFmtWon(totalAmt)+'원', '#eafaf1', '#0f7a3d'));
     g.innerHTML = chips.join('');
   }
 
