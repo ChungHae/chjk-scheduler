@@ -1699,6 +1699,13 @@
     #qCart .qc-memo::placeholder { color:#c7d0da; }
 
     #qCart td:has(> .qc-in), #qCart td:has(> span > .qc-in) { padding:0 !important; }
+    /* ── 엑셀식 칸 선택 표시 (2026-08-06): 탐색 모드에서는 글자 하이라이트·글자 커서를
+       숨기고 진한 테두리로 '칸 선택'을 보여준다. 타이핑·F2·더블클릭하면 글자 커서 등장. ── */
+    #qlmTable input.qlm-in:focus, #qCart .qc-in:focus { box-shadow:inset 0 0 0 2px #1B3A6B; }
+    #qlmTable input.qlm-in:focus:not([data-xed]):not([data-xtyping]),
+    #qCart .qc-in:focus:not([data-xed]):not([data-xtyping]) { caret-color:transparent; }
+    #qlmTable input.qlm-in:focus:not([data-xed]):not([data-xtyping])::selection,
+    #qCart .qc-in:focus:not([data-xed]):not([data-xtyping])::selection { background:transparent; }
     .cho-idx { display:flex; flex-wrap:wrap; gap:3px; margin-bottom:10px; }
     .cho-btn { min-width:26px; height:26px; padding:0 7px; border:1px solid #e0e6ee; background:#fff; color:#5b7ba6; border-radius:0; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
     .cho-btn:hover:not(:disabled) { background:#f4f8fe; }
@@ -8318,8 +8325,8 @@ function reloadState() {
     // ── 엑셀식 이동 (2026-08-05, 견적표와 동일한 방식) ──
     // 기본(탐색 모드): 화살표는 항상 칸 단위 이동. F2/더블클릭=편집 모드
     // (좌우 화살표가 글자 사이 이동), Esc=탐색 모드 복귀(전체 선택).
-    if(k==='F2'){ ev.preventDefault(); el.dataset.xed='1'; try{ var _L=el.value.length; el.setSelectionRange(_L,_L); }catch(_e){} return; }
-    if(k==='Escape'){ if(el.dataset.xed==='1'){ ev.preventDefault(); ev.stopPropagation(); delete el.dataset.xed; try{ el.select(); }catch(_e){} } return; }
+    if(k==='F2'){ ev.preventDefault(); el.dataset.xed='1'; delete el.dataset.xtyping; try{ var _L=el.value.length; el.setSelectionRange(_L,_L); }catch(_e){} return; }
+    if(k==='Escape'){ if(el.dataset.xed==='1'||el.dataset.xtyping==='1'){ ev.preventDefault(); ev.stopPropagation(); delete el.dataset.xed; delete el.dataset.xtyping; try{ el.select(); }catch(_e){} } return; }
     var all=Array.prototype.slice.call(document.querySelectorAll('#qlmTable input.qlm-in'));
     var idx=all.indexOf(el); if(idx<0) return;
     var col=idx % _LM_PERROW;
@@ -8985,8 +8992,8 @@ function reloadState() {
     // 기본(탐색 모드): 화살표는 커서 위치와 무관하게 항상 칸 단위로 이동.
     // F2 또는 더블클릭으로 편집 모드에 들어가면 좌우 화살표가 글자 사이를
     // 이동하고, Esc를 누르면 다시 탐색 모드(전체 선택)로 돌아온다.
-    if(k==='F2'){ ev.preventDefault(); el.dataset.xed='1'; try{ var _L=el.value.length; el.setSelectionRange(_L,_L); }catch(_e){} return; }
-    if(k==='Escape' && el.dataset.xed==='1'){ ev.preventDefault(); delete el.dataset.xed; try{ el.select(); }catch(_e){} return; }
+    if(k==='F2'){ ev.preventDefault(); el.dataset.xed='1'; delete el.dataset.xtyping; try{ var _L=el.value.length; el.setSelectionRange(_L,_L); }catch(_e){} return; }
+    if(k==='Escape' && (el.dataset.xed==='1'||el.dataset.xtyping==='1')){ ev.preventDefault(); delete el.dataset.xed; delete el.dataset.xtyping; try{ el.select(); }catch(_e){} return; }
     if(k==='ArrowDown'){ if(_qcMove(el,1,0)) ev.preventDefault(); return; }
     if(k==='ArrowUp'){   if(_qcMove(el,-1,0)) ev.preventDefault(); return; }
     if(k==='ArrowRight'){
@@ -9015,17 +9022,29 @@ function reloadState() {
   document.addEventListener('focusin', function(e){
     var el=e.target;
     if(!(el&&el.classList&&(el.classList.contains('qc-in')||el.classList.contains('qlm-in')))) return;
-    delete el.dataset.xed;
+    delete el.dataset.xed; delete el.dataset.xtyping;
+  });
+  // 탐색 모드에서 그냥 타이핑 → 내용 전체를 덮어쓰며 글자 커서 표시 (엑셀의 '입력 모드')
+  // Backspace/Delete → 내용 전체 삭제 후 빈 칸에서 입력 시작
+  document.addEventListener('keydown', function(e){
+    var el=e.target;
+    if(!(el&&el.classList&&(el.classList.contains('qc-in')||el.classList.contains('qlm-in')))) return;
+    if(el.dataset.xed==='1' || el.dataset.xtyping==='1' || el.readOnly) return;
+    var k=e.key;
+    if((k && k.length===1 && !e.ctrlKey && !e.metaKey && !e.altKey) || k==='Backspace' || k==='Delete'){
+      el.dataset.xtyping='1';
+      if(k==='Backspace'||k==='Delete'){ try{ el.select(); }catch(_e){} }
+    }
   });
   document.addEventListener('click', function(e){
     var el=e.target;
     if(!(el&&el.classList&&(el.classList.contains('qc-in')||el.classList.contains('qlm-in')))) return;
-    if(document.activeElement===el && el.dataset.xed!=='1' && !el.readOnly){ try{ el.select(); }catch(_e){} }
+    if(document.activeElement===el && el.dataset.xed!=='1' && el.dataset.xtyping!=='1' && !el.readOnly){ try{ el.select(); }catch(_e){} }
   });
   document.addEventListener('dblclick', function(e){
     var el=e.target;
     if(!(el&&el.classList&&(el.classList.contains('qc-in')||el.classList.contains('qlm-in')))) return;
-    el.dataset.xed='1';
+    el.dataset.xed='1'; delete el.dataset.xtyping;
   });
   var _qEnterArmed=null;   // 마지막 줄에서 엔터를 한 번 친 상태 ('행:열')
   function _qcArmHere(){   // 현재 커서가 있는 칸을 대기 상태로 (자동완성 선택 후 사용)
