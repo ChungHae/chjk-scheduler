@@ -4035,9 +4035,33 @@
     ov.style.display='flex';
   }
   function _csCloseExcelModal(){ var ov=document.getElementById('csExcelOverlay'); if(ov) ov.style.display='none'; }
-  function _csExportExcel(){
+  // 할부 표기를 명확하게: 빈값/0 → 일시불, n → n개월 (2026-08-05 사용자 요청)
+  function _csInstallmentLabel(v){
+    var s=String(v==null?'':v).trim();
+    var n=parseInt(s,10);
+    if(!s || isNaN(n) || n<=0) return '일시불';
+    return n+'개월';
+  }
+  // 셀 서식(배경색/폰트/정렬)을 지원하는 xlsx-js-style 로드 - 매입처/링크
+  // 다운로드와 같은 CDN·전역 플래그를 써서 중복 로드를 피한다.
+  function _csEnsureXlsxStyle(){
+    if(window._xlsxStyleReady && window.XLSX) return Promise.resolve();
+    if(window._xlsxStyleLoading) return window._xlsxStyleLoading;
+    window._xlsxStyleLoading = new Promise(function(res,rej){
+      var sc=document.createElement('script'); sc.src='https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js';
+      sc.onload=function(){ window._xlsxStyleReady=true; res(); };
+      sc.onerror=function(){ rej(new Error('엑셀 라이브러리 로드 실패')); };
+      document.head.appendChild(sc);
+    });
+    return window._xlsxStyleLoading;
+  }
+  // 2026-08-05 사용자 요청 양식: 전체 가운데 정렬·폰트 9, H~J열 천단위 쉼표,
+  // B열은 실제 날짜값(간단한 날짜 서식 yyyy-mm-dd), 헤더 노란 배경, 할부 명확 표기
+  async function _csExportExcel(){
     var msg=document.getElementById('csExpMsg');
     function fail(t){ if(msg) msg.textContent=t; }
+    try{ await _csEnsureXlsxStyle(); }
+    catch(err){ fail('엑셀 모듈을 불러오지 못했습니다 - 인터넷 연결 확인 후 다시 시도해주세요.'); return; }
     if(typeof XLSX==='undefined'){ fail('엑셀 모듈을 아직 불러오지 못했습니다 - 잠시 후 다시 시도해주세요.'); return; }
     if(!_csCache){ fail('데이터를 아직 불러오지 못했습니다.'); return; }
     var s=(document.getElementById('csExpStart').value||'').replace(/-/g,'');
@@ -4064,14 +4088,32 @@
     rows.forEach(function(x){
       var r=x.r, d=x.ymd;
       aoa.push([
-        NAME[x.b], d.slice(0,4)+'-'+d.slice(4,6)+'-'+d.slice(6,8), _csFmtTime(r.time),
+        NAME[x.b],
+        new Date(+d.slice(0,4), +d.slice(4,6)-1, +d.slice(6,8)),
+        _csFmtTime(r.time),
         _csNormMerchantName(r.merchant), String(r.issuer||''), String(r.cardNoMasked||''),
-        String(r.installment||''), Math.round(Number(r.supplyAmt)||0),
+        _csInstallmentLabel(r.installment), Math.round(Number(r.supplyAmt)||0),
         Math.round(Number(r.taxAmt)||0), Math.round(Number(r.amount)||0), String(r.approvalNo||'')
       ]);
     });
-    var ws=XLSX.utils.aoa_to_sheet(aoa);
-    ws['!cols']=[{wch:6},{wch:11},{wch:7},{wch:18},{wch:9},{wch:18},{wch:5},{wch:11},{wch:9},{wch:11},{wch:12}];
+    var ws=XLSX.utils.aoa_to_sheet(aoa, {cellDates:true});
+    ws['!cols']=[{wch:6},{wch:11},{wch:7},{wch:18},{wch:9},{wch:18},{wch:7},{wch:11},{wch:9},{wch:11},{wch:12}];
+    var range=XLSX.utils.decode_range(ws['!ref']);
+    for(var R=range.s.r; R<=range.e.r; R++){
+      for(var C=range.s.c; C<=range.e.c; C++){
+        var ref=XLSX.utils.encode_cell({r:R,c:C});
+        var cell=ws[ref]; if(!cell) continue;
+        var st={ font:{sz:9}, alignment:{horizontal:'center', vertical:'center'} };
+        if(R===0){
+          st.font={sz:9, bold:true};
+          st.fill={patternType:'solid', fgColor:{rgb:'FFFF00'}};
+        } else {
+          if(C>=7 && C<=9) cell.z='#,##0';      // H~J열: 천단위 쉼표
+          if(C===1) cell.z='yyyy-mm-dd';        // B열: 간단한 날짜 서식
+        }
+        cell.s=st;
+      }
+    }
     var wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, '카드매출');
     XLSX.writeFile(wb, '카드매출_'+s+'-'+e+'_'+(br==='all'?'전체':NAME[br])+'.xlsx');
