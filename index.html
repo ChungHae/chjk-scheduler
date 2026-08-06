@@ -2071,13 +2071,7 @@
       #qSubPrice > div:first-child, #qSubQuote > div:first-child { padding: 10px !important; gap: 6px !important; }
       /* 입금매칭 요약: 카드/그래프는 이미 auto-fit → 여백만 */
       #misuSummaryWrap { margin-bottom: 12px !important; }
-      /* 미수 요약: 총미수액 1줄 전폭, 미수거래처·장기미수 / 서울·화성 각 2개씩 */
-      #misuSummaryGrid { grid-template-columns: 1fr 1fr !important; }
-      #misuSummaryGrid > :first-child { grid-column: 1 / -1 !important; }
-      /* 이번 달 카드매출: 합계 1줄 전폭, 서울·화성 2개 나란히 */
-      #armCardGrid { grid-template-columns: 1fr 1fr !important; }
-      #armCardGrid > :first-child { grid-column: 1 / -1 !important; }
-      /* 좁은 화면: 앱 설명 문구 숨김 (버튼 title로 대체) */
+      /* 좁은 화면: 앱 설명 문구 숨김 (버튼 title로 대체) — 요약 칩은 flex-wrap으로 자동 줄바꿈 */
       .arm-appdesc { display:none !important; }
       /* 넓은 데이터 표: 가로 스크롤 컨테이너가 화면을 넘지 않도록 */
       .page-section > div[style*="overflow-x:auto"], .page-section [style*="overflow-x:auto"] { max-width: 100%; }
@@ -2543,32 +2537,21 @@
       <a href="https://chjk-manage.streamlit.app/" target="_blank" rel="noopener" onclick="try{var _fu=firebase.auth().currentUser,_fn=localStorage.getItem('sched_last_user');if(_fu&&_fn){this.href=this.href.split('?')[0]+'?sso='+encodeURIComponent(_fu.refreshToken)+'&u='+encodeURIComponent(_fn);}}catch(e){}" title="새 탭에서 열립니다 (팝업·다운로드가 원활히 작동합니다)" style="display:inline-flex;align-items:center;background:#1B3A6B;color:#fff;font-weight:700;font-size:12.5px;padding:7px 18px;border-radius:0;text-decoration:none;white-space:nowrap">입출금내역 앱 열기 ↗</a>
     </div>
     <div id="misuSummaryWrap" style="margin:14px 0 18px">
-      <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px">
-        <span style="font-size:14px;font-weight:800;color:#1a1a1a">미수 현황 요약</span>
+      <!-- 요약: 카드매출 상단 요약 칩과 동일한 결 (각진 작은 칩 한 줄) — 큰 카드 대신 최소 공간 -->
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+        <span style="font-size:12.5px;font-weight:700;color:#14305c;white-space:nowrap;margin-right:2px">미수 현황</span>
+        <span id="misuSummaryGrid" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-width:0"><span style="color:#9ca3af;font-size:12px">불러오는 중…</span></span>
       </div>
-      <div id="misuSummaryGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
-        <div style="color:#9ca3af;font-size:13px;padding:14px">불러오는 중…</div>
-      </div>
-      <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:6px;margin:16px 0 8px">
-        <span style="font-size:14px;font-weight:800;color:#1a1a1a">이번 달 카드매출</span>
-        <span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <span style="font-size:11px;color:#9ca3af">공급가액 기준 · 부가세 별도</span>
-          <button type="button" class="btn" onclick="switchPage('cardsales')" style="font-size:11.5px;padding:3px 11px">카드매출 상세 →</button>
-        </span>
-      </div>
-      <div id="armCardGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
-        <div style="color:#9ca3af;font-size:13px;padding:14px">불러오는 중…</div>
-      </div>
-      <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:6px;margin:16px 0 8px">
-        <span style="font-size:14px;font-weight:800;color:#1a1a1a">매출 현황 요약</span>
-        <span id="salesSummaryMeta" style="font-size:11px;color:#9ca3af"></span>
-      </div>
-      <div id="salesSummaryGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
-        <div style="color:#9ca3af;font-size:13px;padding:14px">불러오는 중…</div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <span style="font-size:12.5px;font-weight:700;color:#14305c;white-space:nowrap;margin-right:2px">매출 현황</span>
+        <span id="salesSummaryGrid" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-width:0"><span style="color:#9ca3af;font-size:12px">불러오는 중…</span></span>
+        <span id="salesSummaryMeta" style="font-size:11px;color:#9ca3af;white-space:nowrap"></span>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-top:16px">
         <div id="salesChartYear"></div>
         <div id="salesChartMonth"></div>
+        <div id="salesTopYear"></div>
+        <div id="salesTopMonth"></div>
       </div>
     </div>
   </div>
@@ -3684,12 +3667,25 @@
     el.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;flex-wrap:wrap;gap:4px"><span style="font-size:13px;font-weight:700;color:#1a1a1a">'+title+'</span>'+legend+'</div>'+
       '<div style="border:1px solid #eef2f7;border-radius:0;padding:6px 6px 2px;background:#fff"><svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" preserveAspectRatio="xMidYMid meet">'+bands+base+bars+labels+'</svg></div>';
   }
-  function _misuRenderCards(gridId, cards){
-    var g=document.getElementById(gridId); if(!g) return;
-    g.innerHTML=cards.map(function(c){
-      var hi=c[2], bg=hi?'#1B3A6B':c[3], lc=hi?'#ccdcf5':'#6b7280', vc=hi?'#fff':'#1a1a1a';
-      return '<div style="background:'+bg+';border-radius:0;padding:12px 14px"><div style="font-size:12px;color:'+lc+'">'+c[0]+'</div><div style="font-size:19px;font-weight:800;color:'+vc+';margin-top:2px">'+c[1]+'</div></div>';
+  // 요약 칩: 카드매출 상단 칩(_csRenderSummary)과 동일한 모양 — 각진 작은 칩, 라벨 + 굵은 값
+  function _misuChip(label, val, bg, vc, lc){
+    return '<span style="background:'+bg+';border-radius:0;padding:4px 10px;font-size:12px;color:'+(lc||'#6b7280')+';white-space:nowrap">'+label+' <b style="color:'+vc+';font-weight:700">'+val+'</b></span>';
+  }
+  // 매출 상위 업체 가로 막대 그래프 (rows: [{n:업체명, a:매출액}])
+  function _misuHBarChart(containerId, title, rows){
+    var el=document.getElementById(containerId); if(!el) return;
+    if(!rows || !rows.length){ el.innerHTML=''; return; }
+    var mx=1; rows.forEach(function(r){ mx=Math.max(mx, Number(r.a)||0); });
+    var body=rows.map(function(r){
+      var a=Number(r.a)||0, w=Math.max(4, Math.round(a/mx*100)), nm=esc(String(r.n||''));
+      return '<div style="display:flex;align-items:center;gap:8px;margin:5px 0">'
+        +'<div title="'+nm+'" style="width:110px;flex:0 0 110px;font-size:11.5px;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right">'+nm+'</div>'
+        +'<div style="flex:1;background:#f1f4f9;height:14px;position:relative"><div style="width:'+w+'%;height:100%;background:#1B3A6B"></div></div>'
+        +'<div style="width:64px;flex:0 0 64px;font-size:11.5px;font-weight:700;color:#1a1a1a;white-space:nowrap">'+_misuFmtWon(a)+'</div>'
+        +'</div>';
     }).join('');
+    el.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;flex-wrap:wrap;gap:4px"><span style="font-size:13px;font-weight:700;color:#1a1a1a">'+title+'</span><span style="font-size:11px;color:#9ca3af">부가세 별도</span></div>'
+      +'<div style="border:1px solid #eef2f7;border-radius:0;padding:8px 12px;background:#fff">'+body+'</div>';
   }
   function _misuNote(gridId, msg){ var g=document.getElementById(gridId); if(g) g.innerHTML='<div style="color:#9ca3af;font-size:13px;padding:14px">'+msg+'</div>'; }
   async function loadMisuSummary(){
@@ -3700,52 +3696,30 @@
       var r=await _fbFetch(_fbDbUrl+'/'+_FB_PATH+'_misu_summary.json');
       var d = (r && r.ok) ? await r.json() : null;
       if(!d || typeof d!=='object'){ var m='아직 요약 데이터가 없습니다. 미수 앱에서 “미수 현황”을 한 번 열면 생성됩니다.'; _misuNote('misuSummaryGrid',m); _misuNote('salesSummaryGrid',m); if(meta)meta.textContent=''; if(smeta)smeta.textContent=''; return; }
-      _misuRenderCards('misuSummaryGrid', [
-        ['총 미수액', _misuFmtWon(d.total_unpaid)+'원', true, '#1B3A6B'],
-        ['미수 거래처', (d.unpaid_count||0)+'곳', false, '#EAF1FB'],
-        ['장기미수', (d.longoverdue_count||0)+'곳 · '+_misuFmtWon(d.longoverdue_amt)+'원', false, '#fdecea'],
-        ['서울 미수', _misuFmtWon(d.seoul_unpaid)+'원', false, '#EAF1FB'],
-        ['화성 미수', _misuFmtWon(d.hwaseong_unpaid)+'원', false, '#EAF1FB']
-      ]);
+      var mg=document.getElementById('misuSummaryGrid');
+      if(mg) mg.innerHTML=[
+        _misuChip('총 미수', _misuFmtWon(d.total_unpaid)+'원', '#1B3A6B', '#fff', '#ccdcf5'),
+        _misuChip('거래처', (d.unpaid_count||0)+'곳', '#EAF1FB', '#1B3A6B'),
+        _misuChip('장기미수', (d.longoverdue_count||0)+'곳 · '+_misuFmtWon(d.longoverdue_amt)+'원', '#fdecea', '#b91c1c'),
+        _misuChip('서울', _misuFmtWon(d.seoul_unpaid)+'원', '#dcf5e7', '#15803d'),
+        _misuChip('화성', _misuFmtWon(d.hwaseong_unpaid)+'원', '#fdf1e3', '#b45309')
+      ].join('');
       if(meta) meta.textContent=(d.basis?('기준일 '+d.basis):'');  /* 갱신 시각 표시 제거(사용자 요청 2026-08-02) — 기준일만 표시 */
       if(d.sales_year){
-        _misuRenderCards('salesSummaryGrid', [
-          ['올해('+d.sales_year+') 매출', _misuFmtWon(d.sales_year_total)+'원', true, '#1B3A6B'],
-          ['매출총이익', _misuFmtWon(d.sales_year_profit)+'원', false, '#eafaf1'],
-          ['마진율', (d.sales_year_margin||0)+'%', false, '#EAF1FB'],
-          [(d.sales_latest_month||'최근월')+' 매출', _misuFmtWon(d.sales_latest_month_total)+'원', false, '#EAF1FB']
-        ]);
-        if(smeta) smeta.textContent=d.sales_year+'년 누적 (계산서 기준)';
+        var sg=document.getElementById('salesSummaryGrid');
+        if(sg) sg.innerHTML=[
+          _misuChip('올해('+d.sales_year+')', _misuFmtWon(d.sales_year_total)+'원', '#1B3A6B', '#fff', '#ccdcf5'),
+          _misuChip('매출총이익', _misuFmtWon(d.sales_year_profit)+'원', '#eafaf1', '#15803d'),
+          _misuChip('마진율', (d.sales_year_margin||0)+'%', '#EAF1FB', '#1B3A6B'),
+          _misuChip((d.sales_latest_month||'최근월'), _misuFmtWon(d.sales_latest_month_total)+'원', '#f3f6fa', '#1a1a1a')
+        ].join('');
+        if(smeta) smeta.textContent=d.sales_year+'년 누적 (계산서 기준) · 부가세 별도';
         _misuVBarChart('salesChartYear','연도별 매출·매입 추이',(d.sales_yearly||[]).map(function(x){return {label:x.y,sales:x.sales,buy:x.buy};}));
         _misuVBarChart('salesChartMonth',(d.sales_year||'')+'년 월별 매출·매입',(d.sales_monthly||[]).map(function(x){return {label:x.m,sales:x.sales,buy:x.buy};}));
-      } else { _misuNote('salesSummaryGrid','매출 요약이 아직 없습니다.'); if(smeta)smeta.textContent=''; _misuVBarChart('salesChartYear','',[]); _misuVBarChart('salesChartMonth','',[]); }
+        _misuHBarChart('salesTopYear',(d.sales_year||'올해')+'년 매출 상위 업체', d.sales_top_year||[]);
+        _misuHBarChart('salesTopMonth',(d.sales_top_month_label||'최근 월')+' 매출 상위 업체', d.sales_top_month||[]);
+      } else { _misuNote('salesSummaryGrid','매출 요약이 아직 없습니다.'); if(smeta)smeta.textContent=''; _misuVBarChart('salesChartYear','',[]); _misuVBarChart('salesChartMonth','',[]); _misuHBarChart('salesTopYear','',[]); _misuHBarChart('salesTopMonth','',[]); }
     }catch(e){ _misuNote('misuSummaryGrid','요약을 불러오지 못했습니다.'); _misuNote('salesSummaryGrid','요약을 불러오지 못했습니다.'); }
-  }
-  // ─── 회계 첫 화면(입출금)의 '이번 달 카드매출' 요약: 카드매출 탭과 같은
-  // 데이터(_csLoadAllData 캐시)를 재사용해 이번 달 공급가액 합계·건수를 보여준다 ───
-  async function _armatchCardSummary(){
-    var g=document.getElementById('armCardGrid'); if(!g) return;
-    try{
-      if(!_fbDbUrl){ _misuNote('armCardGrid','로그인 후 표시됩니다.'); return; }
-      await _csLoadAllData();
-      var now=new Date();
-      var pref=now.getFullYear()+(now.getMonth()<9?'0':'')+(now.getMonth()+1);
-      var sums={seoul:0,hwaseong:0}, cnts={seoul:0,hwaseong:0};
-      ['seoul','hwaseong'].forEach(function(b){
-        var byDate=(_csCache&&_csCache[b])||{};
-        Object.keys(byDate).forEach(function(ymd){
-          if(ymd.slice(0,6)!==pref) return;
-          byDate[ymd].forEach(function(r){ sums[b]+=Number(r.supplyAmt)||0; cnts[b]++; });
-        });
-      });
-      var tot=sums.seoul+sums.hwaseong, tc=cnts.seoul+cnts.hwaseong;
-      var _w=function(v){ return v>0?_misuFmtWon(v):'-'; };
-      _misuRenderCards('armCardGrid',[
-        [(now.getMonth()+1)+'월 카드매출', _w(tot)+'원 · '+tc+'건', true, '#1B3A6B'],
-        ['서울', _w(sums.seoul)+'원 · '+cnts.seoul+'건', false, '#EAF1FB'],
-        ['화성', _w(sums.hwaseong)+'원 · '+cnts.hwaseong+'건', false, '#EAF1FB']
-      ]);
-    }catch(e){ _misuNote('armCardGrid','카드매출 요약을 불러오지 못했습니다.'); }
   }
 
   // ─── 회계 > 카드매출 (머니온/SemPlus 자동 동기화 데이터 표시) ───
@@ -14805,7 +14779,7 @@ function reloadState() {
     // 견적 화면에서만 .main 의 가로 스크롤을 풀어 툴바 sticky 가 화면 기준으로 붙게 한다
     var _mn=document.querySelector('.main'); if(_mn) _mn.classList.toggle('main-estimate', page==='estimate');
     _syncTopFrozenH();   // 서브탭 노출 여부에 따라 고정 헤더 높이가 바뀐다
-    if (page === 'armatch'){ if(typeof loadMisuSummary==='function') loadMisuSummary(); if(typeof _armatchCardSummary==='function') _armatchCardSummary(); }
+    if (page === 'armatch'){ if(typeof loadMisuSummary==='function') loadMisuSummary(); }
     if (page === 'biz'){
       var _bt=document.getElementById('bizFilterInput'); if(_bt) _bt.value='';
       var _bm=document.getElementById('bizFilterMember'); if(_bm) _bm.value='';
