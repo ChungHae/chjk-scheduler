@@ -2702,6 +2702,7 @@
           <button type="button" class="btn pf-btn" data-branch="seoul" style="font-size:11.5px;padding:3px 11px">서울</button>
           <button type="button" class="btn pf-btn" data-branch="hwaseong" style="font-size:11.5px;padding:3px 11px">화성</button>
         </div>
+        <button type="button" id="csExcelBtn" title="기간·지점을 선택해 엑셀로 다운로드" style="font-size:11.5px;padding:3px 11px;margin-left:6px;border:1px solid #16a34a;background:#fff;color:#16a34a;font-weight:700;cursor:pointer;font-family:inherit;border-radius:0">엑셀 다운로드</button>
       </span>
     </div>
     <div id="csCalendar"></div>
@@ -2743,6 +2744,35 @@
           <tr><td colspan="10" style="padding:40px;text-align:center;color:#ccc">불러오는 중…</td></tr>
         </tbody>
       </table>
+    </div>
+    <!-- 2026-08-05 카드매출 엑셀 다운로드 팝업: 기간·지점 선택 후 다운로드 -->
+    <div id="csExcelOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:300;align-items:center;justify-content:center">
+      <div style="background:#fff;border:1px solid #c8d2de;width:320px;max-width:92vw;box-sizing:border-box">
+        <div style="padding:12px 16px;border-bottom:2px solid #1B3A6B;display:flex;align-items:center;justify-content:space-between">
+          <b style="font-size:14px;color:#14305c">카드매출 엑셀 다운로드</b>
+          <button type="button" id="csExcelClose" aria-label="닫기" style="border:none;background:none;font-size:15px;color:#888;cursor:pointer;font-family:inherit;line-height:1">✕</button>
+        </div>
+        <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+          <label style="font-size:12px;color:#555;display:flex;flex-direction:column;gap:4px">시작일
+            <input type="date" id="csExpStart" style="padding:6px 8px;border:1px solid #cdd8e6;border-radius:0;font-size:13px;font-family:inherit">
+          </label>
+          <label style="font-size:12px;color:#555;display:flex;flex-direction:column;gap:4px">종료일
+            <input type="date" id="csExpEnd" style="padding:6px 8px;border:1px solid #cdd8e6;border-radius:0;font-size:13px;font-family:inherit">
+          </label>
+          <label style="font-size:12px;color:#555;display:flex;flex-direction:column;gap:4px">지점
+            <select id="csExpBranch" style="padding:6px 8px;border:1px solid #cdd8e6;border-radius:0;font-size:13px;font-family:inherit;background:#fff">
+              <option value="all">전체</option>
+              <option value="seoul">서울</option>
+              <option value="hwaseong">화성</option>
+            </select>
+          </label>
+          <div id="csExpMsg" style="font-size:11.5px;color:#dc2626;min-height:14px"></div>
+          <div style="display:flex;gap:6px;justify-content:flex-end">
+            <button type="button" id="csExcelCancel" style="padding:6px 14px;border:1px solid #cdd8e6;background:#fff;color:#555;font-size:12.5px;cursor:pointer;font-family:inherit;border-radius:0">취소</button>
+            <button type="button" id="csExcelGo" style="padding:6px 14px;border:1px solid #1B3A6B;background:#1B3A6B;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;border-radius:0">다운로드</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </main>
@@ -3939,6 +3969,72 @@
     if(c.seoul>0||c.hwaseong>0){ _csSelectedDate=todayStr; _csRenderAll(); }
     else { _csChangeMonth(0); }
   });
+
+  // ─── 카드매출 엑셀 다운로드 (2026-08-05 사용자 요청) ───
+  // 버튼 → 팝업에서 기간·지점 선택 → 조회 화면과 같은 항목 구성으로
+  // .xlsx 파일 생성(재고 쪽에서 이미 쓰는 SheetJS 재사용). 금액은 숫자
+  // 그대로(공급가액/부가세/합계) 기록해 엑셀에서 합계 계산이 되게 한다.
+  function _csOpenExcelModal(){
+    var ov=document.getElementById('csExcelOverlay'); if(!ov) return;
+    var now=new Date();
+    var y=(_csMonth&&_csMonth.y)||now.getFullYear(), m=(_csMonth&&_csMonth.m)||now.getMonth()+1;
+    var isCur=(y===now.getFullYear() && m===now.getMonth()+1);
+    var endD=isCur?now.getDate():new Date(y,m,0).getDate();
+    var st=document.getElementById('csExpStart'), en=document.getElementById('csExpEnd'), br=document.getElementById('csExpBranch');
+    if(st) st.value=y+'-'+_csPad2(m)+'-01';
+    if(en) en.value=y+'-'+_csPad2(m)+'-'+_csPad2(endD);
+    if(br) br.value=_csBranchFilter||'all';
+    var msg=document.getElementById('csExpMsg'); if(msg) msg.textContent='';
+    ov.style.display='flex';
+  }
+  function _csCloseExcelModal(){ var ov=document.getElementById('csExcelOverlay'); if(ov) ov.style.display='none'; }
+  function _csExportExcel(){
+    var msg=document.getElementById('csExpMsg');
+    function fail(t){ if(msg) msg.textContent=t; }
+    if(typeof XLSX==='undefined'){ fail('엑셀 모듈을 아직 불러오지 못했습니다 - 잠시 후 다시 시도해주세요.'); return; }
+    if(!_csCache){ fail('데이터를 아직 불러오지 못했습니다.'); return; }
+    var s=(document.getElementById('csExpStart').value||'').replace(/-/g,'');
+    var e=(document.getElementById('csExpEnd').value||'').replace(/-/g,'');
+    if(s.length!==8||e.length!==8){ fail('시작일과 종료일을 선택해주세요.'); return; }
+    if(s>e){ fail('시작일이 종료일보다 늦습니다.'); return; }
+    var br=document.getElementById('csExpBranch').value;
+    var branches= br==='all'?['seoul','hwaseong']:[br];
+    var NAME={seoul:'서울',hwaseong:'화성'};
+    var rows=[];
+    branches.forEach(function(b){
+      var byDate=_csCache[b]||{};
+      Object.keys(byDate).forEach(function(ymd){
+        if(ymd<s||ymd>e) return;
+        (byDate[ymd]||[]).forEach(function(r){ rows.push({b:b,ymd:ymd,r:r}); });
+      });
+    });
+    if(!rows.length){ fail('해당 조건의 거래가 없습니다.'); return; }
+    rows.sort(function(a,c){
+      if(a.ymd!==c.ymd) return a.ymd<c.ymd?-1:1;
+      return String(a.r.time||'').localeCompare(String(c.r.time||''));
+    });
+    var aoa=[['지점','날짜','시간','가맹점','카드사','카드번호','할부','공급가액','부가세','합계','승인번호']];
+    rows.forEach(function(x){
+      var r=x.r, d=x.ymd;
+      aoa.push([
+        NAME[x.b], d.slice(0,4)+'-'+d.slice(4,6)+'-'+d.slice(6,8), _csFmtTime(r.time),
+        _csNormMerchantName(r.merchant), String(r.issuer||''), String(r.cardNoMasked||''),
+        String(r.installment||''), Math.round(Number(r.supplyAmt)||0),
+        Math.round(Number(r.taxAmt)||0), Math.round(Number(r.amount)||0), String(r.approvalNo||'')
+      ]);
+    });
+    var ws=XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols']=[{wch:6},{wch:11},{wch:7},{wch:18},{wch:9},{wch:18},{wch:5},{wch:11},{wch:9},{wch:11},{wch:12}];
+    var wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '카드매출');
+    XLSX.writeFile(wb, '카드매출_'+s+'-'+e+'_'+(br==='all'?'전체':NAME[br])+'.xlsx');
+    _csCloseExcelModal();
+  }
+  document.getElementById('csExcelBtn')?.addEventListener('click', _csOpenExcelModal);
+  document.getElementById('csExcelClose')?.addEventListener('click', _csCloseExcelModal);
+  document.getElementById('csExcelCancel')?.addEventListener('click', _csCloseExcelModal);
+  document.getElementById('csExcelGo')?.addEventListener('click', _csExportExcel);
+  document.getElementById('csExcelOverlay')?.addEventListener('click', function(ev){ if(ev.target===this) _csCloseExcelModal(); });
   document.getElementById('csCalendar')?.addEventListener('click', (ev) => {
     var cell = ev.target.closest('.cs-cal-has-data');
     if(!cell || !_csCache) return;
