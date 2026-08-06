@@ -7765,7 +7765,9 @@ function reloadState() {
       var cMg=_m?('<input class="qc-in" value="'+(c.disc?'':(hasSell?_lmPct(_qMarginOf(c.buy,c.sell)):''))+'" onchange="qCartField('+i+',\'margin\',this.value)" onkeydown="qCartGridKey(event,this)" style="'+_iR+';color:#0d9488">'):(c.disc?'-':(hasSell?_qPct(_qMarginOf(c.buy,c.sell)):'-'));
       var cSell=_hasDisc
         ? ('<input class="qc-in qc-fit" value="'+esc(String(c.disc))+'" onchange="qCartField('+i+',\'sell\',this.value)" onkeydown="qCartGridKey(event,this)" title="단종/변경 — 숫자 판매가를 입력하고 저장하면 판매가능으로 전환됩니다" style="'+_iR+';color:#dc2626;font-weight:700">')
-        : ('<input class="qc-in" value="'+(c.sell!=null?_qFmt(c.sell):'')+'" inputmode="numeric" oninput="_qNumInput(this)" onchange="qCartField('+i+',\'sell\',this.value)" onkeydown="qCartGridKey(event,this)" style="'+_iR+'">');
+        : (c.once
+          ? ('<input class="qc-in" value="'+(c.sell!=null?_qFmt(c.sell):'')+'" onchange="qCartField('+i+',\'sell\',this.value)" onkeydown="qCartGridKey(event,this)" title="일회성 — 숫자는 판매가, 글자(단종·오품번 등)는 빨간 글씨로 이 견적에만 표시되고 원장에는 저장되지 않습니다" style="'+_iR+'">')
+          : ('<input class="qc-in" value="'+(c.sell!=null?_qFmt(c.sell):'')+'" inputmode="numeric" oninput="_qNumInput(this)" onchange="qCartField('+i+',\'sell\',this.value)" onkeydown="qCartGridKey(event,this)" style="'+_iR+'">'));
       var _rowHtml=`<tr style="border-bottom:1px solid #eef2f7" oncontextmenu="qCartRowMenu(event,${i})">
         <td class="qm-h" style="padding:8px 6px;text-align:center;color:#9ca3af;font-size:12px">${i+1}</td><td class="qm-h" style="padding:6px 2px;text-align:center">${cInfo}</td><td class="qm-h qc-once" style="padding:6px 2px;text-align:center">${cOnce}</td>${_qColsRowAt(c,i,'no')}
         <td class="qm-h" title="${esc(c.name||'')}" style="padding:8px 10px;text-align:center;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cName}</td>${_qColsRowAt(c,i,'name')}
@@ -8312,7 +8314,12 @@ function reloadState() {
   }
   window._lmKey = function(ev, el){
     var k=ev.key;
-    if(k!=='Enter' && k!=='Tab' && k!=='ArrowDown' && k!=='ArrowUp' && k!=='ArrowLeft' && k!=='ArrowRight') return;
+    if(k!=='Enter' && k!=='Tab' && k!=='ArrowDown' && k!=='ArrowUp' && k!=='ArrowLeft' && k!=='ArrowRight' && k!=='F2' && k!=='Escape') return;
+    // ── 엑셀식 이동 (2026-08-05, 견적표와 동일한 방식) ──
+    // 기본(탐색 모드): 화살표는 항상 칸 단위 이동. F2/더블클릭=편집 모드
+    // (좌우 화살표가 글자 사이 이동), Esc=탐색 모드 복귀(전체 선택).
+    if(k==='F2'){ ev.preventDefault(); el.dataset.xed='1'; try{ var _L=el.value.length; el.setSelectionRange(_L,_L); }catch(_e){} return; }
+    if(k==='Escape'){ if(el.dataset.xed==='1'){ ev.preventDefault(); ev.stopPropagation(); delete el.dataset.xed; try{ el.select(); }catch(_e){} } return; }
     var all=Array.prototype.slice.call(document.querySelectorAll('#qlmTable input.qlm-in'));
     var idx=all.indexOf(el); if(idx<0) return;
     var col=idx % _LM_PERROW;
@@ -8324,15 +8331,17 @@ function reloadState() {
     if(k==='Enter' || k==='ArrowDown'){ ev.preventDefault(); _lmGo(all, idx+_LM_PERROW); return; }
     if(k==='ArrowUp'){ ev.preventDefault(); _lmGo(all, idx-_LM_PERROW); return; }
     if(k==='Tab'){ ev.preventDefault(); _lmGo(all, idx+(ev.shiftKey?-1:1)); return; }
-    if(k==='ArrowRight'){   // 커서가 맨 끝일 때만 오른쪽 칸으로
-      if(el.selectionStart!==el.value.length || el.selectionEnd!==el.value.length) return;
-      if(col===_LM_PERROW-1) return;
-      ev.preventDefault(); _lmGo(all, idx+1); return;
+    if(k==='ArrowRight'){
+      if(el.dataset.xed==='1') return;   // 편집 모드: 글자 커서 이동
+      ev.preventDefault();
+      if(col===_LM_PERROW-1) return;     // 줄 끝: 엑셀처럼 아무 일도 없음
+      _lmGo(all, idx+1); return;
     }
-    if(k==='ArrowLeft'){    // 커서가 맨 앞일 때만 왼쪽 칸으로
-      if(el.selectionStart!==0 || el.selectionEnd!==0) return;
-      if(col===0) return;
-      ev.preventDefault(); _lmGo(all, idx-1); return;
+    if(k==='ArrowLeft'){
+      if(el.dataset.xed==='1') return;
+      ev.preventDefault();
+      if(col===0) return;                // 줄 처음: 아무 일도 없음
+      _lmGo(all, idx-1); return;
     }
   };
   // ── 되돌리기 (Ctrl+Z) / 다시하기 (Ctrl+Y · Ctrl+Shift+Z) ──
@@ -8972,16 +8981,22 @@ function reloadState() {
       try{ t.scrollIntoView({block:'nearest'}); }catch(_e){}
       return;
     }
+    // ── 엑셀식 이동 (2026-08-05 사용자 요청) ──
+    // 기본(탐색 모드): 화살표는 커서 위치와 무관하게 항상 칸 단위로 이동.
+    // F2 또는 더블클릭으로 편집 모드에 들어가면 좌우 화살표가 글자 사이를
+    // 이동하고, Esc를 누르면 다시 탐색 모드(전체 선택)로 돌아온다.
+    if(k==='F2'){ ev.preventDefault(); el.dataset.xed='1'; try{ var _L=el.value.length; el.setSelectionRange(_L,_L); }catch(_e){} return; }
+    if(k==='Escape' && el.dataset.xed==='1'){ ev.preventDefault(); delete el.dataset.xed; try{ el.select(); }catch(_e){} return; }
     if(k==='ArrowDown'){ if(_qcMove(el,1,0)) ev.preventDefault(); return; }
     if(k==='ArrowUp'){   if(_qcMove(el,-1,0)) ev.preventDefault(); return; }
     if(k==='ArrowRight'){
-      var end=(el.selectionStart===el.value.length && el.selectionEnd===el.value.length);
-      if(end && _qcMove(el,0,1)) ev.preventDefault();
+      if(el.dataset.xed==='1') return;   // 편집 모드: 글자 커서 이동
+      ev.preventDefault(); _qcMove(el,0,1);
       return;
     }
     if(k==='ArrowLeft'){
-      var st=(el.selectionStart===0 && el.selectionEnd===0);
-      if(st && _qcMove(el,0,-1)) ev.preventDefault();
+      if(el.dataset.xed==='1') return;
+      ev.preventDefault(); _qcMove(el,0,-1);
       return;
     }
     if(k==='Enter'){                       // 엔터 → 바로 아래 칸
@@ -8994,6 +9009,24 @@ function reloadState() {
       return;
     }
   };
+  // ── 엑셀식 편집 모드 공통 처리 (견적표 .qc-in · 원장 .qlm-in) ──
+  // 칸에 들어오면 항상 탐색 모드로 시작하고, 한 번 클릭하면 내용 전체 선택
+  // (엑셀처럼 바로 타이핑하면 덮어써짐), 더블클릭 또는 F2로 편집 모드 진입.
+  document.addEventListener('focusin', function(e){
+    var el=e.target;
+    if(!(el&&el.classList&&(el.classList.contains('qc-in')||el.classList.contains('qlm-in')))) return;
+    delete el.dataset.xed;
+  });
+  document.addEventListener('click', function(e){
+    var el=e.target;
+    if(!(el&&el.classList&&(el.classList.contains('qc-in')||el.classList.contains('qlm-in')))) return;
+    if(document.activeElement===el && el.dataset.xed!=='1' && !el.readOnly){ try{ el.select(); }catch(_e){} }
+  });
+  document.addEventListener('dblclick', function(e){
+    var el=e.target;
+    if(!(el&&el.classList&&(el.classList.contains('qc-in')||el.classList.contains('qlm-in')))) return;
+    el.dataset.xed='1';
+  });
   var _qEnterArmed=null;   // 마지막 줄에서 엔터를 한 번 친 상태 ('행:열')
   function _qcArmHere(){   // 현재 커서가 있는 칸을 대기 상태로 (자동완성 선택 후 사용)
     var el=document.activeElement; var p=el?_qcPos(el):null;
