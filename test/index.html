@@ -2194,6 +2194,49 @@
       #qCart td, #qCart th { padding: 5px 3px !important; font-size: 11px !important; overflow: hidden; }
       #qCart button[onclick*="qCartDel"] { padding: 3px 5px !important; }
     }
+    /* ── 반응형 보강 6 (2026-08-06): 카드매출·회계(입출금) 모바일 대응 ── */
+    @media (max-width: 700px) {
+      /* ══ 카드매출 ══ */
+      /* 상단 컨트롤: 칩·년월 네비·필터 한 줄 → 세로 스택 (1줄=년월, 2줄=필터+엑셀, 3줄=요약 칩) */
+      #pageCardSales > div:nth-of-type(1) { flex-direction: column !important; align-items: stretch !important; gap: 8px !important; }
+      #pageCardSales > div:nth-of-type(1) > .week-nav { order: 1; display: flex; justify-content: center; }
+      #pageCardSales > div:nth-of-type(1) > span[style*="flex:1"] { order: 2; justify-content: center !important; }
+      #csSummaryGrid { order: 3; flex: 1 1 auto !important; justify-content: center; }
+      /* 달력: 셀·글씨·칩 축소 (7열이 좁은 화면에 들어가게) */
+      #pageCardSales .cs-cal-grid, #pageCardSales .cs-cal-weekrow { gap: 2px !important; }
+      #pageCardSales .cs-cal-weekhead { font-size: 11px !important; padding: 2px 0 !important; }
+      #pageCardSales .cs-cal-cell { height: 60px !important; padding: 3px 3px !important; gap: 2px !important; }
+      #pageCardSales .cs-cal-daynum { min-width: 16px !important; height: 16px !important; font-size: 10.5px !important; padding: 0 3px !important; }
+      #pageCardSales .cs-cal-badge { font-size: 9px !important; padding: 1px 2px !important; }
+      /* 동기화 문구: 좁은 화면에서 줄바꿈 허용 */
+      #csSyncMeta { white-space: normal !important; }
+      /* 거래내역 표: 카드번호(5)·부가세(8)·승인번호(10) 열 접기 + 최소폭 해제 → 가로 스크롤 없이 표시
+         (재고 표의 열 접기와 동일한 방식: 셀 유지·폭 0 → 열 매핑 보존) */
+      #pageCardSales table.cs-detail { min-width: 0 !important; font-size: 11.5px !important; }
+      #pageCardSales table.cs-detail th, #pageCardSales table.cs-detail td { padding: 7px 4px !important; }
+      #pageCardSales table.cs-detail colgroup col:nth-child(5), #pageCardSales table.cs-detail colgroup col:nth-child(8), #pageCardSales table.cs-detail colgroup col:nth-child(10) { width: 0 !important; }
+      #pageCardSales table.cs-detail th:nth-child(5), #pageCardSales table.cs-detail td:nth-child(5),
+      #pageCardSales table.cs-detail th:nth-child(8), #pageCardSales table.cs-detail td:nth-child(8),
+      #pageCardSales table.cs-detail th:nth-child(10), #pageCardSales table.cs-detail td:nth-child(10) {
+        width: 0 !important; max-width: 0 !important; padding: 0 !important; overflow: hidden !important;
+        font-size: 0 !important; color: transparent !important; border-left: none !important; border-right: none !important;
+      }
+      /* ══ 회계(입출금) ══ */
+      /* 툴바: 제목·기준일 한 줄, 앱 열기 버튼은 아래 전폭 */
+      #pageArmatch .q-toolbar { row-gap: 8px; }
+      #pageArmatch .q-toolbar a[href*="chjk-manage"] { flex: 1 1 100%; justify-content: center; }
+      /* 차트: 세로 막대 SVG는 비율 유지로 축소(빈 여백 방지) + 넘치면 가로 스크롤 */
+      #armChartGrid > div > div:last-child { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      #armChartGrid svg { height: auto !important; min-width: 520px; }
+      /* 상위업체 가로 막대: 업체명·금액 칸 축소 → 막대가 살도록 */
+      .arm-hbn { width: 96px !important; flex: 0 0 96px !important; font-size: 11px !important; }
+      .arm-hbv { width: 56px !important; flex: 0 0 56px !important; font-size: 11px !important; }
+    }
+    /* ── 초소형(≤480px): 카드매출 달력 셀 더 축소 ── */
+    @media (max-width: 480px) {
+      #pageCardSales .cs-cal-cell { height: 54px !important; }
+      #pageCardSales .cs-cal-badge { font-size: 8.5px !important; }
+    }
   </style>
 </head>
 <body>
@@ -3681,9 +3724,9 @@
     var body=rows.map(function(r){
       var a=Number(r.a)||0, w=Math.max(4, Math.round(a/mx*100)), nm=esc(String(r.n||''));
       return '<div style="display:flex;align-items:center;gap:10px;margin:9px 0">'
-        +'<div title="'+nm+'" style="width:180px;flex:0 0 180px;font-size:12px;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right">'+nm+'</div>'
+        +'<div class="arm-hbn" title="'+nm+'" style="width:180px;flex:0 0 180px;font-size:12px;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right">'+nm+'</div>'
         +'<div style="flex:1;background:#f1f4f9;height:18px;position:relative"><div style="width:'+w+'%;height:100%;background:#1B3A6B"></div></div>'
-        +'<div style="width:70px;flex:0 0 70px;font-size:12px;font-weight:700;color:#1a1a1a;white-space:nowrap">'+_misuFmtWon(a)+'</div>'
+        +'<div class="arm-hbv" style="width:70px;flex:0 0 70px;font-size:12px;font-weight:700;color:#1a1a1a;white-space:nowrap">'+_misuFmtWon(a)+'</div>'
         +'</div>';
     }).join('');
     el.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;flex-wrap:wrap;gap:4px"><span style="font-size:13px;font-weight:700;color:#1a1a1a">'+title+'</span><span style="font-size:11px;color:#9ca3af">부가세 별도</span></div>'
