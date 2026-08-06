@@ -3718,7 +3718,7 @@
         if(smeta) smeta.textContent=d.sales_year+'년 누적 (계산서 기준) · 부가세 별도';
         _misuVBarChart('salesChartYear','연도별 매출·매입 추이',(d.sales_yearly||[]).map(function(x){return {label:x.y,sales:x.sales,buy:x.buy};}));
         _misuVBarChart('salesChartMonth',(d.sales_year||'')+'년 월별 매출·매입',(d.sales_monthly||[]).map(function(x){return {label:x.m,sales:x.sales,buy:x.buy};}));
-        _misuHBarChart('salesTopYear',(d.sales_year||'올해')+'년 매출 상위 업체', d.sales_top_year||[]);
+        _misuHBarChart('salesTopYear',(d.sales_top_year_label||((d.sales_year||'올해')+'년'))+' 매출 상위 업체', d.sales_top_year||[]);
         _misuHBarChart('salesTopMonth',(d.sales_top_month_label||'최근 월')+' 매출 상위 업체', d.sales_top_month||[]);
       } else { _misuNote('salesSummaryGrid','매출 요약이 아직 없습니다.'); if(smeta)smeta.textContent=''; _misuVBarChart('salesChartYear','',[]); _misuVBarChart('salesChartMonth','',[]); _misuHBarChart('salesTopYear','',[]); _misuHBarChart('salesTopMonth','',[]); }
     }catch(e){ _misuNote('misuSummaryGrid','요약을 불러오지 못했습니다.'); _misuNote('salesSummaryGrid','요약을 불러오지 못했습니다.'); }
