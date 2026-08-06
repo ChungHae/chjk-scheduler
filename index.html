@@ -3944,7 +3944,16 @@
     _csRenderDetailTable();
     var metaEl=document.getElementById('csSyncMeta');
     if(metaEl && _csMetaCache){
-      var syncTexts=['seoul','hwaseong'].map(function(b){ var mt=_csMetaCache[b]; return mt && mt.lastSyncedAt ? (_CS_BRANCH_LABEL[b]+' '+mt.lastSyncedAt.slice(0,16).replace('T',' ')) : null; }).filter(Boolean);
+      // lastSyncedAt 은 UTC(…Z)로 저장되므로 브라우저 로컬 시간(한국시간)으로 변환해 표시
+      var _csP2=function(n){ return (n<10?'0':'')+n; };
+      var syncTexts=['seoul','hwaseong'].map(function(b){
+        var mt=_csMetaCache[b]; if(!(mt && mt.lastSyncedAt)) return null;
+        var d=new Date(mt.lastSyncedAt);
+        var t=isNaN(d.getTime())
+          ? mt.lastSyncedAt.slice(0,16).replace('T',' ')
+          : (d.getFullYear()+'-'+_csP2(d.getMonth()+1)+'-'+_csP2(d.getDate())+' '+_csP2(d.getHours())+':'+_csP2(d.getMinutes()));
+        return _CS_BRANCH_LABEL[b]+' '+t;
+      }).filter(Boolean);
       metaEl.textContent = syncTexts.length ? ('마지막 동기화 · '+syncTexts.join(' / ')) : '';
     }
   }
