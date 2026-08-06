@@ -2677,6 +2677,9 @@
       #pageCardSales .cs-cal-daynum{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;border-radius:0;font-size:12px;font-weight:700;padding:0 4px;flex-shrink:0}
       #pageCardSales .cs-cal-badges{display:flex;flex-direction:column;gap:2px}
       #pageCardSales .cs-cal-badge{font-size:10px;font-weight:700;border-radius:0;padding:1px 4px;line-height:1.5;white-space:nowrap;display:inline-block}
+      /* 엑셀 버튼 툴팁: 화면 오른쪽 끝 버튼이라 가운데 정렬 말풍선이 화면 밖으로
+         삐져나가 가로 스크롤을 만들던 문제 - 오른쪽 끝 기준으로 정렬(견적 툴바와 동일 방식) */
+      #pageCardSales #csExcelBtn[data-tip]:hover::after, #pageCardSales #csExcelBtn[data-tip]:focus-visible::after { left:auto; right:0; transform:none; }
       /* 엑셀 다운로드 버튼: 재고 탭 툴바 qic 규칙과 동일(26px, 라운딩 6px, svg 15px) */
       #pageCardSales #csExcelBtn { width:26px !important; min-width:26px; height:26px; border-radius:6px !important; flex:0 0 auto; }
       #pageCardSales #csExcelBtn svg { width:15px; height:15px; }
@@ -3884,6 +3887,8 @@
       chips.push(_chip('서울', _won(per.seoul.sup)+'원', '#dcf5e7', '#15803d'));
       chips.push(_chip('화성', _won(per.hwaseong.sup)+'원', '#fdf1e3', '#b45309'));
     }
+    // 금액이 공급가액 기준임을 알리는 소문구 (칩 디자인을 해치지 않게 회색 작은 글씨)
+    chips.push('<span style="font-size:11px;color:#9ca3af;white-space:nowrap">부가세 별도</span>');
     g.innerHTML = chips.join('');
   }
 
@@ -4097,7 +4102,7 @@
       ]);
     });
     var ws=XLSX.utils.aoa_to_sheet(aoa, {cellDates:true});
-    ws['!cols']=[{wch:6},{wch:11},{wch:7},{wch:18},{wch:9},{wch:18},{wch:7},{wch:11},{wch:9},{wch:11},{wch:12}];
+    ws['!cols']=[{wch:6},{wch:11},{wch:7},{wch:24},{wch:12},{wch:18},{wch:7},{wch:11},{wch:9},{wch:11},{wch:12}];
     var range=XLSX.utils.decode_range(ws['!ref']);
     for(var R=range.s.r; R<=range.e.r; R++){
       for(var C=range.s.c; C<=range.e.c; C++){
@@ -4108,7 +4113,11 @@
           st.font={sz:9, bold:true};
           st.fill={patternType:'solid', fgColor:{rgb:'FFFF00'}};
         } else {
-          if(C>=7 && C<=9) cell.z='#,##0';      // H~J열: 천단위 쉼표
+          if(C>=7 && C<=9){
+            // H~J열: 회계 서식(천단위 쉼표 + 우측 정렬, 0은 '-') - 사용자 요청
+            cell.z='_-* #,##0_-;-* #,##0_-;_-* "-"_-;_-@_-';
+            st.alignment={horizontal:'right', vertical:'center'};
+          }
           if(C===1) cell.z='yyyy-mm-dd';        // B열: 간단한 날짜 서식
         }
         cell.s=st;
