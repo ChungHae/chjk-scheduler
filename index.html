@@ -2677,6 +2677,9 @@
       #pageCardSales .cs-cal-daynum{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;border-radius:0;font-size:12px;font-weight:700;padding:0 4px;flex-shrink:0}
       #pageCardSales .cs-cal-badges{display:flex;flex-direction:column;gap:2px}
       #pageCardSales .cs-cal-badge{font-size:10px;font-weight:700;border-radius:0;padding:1px 4px;line-height:1.5;white-space:nowrap;display:inline-block}
+      /* 엑셀 다운로드 버튼: 재고 탭 툴바 qic 규칙과 동일(26px, 라운딩 6px, svg 15px) */
+      #pageCardSales #csExcelBtn { width:26px !important; min-width:26px; height:26px; border-radius:6px !important; flex:0 0 auto; }
+      #pageCardSales #csExcelBtn svg { width:15px; height:15px; }
       /* 거래내역 표: 고정 칸 너비에서 넘치는 내용은 말줄임 처리 */
       #pageCardSales table.cs-detail td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     </style>
@@ -2702,7 +2705,7 @@
           <button type="button" class="btn pf-btn" data-branch="seoul" style="font-size:11.5px;padding:3px 11px">서울</button>
           <button type="button" class="btn pf-btn" data-branch="hwaseong" style="font-size:11.5px;padding:3px 11px">화성</button>
         </div>
-        <button type="button" id="csExcelBtn" title="기간·지점을 선택해 엑셀로 다운로드" style="font-size:11.5px;padding:3px 11px;margin-left:6px;border:1px solid #16a34a;background:#fff;color:#16a34a;font-weight:700;cursor:pointer;font-family:inherit;border-radius:0">엑셀 다운로드</button>
+        <button type="button" class="qic" id="csExcelBtn" data-tip="엑셀 다운로드" aria-label="엑셀 다운로드" style="border-color:#1B3A6B;color:#1B3A6B;margin-left:6px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"/><path d="M7.5 11.5 12 16l4.5-4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></button>
       </span>
     </div>
     <div id="csCalendar"></div>
@@ -2753,19 +2756,31 @@
           <button type="button" id="csExcelClose" aria-label="닫기" style="border:none;background:none;font-size:15px;color:#888;cursor:pointer;font-family:inherit;line-height:1">✕</button>
         </div>
         <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px">
-          <label style="font-size:12px;color:#555;display:flex;flex-direction:column;gap:4px">시작일
-            <input type="date" id="csExpStart" style="padding:6px 8px;border:1px solid #cdd8e6;border-radius:0;font-size:13px;font-family:inherit">
-          </label>
-          <label style="font-size:12px;color:#555;display:flex;flex-direction:column;gap:4px">종료일
-            <input type="date" id="csExpEnd" style="padding:6px 8px;border:1px solid #cdd8e6;border-radius:0;font-size:13px;font-family:inherit">
-          </label>
-          <label style="font-size:12px;color:#555;display:flex;flex-direction:column;gap:4px">지점
-            <select id="csExpBranch" style="padding:6px 8px;border:1px solid #cdd8e6;border-radius:0;font-size:13px;font-family:inherit;background:#fff">
-              <option value="all">전체</option>
-              <option value="seoul">서울</option>
-              <option value="hwaseong">화성</option>
-            </select>
-          </label>
+          <div style="display:flex;gap:8px">
+            <label style="flex:1;min-width:0;font-size:12px;color:#555;display:flex;flex-direction:column;gap:4px">시작일
+              <input type="date" id="csExpStart" style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid #cdd8e6;border-radius:0;font-size:13px;font-family:inherit">
+            </label>
+            <label style="flex:1;min-width:0;font-size:12px;color:#555;display:flex;flex-direction:column;gap:4px">종료일
+              <input type="date" id="csExpEnd" style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid #cdd8e6;border-radius:0;font-size:13px;font-family:inherit">
+            </label>
+          </div>
+          <div id="csExpQuickBtns" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">
+            <button type="button" data-quick="today" style="font-size:11.5px;padding:4px 0;border:1px solid #cdd8e6;background:#fff;color:#1B3A6B;cursor:pointer;font-family:inherit;border-radius:0">당일</button>
+            <button type="button" data-quick="yesterday" style="font-size:11.5px;padding:4px 0;border:1px solid #cdd8e6;background:#fff;color:#1B3A6B;cursor:pointer;font-family:inherit;border-radius:0">전일</button>
+            <button type="button" data-quick="thismonth" style="font-size:11.5px;padding:4px 0;border:1px solid #cdd8e6;background:#fff;color:#1B3A6B;cursor:pointer;font-family:inherit;border-radius:0">당월</button>
+            <button type="button" data-quick="lastmonth" style="font-size:11.5px;padding:4px 0;border:1px solid #cdd8e6;background:#fff;color:#1B3A6B;cursor:pointer;font-family:inherit;border-radius:0">전월</button>
+            <button type="button" data-quick="week" style="font-size:11.5px;padding:4px 0;border:1px solid #cdd8e6;background:#fff;color:#1B3A6B;cursor:pointer;font-family:inherit;border-radius:0">1주일</button>
+            <button type="button" data-quick="m1" style="font-size:11.5px;padding:4px 0;border:1px solid #cdd8e6;background:#fff;color:#1B3A6B;cursor:pointer;font-family:inherit;border-radius:0">1개월</button>
+            <button type="button" data-quick="m3" style="font-size:11.5px;padding:4px 0;border:1px solid #cdd8e6;background:#fff;color:#1B3A6B;cursor:pointer;font-family:inherit;border-radius:0">3개월</button>
+            <button type="button" data-quick="m6" style="font-size:11.5px;padding:4px 0;border:1px solid #cdd8e6;background:#fff;color:#1B3A6B;cursor:pointer;font-family:inherit;border-radius:0">6개월</button>
+          </div>
+          <div style="font-size:12px;color:#555;display:flex;flex-direction:column;gap:4px">지점
+            <div id="csExpBranchBtns" style="display:flex;gap:4px">
+              <button type="button" data-branch="all" style="flex:1;font-size:11.5px;padding:4px 0;border:1px solid #e0e0e0;background:#fff;color:#444;cursor:pointer;font-family:inherit;border-radius:0">전체</button>
+              <button type="button" data-branch="seoul" style="flex:1;font-size:11.5px;padding:4px 0;border:1px solid #e0e0e0;background:#fff;color:#444;cursor:pointer;font-family:inherit;border-radius:0">서울</button>
+              <button type="button" data-branch="hwaseong" style="flex:1;font-size:11.5px;padding:4px 0;border:1px solid #e0e0e0;background:#fff;color:#444;cursor:pointer;font-family:inherit;border-radius:0">화성</button>
+            </div>
+          </div>
           <div id="csExpMsg" style="font-size:11.5px;color:#dc2626;min-height:14px"></div>
           <div style="display:flex;gap:6px;justify-content:flex-end">
             <button type="button" id="csExcelCancel" style="padding:6px 14px;border:1px solid #cdd8e6;background:#fff;color:#555;font-size:12.5px;cursor:pointer;font-family:inherit;border-radius:0">취소</button>
@@ -3974,16 +3989,48 @@
   // 버튼 → 팝업에서 기간·지점 선택 → 조회 화면과 같은 항목 구성으로
   // .xlsx 파일 생성(재고 쪽에서 이미 쓰는 SheetJS 재사용). 금액은 숫자
   // 그대로(공급가액/부가세/합계) 기록해 엑셀에서 합계 계산이 되게 한다.
+  var _csExpBranchSel='all';   // 팝업의 지점 선택 상태 (버튼식)
+  function _csExpDateStr(d){ return d.getFullYear()+'-'+_csPad2(d.getMonth()+1)+'-'+_csPad2(d.getDate()); }
+  function _csExpSetRange(s, e){
+    var st=document.getElementById('csExpStart'), en=document.getElementById('csExpEnd');
+    if(st) st.value=_csExpDateStr(s);
+    if(en) en.value=_csExpDateStr(e);
+  }
+  // 당일/전일/당월/전월/1주일/1개월/3개월/6개월 빠른 기간 버튼
+  function _csExpQuick(kind){
+    var now=new Date();
+    var today=new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var s=today, e=today;
+    if(kind==='yesterday'){ s=e=new Date(today.getFullYear(), today.getMonth(), today.getDate()-1); }
+    else if(kind==='thismonth'){ s=new Date(today.getFullYear(), today.getMonth(), 1); }
+    else if(kind==='lastmonth'){ s=new Date(today.getFullYear(), today.getMonth()-1, 1); e=new Date(today.getFullYear(), today.getMonth(), 0); }
+    else if(kind==='week'){ s=new Date(today.getFullYear(), today.getMonth(), today.getDate()-6); }
+    else if(kind==='m1'){ s=new Date(today.getFullYear(), today.getMonth()-1, today.getDate()); }
+    else if(kind==='m3'){ s=new Date(today.getFullYear(), today.getMonth()-3, today.getDate()); }
+    else if(kind==='m6'){ s=new Date(today.getFullYear(), today.getMonth()-6, today.getDate()); }
+    _csExpSetRange(s, e);
+    var msg=document.getElementById('csExpMsg'); if(msg) msg.textContent='';
+  }
+  function _csExpUpdateBranchUI(){
+    document.querySelectorAll('#csExpBranchBtns button').forEach(function(b){
+      var on = b.dataset.branch === _csExpBranchSel;
+      b.style.background = on ? '#1B3A6B' : '#fff';
+      b.style.color = on ? '#fff' : '#444';
+      b.style.borderColor = on ? '#1B3A6B' : '#e0e0e0';
+      b.style.fontWeight = on ? '700' : '400';
+    });
+  }
   function _csOpenExcelModal(){
     var ov=document.getElementById('csExcelOverlay'); if(!ov) return;
     var now=new Date();
     var y=(_csMonth&&_csMonth.y)||now.getFullYear(), m=(_csMonth&&_csMonth.m)||now.getMonth()+1;
     var isCur=(y===now.getFullYear() && m===now.getMonth()+1);
     var endD=isCur?now.getDate():new Date(y,m,0).getDate();
-    var st=document.getElementById('csExpStart'), en=document.getElementById('csExpEnd'), br=document.getElementById('csExpBranch');
+    var st=document.getElementById('csExpStart'), en=document.getElementById('csExpEnd');
     if(st) st.value=y+'-'+_csPad2(m)+'-01';
     if(en) en.value=y+'-'+_csPad2(m)+'-'+_csPad2(endD);
-    if(br) br.value=_csBranchFilter||'all';
+    _csExpBranchSel=_csBranchFilter||'all';
+    _csExpUpdateBranchUI();
     var msg=document.getElementById('csExpMsg'); if(msg) msg.textContent='';
     ov.style.display='flex';
   }
@@ -3997,7 +4044,7 @@
     var e=(document.getElementById('csExpEnd').value||'').replace(/-/g,'');
     if(s.length!==8||e.length!==8){ fail('시작일과 종료일을 선택해주세요.'); return; }
     if(s>e){ fail('시작일이 종료일보다 늦습니다.'); return; }
-    var br=document.getElementById('csExpBranch').value;
+    var br=_csExpBranchSel||'all';
     var branches= br==='all'?['seoul','hwaseong']:[br];
     var NAME={seoul:'서울',hwaseong:'화성'};
     var rows=[];
@@ -4035,6 +4082,14 @@
   document.getElementById('csExcelCancel')?.addEventListener('click', _csCloseExcelModal);
   document.getElementById('csExcelGo')?.addEventListener('click', _csExportExcel);
   document.getElementById('csExcelOverlay')?.addEventListener('click', function(ev){ if(ev.target===this) _csCloseExcelModal(); });
+  document.getElementById('csExpBranchBtns')?.addEventListener('click', function(ev){
+    var b=ev.target.closest('button[data-branch]'); if(!b) return;
+    _csExpBranchSel=b.dataset.branch; _csExpUpdateBranchUI();
+  });
+  document.getElementById('csExpQuickBtns')?.addEventListener('click', function(ev){
+    var b=ev.target.closest('button[data-quick]'); if(!b) return;
+    _csExpQuick(b.dataset.quick);
+  });
   document.getElementById('csCalendar')?.addEventListener('click', (ev) => {
     var cell = ev.target.closest('.cs-cal-has-data');
     if(!cell || !_csCache) return;
