@@ -8013,41 +8013,56 @@ function reloadState() {
   window.qLedgerBack = function(){ _lmGuardExit(function(){ _lmRenderVendors(); }); };   // ← 거래처
 
   // ── 정식 → 테스트 복사 (스테이지 전용) ──────────────────────────────
-  // 정식(teamdata_test)의 거래처 목록과 원장을 읽어 스테이지(teamdata_stage)에 복사한다.
+  // 정식(teamdata_test*)의 데이터 전체를 스테이지(teamdata_stage*)에 복사한다.
+  // 대상: 전체 상태 블롭(일정·재고·매입처·바로가기·자료실 목록·거래처 목록 등)
+  //       + 원장 + 저장견적 + 가격표 + 회계(미수·매출) 요약.
+  // 자료실 파일 '내용'(_blob)은 용량 문제로 제외한다(목록만 복사됨).
   // 정식 데이터는 읽기만 한다. 쓰기는 스테이지 경로에만 일어난다.
   window.qLedgerCopyFromProd = async function(){
     if(!_IS_STAGE){ showInfoModal('복사','테스트 환경에서만 쓸 수 있습니다.'); return; }
     if(!_guardW()) return;
     if(!_fbDbUrl){ showInfoModal('동기화 필요','팀 동기화 연결이 필요합니다.'); return; }
     showConfirmModal('정식 → 테스트 복사',
-      '정식 데이터의 거래처 목록과 원장을 테스트 환경으로 복사합니다.\n\n· 정식 데이터는 읽기만 합니다 (변경 없음)\n· 테스트의 기존 거래처 목록·원장은 덮어씁니다\n\n계속할까요?',
+      '정식 데이터 전체를 테스트 환경으로 복사합니다.\n\n· 일정·재고·매입처·바로가기·거래처·원장·저장견적·가격표·회계 요약 포함\n· 자료실 파일 내용은 용량 문제로 제외 (목록만 복사)\n· 정식 데이터는 읽기만 합니다 (변경 없음)\n· 테스트의 기존 데이터는 덮어씁니다\n\n계속할까요?',
       function(){ (async function(){
         _lmStatus('정식 데이터 읽는 중…','#9ca3af');
         try{
-          var r1=await _fbFetch(_fbDbUrl+'/teamdata_test.json');
-          if(!r1.ok) throw new Error('정식 데이터 읽기 오류 '+r1.status);
-          var prod=await r1.json();
-          var idx=(prod && prod.sched_quote_index) ? prod.sched_quote_index : [];
-          if(!idx.length) throw new Error('정식에 거래처 목록이 없습니다.');
+          var _cp = async function(from, to, label){
+            var r = await _fbFetch(_fbDbUrl+'/'+from+'.json');
+            if(!r.ok) throw new Error(label+' 읽기 오류 '+r.status);
+            var d = await r.json();
+            var w = await _fbFetch(_fbDbUrl+'/'+to+'.json', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(d===undefined?null:d)});
+            if(!w.ok) throw new Error(label+' 저장 오류 '+w.status);
+            return d;
+          };
+          _lmStatus('전체 상태 복사 중…','#9ca3af');
+          var prod = await _cp('teamdata_test','teamdata_stage','전체 상태');
+          if(!prod || typeof prod!=='object') throw new Error('정식 데이터가 비어 있습니다.');
+          _lmStatus('원장 복사 중…','#9ca3af');
+          var blobs = (await _cp('teamdata_test_quote','teamdata_stage_quote','원장'))||{};
+          _lmStatus('저장견적 복사 중…','#9ca3af');
+          try{ await _cp('teamdata_test_qsaved','teamdata_stage_qsaved','저장견적'); }catch(_e1){}
+          _lmStatus('가격표 복사 중…','#9ca3af');
+          try{ await _cp('teamdata_test_price','teamdata_stage_price','가격표'); }catch(_e2){}
+          _lmStatus('회계 요약 복사 중…','#9ca3af');
+          try{ await _cp('teamdata_test_misu_summary','teamdata_stage_misu_summary','회계 요약'); }catch(_e3){}
 
-          _lmStatus('정식 원장 읽는 중…','#9ca3af');
-          var r2=await _fbFetch(_fbDbUrl+'/teamdata_test_quote.json');
-          if(!r2.ok) throw new Error('정식 원장 읽기 오류 '+r2.status);
-          var blobs=(await r2.json())||{};
-
-          _lmStatus('테스트로 복사 중…','#9ca3af');
-          var r3=await _fbFetch(_fbDbUrl+'/teamdata_stage_quote.json', {method:'PUT', body:JSON.stringify(blobs)});
-          if(!r3.ok) throw new Error('테스트 저장 오류 '+r3.status);
-
+          // 복사한 상태를 화면에 즉시 반영 (_pollSync 와 동일한 적용 경로 + sched_links 포함)
+          _lmStatus('화면 반영 중…','#9ca3af');
+          var KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list'];
+          KEYS.forEach(function(k){ if(prod[k]!==undefined) save(k, prod[k]); });
+          _fbLastUpdatedAt = prod._updatedAt || 0;
           _qBlobCacheClear(); try{ _qInvalidateAllIdx(); }catch(e){}
-          quoteVendors = JSON.parse(JSON.stringify(idx));
-          saveAll();                    // 스테이지 블롭에 거래처 목록 기록
-
-          var n=Object.keys(blobs).length;
-          _lmStatus('복사 완료','#16a34a'); setTimeout(function(){ _lmStatus(''); }, 2000);
+          try{ _priceBlobCache = {}; }catch(e){}
+          reloadState(); applyConfig();
+          try{ _refreshActiveView(); }catch(e){}
           try{ renderEstimatePage(); }catch(e){}
           _lmRenderVendors();
-          showInfoModal('복사 완료', '거래처 '+idx.length+'개, 원장 '+n+'개를 테스트로 복사했습니다.\n정식 데이터는 변경되지 않았습니다.');
+
+          var idx=(prod.sched_quote_index||[]).length, n=Object.keys(blobs).length;
+          _lmStatus('복사 완료','#16a34a'); setTimeout(function(){ _lmStatus(''); }, 2500);
+          showInfoModal('복사 완료',
+            '정식 데이터 전체를 테스트로 복사했습니다.\n\n· 거래처 '+idx+'개 · 원장 '+n+'개\n· 일정·재고·매입처·바로가기·가격표·회계 요약 포함\n· 자료실 파일 내용 제외 (목록만)\n\n정식 데이터는 변경되지 않았습니다.');
         }catch(e){
           _lmStatus('복사 실패','#dc2626');
           showInfoModal('복사 실패', (e&&e.message||String(e)));
@@ -8116,7 +8131,7 @@ function reloadState() {
           +'<button class="qlm-ic" onclick="qOpenXlsxUpload()" data-tip="원장 업로드" aria-label="원장 업로드" style="border-color:#86c69f;color:#15803d"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></button>'
           +'<button class="qlm-ic tip-r" onclick="qOpenXlsxDownload()" data-tip="원장 다운로드" aria-label="원장 다운로드" style="border-color:#a9bcd6;color:#1B3A6B"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"/><path d="M7.5 11.5 12 16l4.5-4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></button>'
           +(_IS_STAGE ? '<button onclick="qLedgerRecover()" title="저장소에 남아 있는 원장을 스캔해 거래처 목록을 되살립니다 (테스트 환경 전용)" style="padding:6px 11px;font-size:12px;font-family:inherit;background:#fff;border:1px solid #c8d2de;border-radius:0;cursor:pointer;color:#b45309;white-space:nowrap">목록 복구</button>'
-              +'<button onclick="qLedgerCopyFromProd()" title="정식 데이터의 거래처·원장을 테스트로 복사합니다 (정식은 읽기만)" style="padding:6px 11px;font-size:12px;font-family:inherit;background:#fff;border:1px solid #c8d2de;border-radius:0;cursor:pointer;color:#1B3A6B;white-space:nowrap">정식 복사</button>' : '')
+              +'<button onclick="qLedgerCopyFromProd()" title="정식 데이터 전체(일정·재고·매입처·바로가기·거래처·원장·가격표·회계요약)를 테스트로 복사합니다 (정식은 읽기만)" style="padding:6px 11px;font-size:12px;font-family:inherit;background:#fff;border:1px solid #c8d2de;border-radius:0;cursor:pointer;color:#1B3A6B;white-space:nowrap">정식 복사</button>' : '')
         +'</div>'
         +'<div style="font-size:11px;color:#9ca3af;margin-top:5px">거래처를 클릭하면 원장이 열립니다. 검색 결과가 하나면 엔터로 바로 열립니다.</div>'
       +'</div><div id="qlmVList" style="overflow:auto;flex:1;min-height:0"></div>';
