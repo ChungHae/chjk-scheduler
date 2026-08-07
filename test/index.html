@@ -11374,14 +11374,17 @@ function reloadState() {
   window._wkPanelEqualize = function(){ _wkPanelEqualize(); };
   function _wkPanelEqualize(){
     try{
-      if(!window.matchMedia('(max-width:700px)').matches) return;
       var a=document.getElementById('teamPanelGoalBox'), b=document.getElementById('issuePanelBox');
       if(!a||!b) return;
       a.style.setProperty('min-height','0','important'); b.style.setProperty('min-height','0','important');
-      var h=Math.max(a.offsetHeight, b.offsetHeight, 82);
+      var ra=a.getBoundingClientRect(), rb=b.getBoundingClientRect();
+      var stacked = rb.top >= ra.bottom - 1;   // 실제 배치로 모바일(세로 적층) 판단 — matchMedia 미의존
+      if(!stacked){ a.style.minHeight='130px'; b.style.minHeight='130px'; return; }   // PC: 원래 최소높이 원복
+      var h=Math.ceil(Math.max(ra.height, rb.height, 82));
       a.style.setProperty('min-height',h+'px','important'); b.style.setProperty('min-height',h+'px','important');
     }catch(e){}
   }
+  window.addEventListener('resize', function(){ try{ _wkPanelEqualize(); }catch(e){} });
 
   // ─── 한국 공휴일 (2026~2027) ───────────────────────────
   const HOLIDAYS = {
@@ -11588,6 +11591,7 @@ function reloadState() {
       });
     });
     tBody.innerHTML = tb;
+    _wkPanelEqualize(); setTimeout(_wkPanelEqualize, 250); setTimeout(_wkPanelEqualize, 900);
   }
 
     // ─── Clock Picker ─────────────────────────────────────
