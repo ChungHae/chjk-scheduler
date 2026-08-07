@@ -2246,14 +2246,26 @@
       #pageWeekly #tBody > tr.wk-mob-sel > td.wk-grp-col { position: static !important; text-align: left !important; padding: 8px 12px !important; background: #f4f6fb !important; border-top: 1px solid #e4e9f0; }
       #pageWeekly .wk-grp-lbl { writing-mode: horizontal-tb !important; text-orientation: mixed !important; font-size: 13px !important; letter-spacing: 2px !important; }
       /* 이름(+팀장 뱃지) 줄 */
-      #pageWeekly #tBody > tr.wk-mob-sel > td.wk-mem-col { position: static !important; padding: 8px 12px 2px !important; font-weight: 700; }
+      #pageWeekly #tBody > tr.wk-mob-sel > td.wk-mem-col { position: static !important; padding: 7px 12px 0 !important; font-weight: 700; border-bottom: none !important; }
       /* 일정 줄: 이름 바로 아래 전폭 */
-      #pageWeekly #tBody > tr.wk-mob-sel > td.wk-rec { padding: 2px 12px 10px !important; border-bottom: 1px solid #e8edf3 !important; }
+      #pageWeekly #tBody > tr.wk-mob-sel > td.wk-rec { padding: 3px 12px 8px !important; border-bottom: 1px solid #e8edf3 !important; }
       /* 메모 칸: 모바일에선 완전 제거 (위의 > td display:block 규칙보다 구체적으로) */
       #pageWeekly #tBody > tr.wk-mob-sel > td.wk-memo { display: none !important; }
       /* 일정 줄 컴팩트: PC용 고정 높이(68px) 해제 + 긴 일정은 말줄임 대신 줄바꿈 */
       #pageWeekly .wk-rec-row { min-height: 0 !important; }
       #pageWeekly .wk-rec-row .plan-cell-text { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }
+      /* 일정 항목·연차/반차/반반차 배지: 각 줄 안에서 위아래 가운데 정렬 */
+      #pageWeekly tr.wk-mob-sel .wk-rec-row > * { display: flex !important; align-items: center !important; }
+      #pageWeekly tr.wk-mob-sel .wk-rec-row .wk-period, #pageWeekly tr.wk-mob-sel .wk-rec-row .wk-tasks { align-items: center !important; }
+      /* 목표·주간 이슈: 제목 크기 통일(13px)·내용 글씨도 제목 크기로, 박스 여백 축소 */
+      #pageWeekly .team-panel-head { margin-bottom: 6px !important; }
+      #pageWeekly .team-goal-text { font-size: 13px !important; padding: 6px 9px !important; margin-bottom: 0 !important; line-height: 1.5 !important; }
+      #pageWeekly .issue-item-display { font-size: 13px !important; padding: 5px 9px !important; }
+      /* 날짜 이동 버튼: 컴팩트 */
+      #pageWeekly .week-nav { margin: 4px 0 10px !important; }
+      #pageWeekly .wknav-arrow { width: 26px !important; height: 26px !important; font-size: 13px !important; }
+      #pageWeekly .wknav-today { height: 26px !important; padding: 0 10px !important; font-size: 11.5px !important; }
+      #pageWeekly .week-label { font-size: 13px !important; }
       /* ══ 회계(입출금) ══ */
       /* 툴바: 제목·기준일 한 줄, 앱 열기 버튼은 아래 전폭 */
       #pageArmatch .q-toolbar { row-gap: 8px; }
