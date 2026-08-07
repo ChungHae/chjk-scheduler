@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r4 2026-08-07 -->
+<!-- test build r5 2026-08-07 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -2250,6 +2250,8 @@
       #pageWeekly #tBody > tr.wk-mob-sel > td.wk-mem-col { position: static !important; padding: 7px 12px 0 !important; font-weight: 700; border-bottom: none !important; }
       /* 일정 줄: 이름 바로 아래 전폭 */
       #pageWeekly #tBody > tr.wk-mob-sel > td.wk-rec { padding: 3px 12px 8px !important; border-bottom: 1px solid #e8edf3 !important; }   /* 담당자 사이 구분선 (이름↔할일 사이에는 선 없음) */
+      /* 일정 없는 날의 '—' 표시: 이름과 할일 사이 구분선처럼 보임 → 모바일에선 숨김 */
+      #pageWeekly #tBody > tr.wk-mob-sel > td.wk-rec .cell-empty { display: none !important; }
       /* 메모 칸: 모바일에선 완전 제거 (위의 > td display:block 규칙보다 구체적으로) */
       #pageWeekly #tBody > tr.wk-mob-sel > td.wk-memo { display: none !important; }
       /* 일정 줄 컴팩트: PC용 고정 높이(68px) 해제 + 긴 일정은 말줄임 대신 줄바꿈 */
@@ -2262,6 +2264,13 @@
       #pageWeekly .team-panel-head { margin-bottom: 6px !important; }
       #pageWeekly .team-goal-text { font-size: 13px !important; padding: 6px 9px !important; margin-bottom: 0 !important; line-height: 1.5 !important; }
       #pageWeekly .issue-item-display { font-size: 13px !important; padding: 5px 9px !important; }
+      /* 카드 겉높이는 JS(_wkPanelEqualize)가 맞추고, 안쪽 내용상자(연한 박스)가 카드 높이를
+         꽉 채우게 해서 목표·주간이슈의 "보이는 박스" 높이가 항상 서로 같게 (빈 이슈도 얇은 띠 X) */
+      #pageWeekly #teamPanelGoal { flex: 1 1 auto; display: flex; flex-direction: column; }
+      #pageWeekly #teamPanelGoal .team-goal-text { flex: 1 1 auto; }
+      #pageWeekly #issuePanelList { flex: 1 1 auto; }
+      #pageWeekly #issuePanelList .issue-item-display { flex: 1 0 auto; min-height: 20px; }
+      #pageWeekly #issuePanelList .issue-empty { flex: 1 1 auto; display: flex; align-items: flex-start; }
       /* 날짜 이동 버튼: 컴팩트 */
       #pageWeekly .week-nav { margin: 4px 0 10px !important; }
       #pageWeekly .wknav-arrow { width: 26px !important; height: 26px !important; font-size: 13px !important; }
@@ -10273,8 +10282,8 @@ function reloadState() {
 
   function renderIssuePanel() {
     const emptyHtml = _isAdmin()
-      ? '<div style="font-size:12px;color:#ccc;cursor:pointer" onclick="openIssueModalNew()">등록된 이슈가 없습니다. 클릭하여 추가</div>'
-      : '<div style="font-size:12px;color:#ccc">등록된 이슈가 없습니다.</div>';
+      ? '<div class="issue-empty" style="font-size:12px;color:#ccc;cursor:pointer" onclick="openIssueModalNew()">등록된 이슈가 없습니다. 클릭하여 추가</div>'
+      : '<div class="issue-empty" style="font-size:12px;color:#ccc">등록된 이슈가 없습니다.</div>';
     const _curWeek = dk(getMonday(new Date()));
     const _visIssues = weeklyIssues.filter(issue => !(issue.resolved && issue.week && issue.week < _curWeek));
     const itemsHtml = _visIssues.length
