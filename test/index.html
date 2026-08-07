@@ -2223,6 +2223,12 @@
         width: 0 !important; max-width: 0 !important; padding: 0 !important; overflow: hidden !important;
         font-size: 0 !important; color: transparent !important; border-left: none !important; border-right: none !important;
       }
+      /* ══ 주간일정 → 모바일에선 '팀원 일정' (오늘 하루만) ══ */
+      /* 표의 각 행(날짜 헤더·팀원 행)에는 오늘이면 today 클래스가 붙는다 →
+         오늘 행만 남기고 숨김. 주 이동 네비도 오늘만 보므로 숨김 (탭 이름은 lbl-short로 교체) */
+      #pageWeekly #tBody > tr { display: none !important; }
+      #pageWeekly #tBody > tr.today { display: table-row !important; }
+      #pageWeekly .week-nav { display: none !important; }
       /* ══ 회계(입출금) ══ */
       /* 툴바: 제목·기준일 한 줄, 앱 열기 버튼은 아래 전폭 */
       #pageArmatch .q-toolbar { row-gap: 8px; }
@@ -2299,7 +2305,7 @@
 </nav>
 <nav class="sub-nav" id="scheduleSubNav">
   <button class="sub-tab active" data-page="personal">개인 일정</button>
-  <button class="sub-tab" data-page="weekly">주간 일정</button>
+  <button class="sub-tab" data-page="weekly"><span class="lbl-full">주간 일정</span><span class="lbl-short">팀원 일정</span></button>
   <button class="sub-tab" data-page="biz">업체별 일정</button>
 </nav>
 <nav class="sub-nav" id="fileGroupTabs" style="display:none">
