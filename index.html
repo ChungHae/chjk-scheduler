@@ -4231,6 +4231,7 @@
         sched_tax_invoices: taxInvoices,
         sched_ar_items: arItems,
         sched_purchase_vendors: purchaseVendors,
+        sched_links: linksList,
         sched_inventory_add: invCustom,
         sched_inventory_qty: invAdjust,
         sched_inventory_log: invUseLog,
@@ -4298,7 +4299,7 @@
       const d = await _syncGet();
       if (!d || (d._updatedAt || 0) <= _fbLastUpdatedAt) return;
       _fbLastUpdatedAt = d._updatedAt || 0;
-      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list'];
+      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list'];
       KEYS.forEach(k => { if (d[k] !== undefined) save(k, d[k]); });
       reloadState(); applyConfig(); _refreshActiveView();
     } catch(e) { /* 폴링 오류 무시 */ }
@@ -4369,7 +4370,7 @@
       const d = await _syncGet();
       const fbTs    = (d && d._updatedAt) || 0;
       const localTs = parseInt(localStorage.getItem('sched_local_ts') || '0');
-      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list'];
+      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list'];
 
       // ── 올바른 팀원 ID 목록 (하드코딩) ──────────────────────
       const _VALID_MEMBER_IDS = defaultMembers().map(m => m.id);
@@ -8253,7 +8254,8 @@ function reloadState() {
   }, true);
   document.addEventListener('mousemove', function(ev){
     if(!_lgMD) return; if(ev.buttons===0){ _lgMD=null; _lgDragging=false; return; }
-    var td=ev.target&&ev.target.closest?ev.target.closest('#qlmTable tbody td'):null; if(!td) return; var inp=td.querySelector('input.qlm-in'); if(!inp) return;
+    var _hit=document.elementFromPoint(ev.clientX, ev.clientY);   /* 글자 위 드래그 시작 시 포인터 캡처로 ev.target 고정 → 좌표 기반 (2026-08-07) */
+    var td=_hit&&_hit.closest?_hit.closest('#qlmTable tbody td'):null; if(!td) return; var inp=td.querySelector('input.qlm-in'); if(!inp) return;
     var g=_lgGrid(),p=null; for(var r=0;r<g.length&&!p;r++){ var c=g[r].indexOf(inp); if(c>=0) p={r:r,c:c}; } if(!p) return;
     if(!_lgDragging && p.r===_lgMD.r && p.c===_lgMD.c) return; _lgDragging=true; try{ window.getSelection().removeAllRanges(); }catch(e){} ev.preventDefault(); _lgSetRect(_lgMD,p);
   }, true);
@@ -8266,6 +8268,14 @@ function reloadState() {
     if(ev.shiftKey && isArrow && p){ ev.preventDefault(); ev.stopPropagation(); var g=_lgGrid(); if(!_lgSel) _lgSel={set:new Set([p.r+','+p.c]),anchor:{r:p.r,c:p.c}}; var dr=(k==='ArrowDown'?1:k==='ArrowUp'?-1:0), dc=(k==='ArrowRight'?1:k==='ArrowLeft'?-1:0); var nr=Math.max(0,Math.min(g.length-1,p.r+dr)); var nc=Math.max(0,Math.min((g[nr]?g[nr].length-1:0),p.c+dc)); var t=(g[nr]||[])[nc]; if(t){ _lgSetRect(_lgSel.anchor,{r:nr,c:nc}); t.focus(); try{ t.setSelectionRange(t.value.length,t.value.length); }catch(e){} } return; }
     if(isArrow && _lgSel){ _lgReset(); return; }
     if(_lgSel && !ev.ctrlKey && !ev.metaKey && !ev.altKey && (k.length===1||k==='Backspace'||k==='Enter')){ _lgReset(); }
+  }, true);
+  // Ctrl+C 직접 처리: 세로 드래그(여러 행) 선택 시 copy 이벤트 미발생 문제 대응 (2026-08-07)
+  document.addEventListener('keydown', function(ev){
+    if(!(_lgSel && _lgSel.set.size>1)) return;
+    if(!(ev.ctrlKey||ev.metaKey) || (ev.key!=='c' && ev.key!=='C')) return;
+    var tsv=_lgBuildTSV(); if(tsv==null) return;
+    ev.preventDefault();
+    _gridClipWrite(tsv);
   }, true);
   document.addEventListener('copy', function(ev){ if(!(_lgSel&&_lgSel.set.size>1)) return; var tsv=_lgBuildTSV(); if(tsv==null) return; try{ (ev.clipboardData||window.clipboardData).setData('text/plain',tsv); ev.preventDefault(); }catch(e){} }, true);
   document.addEventListener('paste', function(ev){ var el=document.activeElement; if(!(el&&el.closest&&el.closest('#qlmTable tbody input.qlm-in'))) return; var txt=''; try{ txt=(ev.clipboardData||window.clipboardData).getData('text'); }catch(e){} if(txt&&(txt.indexOf('\t')>=0||txt.indexOf('\n')>=0)){ ev.preventDefault(); _lgPasteText(txt); } }, true);
@@ -8962,7 +8972,10 @@ function reloadState() {
   document.addEventListener('mousemove', function(ev){
     if(!_qgMD) return;
     if(ev.buttons===0){ _qgMD=null; _qgDragging=false; return; }
-    var td = ev.target&&ev.target.closest ? ev.target.closest('#qCart table.qcart-tbl tbody td') : null;
+    // 입력창 글자 위에서 드래그를 시작하면 브라우저의 글자 선택이 포인터를 붙잡아
+    // ev.target 이 첫 칸에 고정된다 → 실제 좌표의 요소를 직접 찾는다 (2026-08-07)
+    var _hit = document.elementFromPoint(ev.clientX, ev.clientY);
+    var td = _hit&&_hit.closest ? _hit.closest('#qCart table.qcart-tbl tbody td') : null;
     if(!td) return; var inp=td.querySelector('input.qc-in'); if(!inp) return;
     var g=_qcGrid(),p=null; for(var r=0;r<g.length&&!p;r++){ var c=g[r].indexOf(inp); if(c>=0) p={r:r,c:c}; }
     if(!p) return;
@@ -8989,6 +9002,33 @@ function reloadState() {
     }
     if(isArrow && _qgSel){ _qgReset(); return; }
     if(_qgSel && !ev.ctrlKey && !ev.metaKey && !ev.altKey && (k.length===1||k==='Backspace'||k==='Enter')){ _qgReset(); }
+  }, true);
+  // 칸 선택 상태에서 입력창에 글자 선택이 없으면 브라우저가 copy 이벤트를 아예
+  // 발생시키지 않는다(세로 드래그로 여러 행을 선택한 경우가 대표적) → Ctrl+C 를
+  // keydown 에서 직접 받아 클립보드에 쓴다. (2026-08-07: 여러 행 복사가 안 되던 원인)
+  function _gridClipWrite(t){
+    var _fb=function(){
+      try{
+        var ae=document.activeElement;
+        var ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+        if(ae && ae.focus) ae.focus();
+      }catch(e){}
+    };
+    try{
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(t).then(null, _fb);   // 권한 거부 등 실패 시 폴백
+        return;
+      }
+    }catch(e){}
+    _fb();
+  }
+  document.addEventListener('keydown', function(ev){
+    if(!(_qgSel && _qgSel.set.size>1)) return;
+    if(!(ev.ctrlKey||ev.metaKey) || (ev.key!=='c' && ev.key!=='C')) return;
+    var tsv=_qgBuildTSV(); if(tsv==null) return;
+    ev.preventDefault();
+    _gridClipWrite(tsv);
   }, true);
   document.addEventListener('copy', function(ev){
     if(!(_qgSel && _qgSel.set.size>1)) return;
@@ -9951,7 +9991,7 @@ function reloadState() {
       sched_members: members, sched_entries: entries, sched_team_goal: teamGoal, sched_team_tasks: teamTasks,
       sched_config: config, sched_assignments: assignments, sched_assign_comments: assignComments,
       sched_bank_txns: bankTxns, sched_tax_invoices: taxInvoices, sched_ar_items: arItems,
-      sched_purchase_vendors: purchaseVendors, sched_inventory_add: invCustom, sched_inventory_qty: invAdjust,
+      sched_purchase_vendors: purchaseVendors, sched_links: linksList, sched_inventory_add: invCustom, sched_inventory_qty: invAdjust,
       sched_inventory_log: invUseLog, sched_inventory_hidden: invHidden, sched_inv_reset: invResetVer,
       sched_personal: personalSchedules, sched_comments: schedComments, sched_categories: schedCategories,
       sched_files: filesList, sched_quote_index: quoteVendors, sched_quote_saved: quoteSaved,
