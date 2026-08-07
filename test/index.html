@@ -4275,6 +4275,7 @@
         sched_tax_invoices: taxInvoices,
         sched_ar_items: arItems,
         sched_purchase_vendors: purchaseVendors,
+        sched_links: linksList,
         sched_inventory_add: invCustom,
         sched_inventory_qty: invAdjust,
         sched_inventory_log: invUseLog,
@@ -4342,7 +4343,7 @@
       const d = await _syncGet();
       if (!d || (d._updatedAt || 0) <= _fbLastUpdatedAt) return;
       _fbLastUpdatedAt = d._updatedAt || 0;
-      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list'];
+      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list'];
       KEYS.forEach(k => { if (d[k] !== undefined) save(k, d[k]); });
       reloadState(); applyConfig(); _refreshActiveView();
     } catch(e) { /* 폴링 오류 무시 */ }
@@ -4413,7 +4414,7 @@
       const d = await _syncGet();
       const fbTs    = (d && d._updatedAt) || 0;
       const localTs = parseInt(localStorage.getItem('sched_local_ts') || '0');
-      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list'];
+      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list'];
 
       // ── 올바른 팀원 ID 목록 (하드코딩) ──────────────────────
       const _VALID_MEMBER_IDS = defaultMembers().map(m => m.id);
@@ -10010,7 +10011,7 @@ function reloadState() {
       sched_members: members, sched_entries: entries, sched_team_goal: teamGoal, sched_team_tasks: teamTasks,
       sched_config: config, sched_assignments: assignments, sched_assign_comments: assignComments,
       sched_bank_txns: bankTxns, sched_tax_invoices: taxInvoices, sched_ar_items: arItems,
-      sched_purchase_vendors: purchaseVendors, sched_inventory_add: invCustom, sched_inventory_qty: invAdjust,
+      sched_purchase_vendors: purchaseVendors, sched_links: linksList, sched_inventory_add: invCustom, sched_inventory_qty: invAdjust,
       sched_inventory_log: invUseLog, sched_inventory_hidden: invHidden, sched_inv_reset: invResetVer,
       sched_personal: personalSchedules, sched_comments: schedComments, sched_categories: schedCategories,
       sched_files: filesList, sched_quote_index: quoteVendors, sched_quote_saved: quoteSaved,
