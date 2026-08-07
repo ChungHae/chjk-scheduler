@@ -2125,9 +2125,10 @@
       .wkc-memo { width: 0 !important; }
       .wk-memo { padding: 0 !important; overflow: hidden !important; border-left: none !important; border-right: none !important; }
       .wk-memo > * { display: none !important; }
-      /* 상단 탭: 6개를 스크롤 없이 한 화면에 (이모지 숨김 + 균등 배치) */
-      .page-nav { overflow-x: visible !important; display: flex !important; padding: 0 14px !important; white-space: normal !important; justify-content: space-between !important; }
-      .page-tab { flex: 0 1 auto !important; min-width: 0 !important; padding: 9px 5px !important; font-size: 12px !important; text-align: center !important; white-space: nowrap !important; letter-spacing: -0.3px; }
+      /* 상단 탭: 스크롤 없이 한 화면에, 각 탭이 가로폭을 균등하게 나눠 가짐
+         (2026-08-07: 선택 표시 배경이 글자 폭만큼만 잡혀 좁아 보이던 것 → PC처럼 넉넉하게) */
+      .page-nav { overflow-x: visible !important; display: flex !important; padding: 0 8px !important; white-space: normal !important; }
+      .page-tab { flex: 1 1 0 !important; min-width: 0 !important; padding: 9px 2px !important; font-size: 12px !important; text-align: center !important; white-space: nowrap !important; letter-spacing: -0.3px; }
       .ptab-ico { display: none !important; }
       /* 견적 목록·검색결과: 지정 열 숨김 */
       #qCart .qm-h, #qResults .qm-h { display: none !important; }
