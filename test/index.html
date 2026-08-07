@@ -2227,7 +2227,10 @@
       /* 표의 각 행(날짜 헤더·팀원 행)에는 오늘이면 today 클래스가 붙는다 →
          오늘 행만 남기고 숨김. 주 이동 네비도 오늘만 보므로 숨김 (탭 이름은 lbl-short로 교체) */
       #pageWeekly #tBody > tr { display: none !important; }
-      #pageWeekly .week-nav { display: none !important; }
+      /* 날짜 네비(←/→/오늘)는 모바일에서도 표시 — 단 JS가 하루 단위로 이동시킨다 */
+      /* 목표·주간 이슈 패널: 내용만큼만 (PC용 min-height 130px 해제) */
+      #pageWeekly .wk-top-panels { gap: 8px !important; margin-bottom: 8px !important; }
+      #pageWeekly .team-panel { min-height: 0 !important; padding: 10px 12px !important; margin-bottom: 0 !important; }
       /* 표 → 세로 나열로 재배치 (2026-08-07 사용자 요청): 지점 대분류 밴드 →
          이름(+팀장 뱃지) 줄 → 그 아랫줄에 일정 전폭. 지점·이름 칸이 폭을 차지해
          일정이 여러 줄로 접히던 문제 해소 */
@@ -2235,19 +2238,19 @@
       #pageWeekly #schedTable { display: block !important; min-width: 0 !important; width: 100% !important; }
       #pageWeekly #schedTable colgroup { display: none !important; }
       #pageWeekly #tBody { display: block !important; }
-      #pageWeekly #tBody > tr.today { display: block !important; }
-      #pageWeekly #tBody > tr.today > td { display: block !important; width: 100% !important; box-sizing: border-box; border-right: none !important; }
+      #pageWeekly #tBody > tr.wk-mob-sel { display: block !important; }
+      #pageWeekly #tBody > tr.wk-mob-sel > td { display: block !important; width: 100% !important; box-sizing: border-box; border-right: none !important; }
       /* 오늘 날짜 헤더: 전폭 남색 밴드 그대로 */
-      #pageWeekly #tBody > tr.wk-date-head.today > td { padding: 9px 12px !important; }
+      #pageWeekly #tBody > tr.wk-date-head.wk-mob-sel > td { padding: 9px 12px !important; }
       /* 지점(서울/화성) 대분류 밴드: 세로쓰기 해제 + 전폭 */
-      #pageWeekly #tBody > tr.today > td.wk-grp-col { position: static !important; text-align: left !important; padding: 8px 12px !important; background: #f4f6fb !important; border-top: 1px solid #e4e9f0; }
+      #pageWeekly #tBody > tr.wk-mob-sel > td.wk-grp-col { position: static !important; text-align: left !important; padding: 8px 12px !important; background: #f4f6fb !important; border-top: 1px solid #e4e9f0; }
       #pageWeekly .wk-grp-lbl { writing-mode: horizontal-tb !important; text-orientation: mixed !important; font-size: 13px !important; letter-spacing: 2px !important; }
       /* 이름(+팀장 뱃지) 줄 */
-      #pageWeekly #tBody > tr.today > td.wk-mem-col { position: static !important; padding: 8px 12px 2px !important; font-weight: 700; }
+      #pageWeekly #tBody > tr.wk-mob-sel > td.wk-mem-col { position: static !important; padding: 8px 12px 2px !important; font-weight: 700; }
       /* 일정 줄: 이름 바로 아래 전폭 */
-      #pageWeekly #tBody > tr.today > td.wk-rec { padding: 2px 12px 10px !important; border-bottom: 1px solid #e8edf3 !important; }
+      #pageWeekly #tBody > tr.wk-mob-sel > td.wk-rec { padding: 2px 12px 10px !important; border-bottom: 1px solid #e8edf3 !important; }
       /* 메모 칸: 모바일에선 완전 제거 (위의 > td display:block 규칙보다 구체적으로) */
-      #pageWeekly #tBody > tr.today > td.wk-memo { display: none !important; }
+      #pageWeekly #tBody > tr.wk-mob-sel > td.wk-memo { display: none !important; }
       /* 일정 줄 컴팩트: PC용 고정 높이(68px) 해제 + 긴 일정은 말줄임 대신 줄바꿈 */
       #pageWeekly .wk-rec-row { min-height: 0 !important; }
       #pageWeekly .wk-rec-row .plan-cell-text { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }
@@ -3353,6 +3356,7 @@
 
   // ─── State ─────────────────────────────────────────────
   let weekStart  = getMonday(new Date());
+  let _wkMobSel  = null;   // 모바일 팀원 일정에서 보고 있는 날짜 (YYYY-MM-DD, null=오늘)
   let members    = load('sched_members') ?? defaultMembers();
 
   // ─── 입사일 마이그레이션 ───────────────────────────────────
@@ -11469,7 +11473,15 @@ function reloadState() {
     renderTeamPanel();
     renderIssuePanel();
     const s0 = days[0], e0 = days[6];
-    document.getElementById('weekLabel').textContent = `${s0.getMonth()+1}월 ${s0.getDate()}일 — ${e0.getMonth()+1}월 ${e0.getDate()}일`;
+    // 모바일(팀원 일정): 하루 단위 선택 — _wkMobSel(YYYY-MM-DD, null=오늘)에 해당하는
+    // 행에 wk-mob-sel 클래스를 붙이고, 라벨도 그 날짜 하루로 표시한다. PC는 변화 없음.
+    const _selYmd = _wkMobSel || dk(new Date());
+    if (window.matchMedia('(max-width:700px)').matches) {
+      const _sd = days.find(d => dk(d) === _selYmd) || new Date();
+      document.getElementById('weekLabel').textContent = `${_sd.getMonth()+1}월 ${_sd.getDate()}일 (${DAY_KO[_sd.getDay()]})`;
+    } else {
+      document.getElementById('weekLabel').textContent = `${s0.getMonth()+1}월 ${s0.getDate()}일 — ${e0.getMonth()+1}월 ${e0.getDate()}일`;
+    }
     const tBody = document.getElementById('tBody');
     const empty = document.getElementById('emptyState');
     const table = document.getElementById('schedTable');
@@ -11493,7 +11505,7 @@ function reloadState() {
       const isTod = isToday(d);
       const dColor = isTod ? '#ffffff' : '#1a1a1a';
       const dowColor = isTod ? 'rgba(255,255,255,.85)' : '#888';
-      tb += `<tr class="wk-date-head${isTod?' today':''}"><td colspan="4"><span style="font-size:14px;font-weight:800;color:${dColor}">${d.getDate()}일</span> <span style="font-size:12px;color:${dowColor};font-weight:600;margin-left:3px">${DAY_KO[dow]}</span>${hol?` <span class="holiday-name" title="${esc(hol)}" style="margin-left:6px;font-size:12px;font-weight:600;max-width:none${isTod?';color:#ffe3e3':''}">${esc(hol)}</span>`:''}</td></tr>`;
+      tb += `<tr class="wk-date-head${isTod?' today':''}${dk(d)===_selYmd?' wk-mob-sel':''}"><td colspan="4"><span style="font-size:14px;font-weight:800;color:${dColor}">${d.getDate()}일</span> <span style="font-size:12px;color:${dowColor};font-weight:600;margin-left:3px">${DAY_KO[dow]}</span>${hol?` <span class="holiday-name" title="${esc(hol)}" style="margin-left:6px;font-size:12px;font-weight:600;max-width:none${isTod?';color:#ffe3e3':''}">${esc(hol)}</span>`:''}</td></tr>`;
       let _lastG = null;
       sorted.forEach(m => {
         const av = avatarStyle(m.name);
@@ -11505,7 +11517,7 @@ function reloadState() {
         const _ven = entries[m.id+'_'+dk(d)]||{};
         const _vtype = (_ven.status==='휴가' && _ven.vacation) ? _ven.vacation.type : '';
         const _vbg = _vtype==='연차' ? '#dde7f5' : _vtype==='반차' ? '#d8efea' : _vtype==='반반차' ? '#fbedd6' : '';
-        tb += `<tr class="wk-mem-row${(isWE||hol)?' weekend':''}${isTod?' today':''}">${_grpCell}<td class="wk-mem-col"${_vbg?` style="background:${_vbg}"`:''}><div class="wk-mem"><span class="wk-mem-name">${esc(m.name)}</span>${m.role==='팀장'?'<span class="leader-badge">팀장</span>':''}</div></td><td class="wk-rec"${_vbg?` style="background:${_vbg}"`:''} onclick="openEntry('${m.id}','${dk(d)}')"><div class="wk-rec-row">${weekCellInner(m,d)}</div></td><td class="wk-memo"${_vbg?` style="background:${_vbg}"`:''} onclick="openEntry('${m.id}','${dk(d)}')"><div class="wk-memo-row">${weekCellMemo(m,d)}</div></td></tr>`;
+        tb += `<tr class="wk-mem-row${(isWE||hol)?' weekend':''}${isTod?' today':''}${dk(d)===_selYmd?' wk-mob-sel':''}">${_grpCell}<td class="wk-mem-col"${_vbg?` style="background:${_vbg}"`:''}><div class="wk-mem"><span class="wk-mem-name">${esc(m.name)}</span>${m.role==='팀장'?'<span class="leader-badge">팀장</span>':''}</div></td><td class="wk-rec"${_vbg?` style="background:${_vbg}"`:''} onclick="openEntry('${m.id}','${dk(d)}')"><div class="wk-rec-row">${weekCellInner(m,d)}</div></td><td class="wk-memo"${_vbg?` style="background:${_vbg}"`:''} onclick="openEntry('${m.id}','${dk(d)}')"><div class="wk-memo-row">${weekCellMemo(m,d)}</div></td></tr>`;
       });
     });
     tBody.innerHTML = tb;
@@ -14838,6 +14850,7 @@ function reloadState() {
     requestAnimationFrame(step);
   }
   function _scrollWeeklyToToday(){
+    if (window.matchMedia('(max-width:700px)').matches) return;   // 모바일: 오늘 자동 스크롤 없음 (2026-08-07)
     var _td = document.querySelector('#pageWeekly .wk-date-head.today');
     if(!_td) return;
     var tf = document.querySelector('.top-frozen');
@@ -14879,6 +14892,7 @@ function reloadState() {
     }
     if (page === 'assign')    renderAssignPage();
     if (page === 'weekly') {
+      _wkMobSel = null;   // 탭 진입 시 항상 오늘부터 (모바일 하루 이동 상태 초기화)
       weekStart = getMonday(new Date());
       render();
       try{ window.scrollTo(0, 0); }catch(e){}
@@ -17342,13 +17356,26 @@ function reloadState() {
   }
 
   // ─── Week Nav ──────────────────────────────────────────
+  // 모바일(팀원 일정)에서는 주 단위가 아니라 하루 단위로 이동 (2026-08-07 사용자 요청)
+  function _wkMobShift(delta){
+    const base = _wkMobSel
+      ? new Date(+_wkMobSel.slice(0,4), +_wkMobSel.slice(5,7)-1, +_wkMobSel.slice(8,10))
+      : new Date();
+    base.setDate(base.getDate()+delta);
+    _wkMobSel = dk(base);
+    weekStart = getMonday(base);   // 주가 바뀌면 표시 주도 따라간다
+    render();
+  }
   document.getElementById('btnPrev').addEventListener('click', ()=>{
+    if (window.matchMedia('(max-width:700px)').matches) { _wkMobShift(-1); return; }
     weekStart.setDate(weekStart.getDate()-7); render();
   });
   document.getElementById('btnNext').addEventListener('click', ()=>{
+    if (window.matchMedia('(max-width:700px)').matches) { _wkMobShift(1); return; }
     weekStart.setDate(weekStart.getDate()+7); render();
   });
   document.getElementById('btnToday').addEventListener('click', ()=>{
+    _wkMobSel = null;
     weekStart=getMonday(new Date()); render();
     try{ window.scrollTo(0, 0); }catch(e){}
     setTimeout(_scrollWeeklyToToday, 140);
