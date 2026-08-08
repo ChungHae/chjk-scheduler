@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r7 2026-08-07 -->
+<!-- test build r8 2026-08-08 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -2267,6 +2267,11 @@
       /* 일정 항목·연차/반차/반반차 배지: 각 줄 안에서 위아래 가운데 정렬 */
       #pageWeekly tr.wk-mob-sel .wk-rec-row > * { display: flex !important; align-items: center !important; }
       #pageWeekly tr.wk-mob-sel .wk-rec-row .wk-period, #pageWeekly tr.wk-mob-sel .wk-rec-row .wk-tasks { align-items: center !important; }
+      /* 할일 내용 상하 가운데: 오전/오후 라벨(align-self:flex-start가 부모 정렬을 무시함)과
+         각 할일 줄(.wk-task)·점 위치까지 가운데로 */
+      #pageWeekly tr.wk-mob-sel .wk-rec-row .wk-period-lbl { align-self: center !important; }
+      #pageWeekly tr.wk-mob-sel .wk-rec-row .wk-task { align-items: center !important; }
+      #pageWeekly tr.wk-mob-sel .wk-rec-row .wk-task .wk-task-dot { margin-top: 0 !important; }
       /* 목표·주간 이슈: 제목 크기 통일(13px)·내용 글씨도 제목 크기로, 박스 여백 축소 */
       #pageWeekly .team-panel-head { margin-bottom: 4px !important; }
       #pageWeekly .team-goal-text { font-size: 13px !important; padding: 3px 9px !important; margin-bottom: 0 !important; line-height: 1.5 !important; }
