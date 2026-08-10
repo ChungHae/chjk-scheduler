@@ -12415,15 +12415,76 @@ function reloadState() {
     if (e.key === 'Enter') document.getElementById('uAddBtn').click();
   });
 
-  function closeEntry() {
+  function _closeEntryNow() {
     document.getElementById('entryOverlay').style.display='none';
     editing = null;
     _pendingDelIds = new Set();
+    const _cc = document.getElementById('entryCloseConfirm');
+    if (_cc) _cc.style.display = 'none';
+  }
+  // 저장 안 된 변경이 있는지 검사: ①입력칸에 쓰다 만 할일 ②저장 대기 중인 삭제 ③수정 중인 항목의 변경
+  function _entryDirty() {
+    try {
+      if ((document.getElementById('uTitle')?.value || '').trim()) return true;
+      if ((document.getElementById('uBiz')?.value || '').trim()) return true;
+      if (_pendingDelIds && _pendingDelIds.size) return true;
+      if (_editingUnifiedId) {
+        const s = personalSchedules.find(x => x.id === _editingUnifiedId);
+        if (s) {
+          const t  = document.getElementById('uedit-title-' + s.id);
+          const b  = document.getElementById('uedit-biz-' + s.id);
+          const c  = document.getElementById('uedit-cat-' + s.id);
+          const tm = document.getElementById('uedit-time-' + s.id);
+          if (t && t.value.trim() !== (s.title || '')) return true;
+          if (b && b.value.trim() !== (s.bizName || '')) return true;
+          if (c && c.value !== s.category) return true;
+          if (tm && tm.value !== (s.time || '')) return true;
+        }
+      }
+    } catch(e) {}
+    return false;
+  }
+  function _showEntryCloseConfirm() {
+    let el = document.getElementById('entryCloseConfirm');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'entryCloseConfirm';
+      el.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(20,30,50,.45)';
+      el.innerHTML = '<div style="background:#fff;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.25);padding:22px 24px;max-width:360px;width:calc(100% - 48px);font-family:inherit">' +
+        '<div style="font-size:15px;font-weight:800;color:#14305c;margin-bottom:6px">저장되지 않은 내용이 있습니다</div>' +
+        '<div style="font-size:13px;color:#555;line-height:1.6;margin-bottom:16px">지금 닫으면 방금 작성·수정한 내용이 사라집니다.<br>저장할까요?</div>' +
+        '<div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">' +
+        '<button id="eccKeep" style="padding:8px 12px;border:1px solid #e5e5e5;background:#fff;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit">계속 작성</button>' +
+        '<button id="eccDiscard" style="padding:8px 12px;border:1px solid #f3c6c6;background:#fff;color:#dc2626;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit">저장 안 함</button>' +
+        '<button id="eccSave" style="padding:8px 16px;border:none;background:#1B3A6B;color:#fff;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">저장 후 닫기</button>' +
+        '</div></div>';
+      document.body.appendChild(el);
+      document.getElementById('eccKeep').addEventListener('click', function(){ el.style.display = 'none'; });
+      document.getElementById('eccDiscard').addEventListener('click', function(){ el.style.display = 'none'; _closeEntryNow(); });
+      document.getElementById('eccSave').addEventListener('click', function(){ el.style.display = 'none'; saveEntry(); });
+    }
+    el.style.display = 'flex';
+  }
+  function closeEntry() {
+    if (_entryDirty()) { _showEntryCloseConfirm(); return; }
+    _closeEntryNow();
   }
   window.closeEntry = closeEntry;
 
   function saveEntry() {
     if (!editing) return;
+    // 입력칸에 쓰다 만 할일이 있으면 자동 등록 (추가 버튼을 안 눌렀어도 저장에 포함)
+    const _ut = document.getElementById('uTitle');
+    if (_ut && _ut.value.trim()) {
+      document.getElementById('uAddBtn').click();
+      if (_ut.value.trim()) return;   // 등록 실패(업체명 검증 등) → 닫지 않고 그대로 두어 수정하게 함
+    }
+    // 수정 중이던 항목의 변경도 자동 반영
+    if (_editingUnifiedId) {
+      const _eb = document.querySelector('#unifiedList [data-action="edit-save"]');
+      if (_eb) _eb.click();
+      if (_editingUnifiedId) return;  // 반영 실패(내용 비어있음 등) → 닫지 않음
+    }
     const { memberId, dkStr } = editing;
     const key = memberId+'_'+dkStr;
     // 보류된 삭제 반영
@@ -12443,7 +12504,7 @@ function reloadState() {
     else delete entries[key];
 
     saveAll();
-    closeEntry();
+    _closeEntryNow();
     render();
     renderPersonalPage();
     updateTodayWidget();
