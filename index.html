@@ -12203,6 +12203,8 @@ function reloadState() {
     }
 
     editing = { memberId, dkStr };
+    // 이 시점의 내 할일 목록 스냅샷 — '저장 안 함'으로 닫으면 이 상태로 원상복구
+    _entrySnap = JSON.stringify(personalSchedules.filter(s => s.memberId === memberId));
     const m  = members.find(x=>x.id===memberId);
     const en = entries[memberId+'_'+dkStr]||{};
 
@@ -12232,6 +12234,7 @@ function reloadState() {
   // ─── 통합 할일/일정 렌더 ────────────────────────────────
   let _editingUnifiedId = null;
   let _pendingDelIds = new Set();  // 저장 전까지 보류되는 삭제 항목
+  let _entrySnap = null;           // 모달 열 때의 할일 목록 스냅샷 ('저장 안 함' 복구용)
 
   function renderUnifiedList(memberId, dkStr) {
     const _prank = t => { const p=_periodOf(t); return p==='종일'?0:p==='오전'?1:2; };
@@ -12409,6 +12412,8 @@ function reloadState() {
     saveAll();
     renderUnifiedList(editing.memberId, editing.dkStr);
     render();
+    renderPersonalPage();                                        // 개인 일정 달력도 즉시 갱신
+    if (typeof updateTodayWidget === 'function') updateTodayWidget();
   });
 
   document.getElementById('uTitle').addEventListener('keydown', e => {
@@ -12419,8 +12424,20 @@ function reloadState() {
     document.getElementById('entryOverlay').style.display='none';
     editing = null;
     _pendingDelIds = new Set();
+    _entrySnap = null;
     const _cc = document.getElementById('entryCloseConfirm');
     if (_cc) _cc.style.display = 'none';
+  }
+  // '저장 안 함' 선택 시: 모달을 연 뒤의 모든 변경(추가·수정·완료체크)을 스냅샷으로 원상복구
+  function _discardEntryChanges() {
+    try {
+      if (!editing || _entrySnap === null) return;
+      const mid = editing.memberId;
+      personalSchedules = personalSchedules.filter(s => s.memberId !== mid).concat(JSON.parse(_entrySnap));
+      saveAll();
+      render(); renderPersonalPage();
+      if (typeof updateTodayWidget === 'function') updateTodayWidget();
+    } catch(e) {}
   }
   // 저장 안 된 변경이 있는지 검사: ①입력칸에 쓰다 만 할일 ②저장 대기 중인 삭제 ③수정 중인 항목의 변경
   function _entryDirty() {
@@ -12428,6 +12445,9 @@ function reloadState() {
       if ((document.getElementById('uTitle')?.value || '').trim()) return true;
       if ((document.getElementById('uBiz')?.value || '').trim()) return true;
       if (_pendingDelIds && _pendingDelIds.size) return true;
+      // 모달을 연 뒤 추가·수정·완료체크로 목록이 달라졌으면 미저장 상태로 취급
+      if (editing && _entrySnap !== null &&
+          JSON.stringify(personalSchedules.filter(s => s.memberId === editing.memberId)) !== _entrySnap) return true;
       if (_editingUnifiedId) {
         const s = personalSchedules.find(x => x.id === _editingUnifiedId);
         if (s) {
@@ -12460,7 +12480,7 @@ function reloadState() {
         '</div></div>';
       document.body.appendChild(el);
       document.getElementById('eccKeep').addEventListener('click', function(){ el.style.display = 'none'; });
-      document.getElementById('eccDiscard').addEventListener('click', function(){ el.style.display = 'none'; _closeEntryNow(); });
+      document.getElementById('eccDiscard').addEventListener('click', function(){ el.style.display = 'none'; _discardEntryChanges(); _closeEntryNow(); });
       document.getElementById('eccSave').addEventListener('click', function(){ el.style.display = 'none'; saveEntry(); });
     }
     el.style.display = 'flex';
