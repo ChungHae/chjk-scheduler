@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r12 2026-08-10 -->
+<!-- test build r13 2026-08-10 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -16060,7 +16060,7 @@ function reloadState() {
   // ─── chjk 전 직원 공지 바 (와인색, 최상단) ───
   function bcastBarsHtml(dStr){
     var list = (personalSchedules||[]).filter(function(s){ return s && s.memberId==='__ALL__' && !s.done && isPschedOnDate(s, dStr); });
-    if(!list.length) return '';
+    if(!list.length) return [];
     // 카테고리 완전 일치끼리 묶기 (카테고리 없으면 개별). 등장 순서 유지.
     var groups=[]; var catIdx={};
     list.forEach(function(s){
@@ -16068,11 +16068,11 @@ function reloadState() {
       if(cat && catIdx[cat]!==undefined){ groups[catIdx[cat]].items.push(s); }
       else { groups.push({ cat:cat, items:[s] }); if(cat) catIdx[cat]=groups.length-1; }
     });
-    var out='';
+    var out=[];   // 줄 단위 배열로 반환 (달력 셀의 줄 수 예산 계산용)
     groups.forEach(function(g){
       var contents = g.items.map(function(s){ return s.title; }).join(', ');
       var label = g.cat ? (contents + ' ' + g.cat) : contents;
-      out += '<div title="'+esc(label)+'" style="font-size:10px;line-height:15px;height:15px;background:#722F37;color:#fff;border-radius:4px;padding:0 6px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:700;flex-shrink:0">'+esc(label)+'</div>';
+      out.push('<div title="'+esc(label)+'" style="font-size:10px;line-height:15px;height:15px;background:#722F37;color:#fff;border-radius:4px;padding:0 6px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:700;flex-shrink:0">'+esc(label)+'</div>');
     });
     return out;
   }
@@ -16098,7 +16098,7 @@ function reloadState() {
       else if(v.type==='반차'){ if(v.timeFrom==='09:00') banAM.push(m); else banPM.push(m); }
       else { var slot=(v.timeFrom||'')+'~'+(v.timeTo||''); (banbanBySlot[slot]=banbanBySlot[slot]||[]).push(m); }
     });
-    var out='';
+    var out=[];   // 줄 단위 배열로 반환
     var barHtml=function(list, color, tag){
       if(!list.length) return;
       list.sort(_vacSort);
@@ -16111,7 +16111,7 @@ function reloadState() {
         return esc(m.name);
       }).join(', ');
       var base='font-size:10px;line-height:15px;height:15px;background:'+color+';color:#fff;padding:0 5px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:600;flex-shrink:0';
-      out += '<div onclick="event.stopPropagation()" title="'+esc(list.map(function(m){return m.name;}).join(', ')+tag)+'" style="'+base+'">'+namesHtml+esc(tag)+'</div>';
+      out.push('<div onclick="event.stopPropagation()" title="'+esc(list.map(function(m){return m.name;}).join(', ')+tag)+'" style="'+base+'">'+namesHtml+esc(tag)+'</div>');
     };
     barHtml(yeoncha, '#1B3A6B', ' 연차');
     barHtml(banAM, '#0d9488', ' 오전 반차');
@@ -16299,17 +16299,19 @@ function reloadState() {
                 : ''}
             </span>
           </div>
-          ${bcastBarsHtml(dStr)}${vacBarsHtml(dStr, dow)}`;
+          `;
 
-      // 할일 / 일정 항목 (최대 3개)
-      dayPsched.slice(0,3).forEach(s => {
+      // ── 내용 줄 예산: 공지·연차·반차·할일·배정 전부 합쳐 5주 달력=5줄, 6주 달력=4줄 ──
+      const _lines = [];
+      bcastBarsHtml(dStr).forEach(h => _lines.push(h));
+      vacBarsHtml(dStr, dow).forEach(h => _lines.push(h));
+      // 할일 / 일정 항목
+      dayPsched.forEach(s => {
         const cc = CAT_COLOR[s.category] || '#9ca3af';
-        const tIcon = '';   // 오전/오후/종일 아이콘 표시 제거
-        inner += `<div style="display:flex;align-items:center;gap:3px;font-size:10px;line-height:1.25;overflow:hidden">
+        _lines.push(`<div style="display:flex;align-items:center;gap:3px;font-size:10px;line-height:1.25;overflow:hidden">
           <span style="width:5px;height:5px;border-radius:50%;background:${s.done?'#d1d5db':cc};flex-shrink:0"></span>
-          ${tIcon ? `<span title="${esc(s.time)}" style="font-size:10px;flex-shrink:0;line-height:1">${tIcon}</span>` : ''}
-          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${s.done?'#bbb':(s.memberId==='__ALL__'?'#1B3A6B':'#374151')};font-weight:${s.memberId==='__ALL__'?'700':'400'};text-decoration:${s.done?'line-through':'none'}">${s.memberId==='__ALL__'?'':''}${esc(s.title)}</span>
-        </div>`;
+          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${s.done?'#bbb':(s.memberId==='__ALL__'?'#1B3A6B':'#374151')};font-weight:${s.memberId==='__ALL__'?'700':'400'};text-decoration:${s.done?'line-through':'none'}">${esc(s.title)}</span>
+        </div>`);
       });
       // 하위 호환 — 예전 projects/plans 데이터
       if (!dayPsched.length && (projects.length || plans.length)) {
@@ -16317,27 +16319,33 @@ function reloadState() {
           ...projects.map(p => ({ t: (typeof p === 'string' ? p : (p.memo||p.name)), done: p.done })),
           ...plans.map(p => ({ t: p.text, done: p.done }))
         ];
-        olds.slice(0,3).forEach(o => {
-          inner += `<div style="display:flex;align-items:center;gap:3px;font-size:10px;line-height:1.25;overflow:hidden">
+        olds.forEach(o => {
+          _lines.push(`<div style="display:flex;align-items:center;gap:3px;font-size:10px;line-height:1.25;overflow:hidden">
             <span style="width:5px;height:5px;border-radius:50%;background:${o.done?'#d1d5db':'#7ea3d4'};flex-shrink:0"></span>
             <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${o.done?'#bbb':'#374151'};text-decoration:${o.done?'line-through':'none'}">${esc(o.t)}</span>
-          </div>`;
+          </div>`);
         });
       }
-      // 배정 업무 (최대 2개)
-      dayAssign.slice(0,3).forEach(a => {
+      // 배정 업무
+      dayAssign.forEach(a => {
         const _ad = a.done;
-        inner += `<div style="display:flex;align-items:center;gap:3px;font-size:10px;line-height:1.25;overflow:hidden">
+        _lines.push(`<div style="display:flex;align-items:center;gap:3px;font-size:10px;line-height:1.25;overflow:hidden">
           <span style="width:5px;height:5px;border-radius:50%;background:${_ad?'#d1d5db':'#ef4444'};flex-shrink:0"></span>
           <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:${_ad?'400':'600'};color:${_ad?'#bbb':'#ef4444'};text-decoration:${_ad?'line-through':'none'}">${_ad?'✓':'⚠️'}${a.biz?'['+esc(a.biz)+'] ':''}${esc(a.title)}</span>
-        </div>`;
+        </div>`);
       });
-      // 초과 개수 표시
-      const pCount = dayPsched.length || (projects.length + plans.length);
-      const totalItems = pCount + dayAssign.length;
-      const shownItems = Math.min(pCount, 3) + Math.min(dayAssign.length, 2);
-      const moreCount  = totalItems - shownItems;
-      if (moreCount > 0) inner += `<div style="font-size:9px;color:#aaa;padding-left:2px">+${moreCount}개 더</div>`;
+      // 줄 수 제한 + 초과분은 마지막 줄 오른쪽에 "+N개 더"로 표시 (한 줄 낭비 없음)
+      const _maxL  = _calRows >= 6 ? 4 : 5;
+      const _moreN = _lines.length - _maxL;
+      const _shown = _lines.slice(0, _maxL);
+      if (_moreN > 0 && _shown.length) {
+        _shown[_shown.length - 1] =
+          '<div style="display:flex;align-items:center;gap:4px;min-width:0">'
+          + '<div style="flex:1;min-width:0;overflow:hidden">' + _shown[_shown.length - 1] + '</div>'
+          + '<span style="font-size:9px;color:#aaa;flex-shrink:0;white-space:nowrap">+' + _moreN + '개 더</span>'
+          + '</div>';
+      }
+      inner += _shown.join('');
 
       inner += `</div>`;
       return inner;
