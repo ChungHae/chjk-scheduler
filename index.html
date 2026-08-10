@@ -12469,21 +12469,32 @@ function reloadState() {
     if (!el) {
       el = document.createElement('div');
       el.id = 'entryCloseConfirm';
-      el.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(20,30,50,.45)';
-      el.innerHTML = '<div style="background:#fff;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.25);padding:22px 24px;max-width:360px;width:calc(100% - 48px);font-family:inherit">' +
-        '<div style="font-size:15px;font-weight:800;color:#14305c;margin-bottom:6px">저장되지 않은 내용이 있습니다</div>' +
-        '<div style="font-size:13px;color:#555;line-height:1.6;margin-bottom:16px">지금 닫으면 방금 작성·수정한 내용이 사라집니다.<br>저장할까요?</div>' +
-        '<div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">' +
-        '<button id="eccKeep" style="padding:8px 12px;border:1px solid #e5e5e5;background:#fff;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit">계속 작성</button>' +
-        '<button id="eccDiscard" style="padding:8px 12px;border:1px solid #f3c6c6;background:#fff;color:#dc2626;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit">저장 안 함</button>' +
-        '<button id="eccSave" style="padding:8px 16px;border:none;background:#1B3A6B;color:#fff;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">저장 후 닫기</button>' +
-        '</div></div>';
+      // 다른 팝업(showConfirmModal)과 동일한 디자인: 각진 모서리·헤더 바·28px 각진 버튼
+      el.style.cssText = 'position:fixed;inset:0;z-index:100096;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px';
+      el.innerHTML = '<div style="width:100%;max-width:380px;background:#fff;border:1px solid #c8d2de;border-radius:0;overflow:hidden">'
+        + '<div style="padding:9px 14px;border-bottom:1px solid #c8d2de;background:#f4f6f9;display:flex;align-items:center;gap:8px"><span style="width:3px;height:15px;background:#1a1a1a"></span><span style="font-size:13.5px;font-weight:700;color:#1a1a1a">저장되지 않은 내용이 있습니다</span></div>'
+        + '<div style="padding:16px 14px;font-size:13px;color:#374151;line-height:1.65">지금 닫으면 방금 작성·수정한 내용이 사라집니다.<br>저장할까요?</div>'
+        + '<div style="display:flex;gap:6px;justify-content:flex-end;padding:0 14px 14px">'
+        + '<button type="button" id="eccKeep" style="padding:0 12px;height:28px;background:#fff;border:1px solid #c8d2de;border-radius:0;font-size:12px;color:#4b5563;cursor:pointer;font-family:inherit">계속 작성</button>'
+        + '<button type="button" id="eccDiscard" style="padding:0 12px;height:28px;background:#fff;border:1px solid #c8d2de;border-radius:0;font-size:12px;color:#dc2626;cursor:pointer;font-family:inherit">저장 안 함</button>'
+        + '<button type="button" id="eccSave" style="padding:0 14px;height:28px;border:1px solid #1B3A6B;background:#1B3A6B;color:#fff;border-radius:0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">저장 후 닫기</button>'
+        + '</div></div>';
       document.body.appendChild(el);
       document.getElementById('eccKeep').addEventListener('click', function(){ el.style.display = 'none'; });
       document.getElementById('eccDiscard').addEventListener('click', function(){ el.style.display = 'none'; _discardEntryChanges(); _closeEntryNow(); });
       document.getElementById('eccSave').addEventListener('click', function(){ el.style.display = 'none'; saveEntry(); });
+      el.addEventListener('click', function(e){ if (e.target === el) el.style.display = 'none'; });   // 배경 클릭 = 계속 작성
     }
     el.style.display = 'flex';
+    // 표준 팝업과 같은 키 동작: Enter = 저장 후 닫기, Escape = 계속 작성
+    if (el._eccKey) { document.removeEventListener('keydown', el._eccKey); el._eccKey = null; }
+    var _eccKey = function(ev){
+      if (el.style.display !== 'flex') return;
+      if (ev.key === 'Enter')  { ev.preventDefault(); document.removeEventListener('keydown', _eccKey); el._eccKey = null; document.getElementById('eccSave').click(); }
+      else if (ev.key === 'Escape') { ev.preventDefault(); document.removeEventListener('keydown', _eccKey); el._eccKey = null; document.getElementById('eccKeep').click(); }
+    };
+    el._eccKey = _eccKey;
+    setTimeout(function(){ document.addEventListener('keydown', _eccKey); }, 120);
   }
   function closeEntry() {
     if (_entryDirty()) { _showEntryCloseConfirm(); return; }
