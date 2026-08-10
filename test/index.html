@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r8 2026-08-08 -->
+<!-- test build r9 2026-08-10 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -4311,8 +4311,11 @@
   }
   async function _syncPost(data) {
     if(_isViewer()) return;
+    // 2026-08-08: PUT(전체 교체) → PATCH(보낸 키만 갱신).
+    // 구버전 코드가 떠 있던 탭이 저장하면 자신이 모르는 키(sched_links 등)를 통째로
+    // 지워버리는 사고가 반복돼, 보내는 키만 병합 갱신하는 방식으로 변경.
     const res = await _fbFetch(`${_fbDbUrl}/${_FB_PATH}.json`, {
-      method: 'PUT',
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
@@ -4344,6 +4347,7 @@
         sched_ar_items: arItems,
         sched_purchase_vendors: purchaseVendors,
         sched_links: linksList,
+        sched_links_ts: ts,   // 빈 배열은 Firebase가 키를 지우므로, '정상 저장' 표식을 남겨 삭제/사고를 구분
         sched_inventory_add: invCustom,
         sched_inventory_qty: invAdjust,
         sched_inventory_log: invUseLog,
@@ -4413,7 +4417,17 @@
       _fbLastUpdatedAt = d._updatedAt || 0;
       const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list'];
       KEYS.forEach(k => { if (d[k] !== undefined) save(k, d[k]); });
+      // ── 바로가기(sched_links) 보호 ──
+      // 키가 없을 때: sched_links_ts가 있으면 신버전 클라이언트의 정상 저장(목록이 비어서
+      // Firebase가 키를 생략한 것) → 빈 목록 반영. 둘 다 없으면 구버전 클라이언트가
+      // 전체 덮어쓰기로 지운 사고 → 이 PC의 로컬 사본으로 자동 복원.
+      let _healLinks = false;
+      if (d.sched_links === undefined) {
+        if (d.sched_links_ts !== undefined) save('sched_links', []);
+        else if (((load('sched_links')) || []).length) _healLinks = true;
+      }
       reloadState(); applyConfig(); _refreshActiveView();
+      if (_healLinks) debouncedFbSave();
     } catch(e) { /* 폴링 오류 무시 */ }
   }
   function startPolling() {
@@ -4425,6 +4439,28 @@
       window.addEventListener('focus', function(){ _pollSync(true); });
     }
   }
+  // ── 새 버전 자동 감지·자동 새로고침 ──────────────────────
+  // 며칠씩 열려 있는 탭이 구버전 코드로 저장하면서 데이터를 깨뜨리는 사고 방지.
+  // 10분마다 서버의 이 파일을 받아 처음 받은 것과 달라졌으면(=새 배포),
+  // 탭이 백그라운드일 때 즉시, 아니면 탭으로 돌아오는 순간 새 주소로 새로고침한다.
+  (function(){
+    if (location.protocol.indexOf('http') !== 0) return;   // file:// 테스트 환경 제외
+    let _base = null, _updAvail = false;
+    function _hash(t){ let h = 5381; for (let i = 0; i < t.length; i += 7) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0; return t.length + ':' + h; }
+    function _doUpd(){ location.replace(location.pathname + '?u=' + Date.now() + location.hash); }
+    async function _chk(){
+      try{
+        const r = await fetch(location.pathname + '?_uchk=' + Date.now(), {cache:'no-store'});
+        if (!r.ok) return;
+        const h = _hash(await r.text());
+        if (_base === null) { _base = h; return; }
+        if (h !== _base) { _updAvail = true; if (document.hidden) _doUpd(); }
+      }catch(e){}
+    }
+    setInterval(_chk, 10 * 60 * 1000);
+    setTimeout(_chk, 20 * 1000);
+    document.addEventListener('visibilitychange', function(){ if (!document.hidden && _updAvail) _doUpd(); });
+  })();
   function _showConnMsg(ok, txt) {
     const m = document.getElementById('fbStatusMsg');
     if (!m) return;
@@ -4493,6 +4529,11 @@
       if (d && Object.keys(d).length > 0 && fbHasValidMembers) {
         // Firebase에 올바른 팀원 데이터 있음 → Firebase에서 로드
         KEYS.forEach(k => { if (d[k] !== undefined) save(k, d[k]); });
+        // 바로가기 보호(폴링 쪽과 동일한 규칙): 사고로 지워졌으면 로컬 사본으로 복원
+        if (d.sched_links === undefined) {
+          if (d.sched_links_ts !== undefined) save('sched_links', []);
+          else if (((load('sched_links')) || []).length) debouncedFbSave();
+        }
         _fbLastUpdatedAt = fbTs;
         reloadState(); applyConfig(); render();
       } else if (d && Object.keys(d).length > 0 && !fbHasValidMembers) {
