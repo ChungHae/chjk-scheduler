@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r19 2026-08-11 -->
+<!-- test build r20 2026-08-11 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -2018,8 +2018,15 @@
       #fileSearch { flex:1 1 100% !important; }
       /* 업체별 일정: 1열 */
       #bizPageList { grid-template-columns: 1fr !important; }
-      /* 업체별 일정 거래처 검색창 전폭 */
-      #pageBiz .biz-filter-bar { min-width: 0 !important; }
+      /* 업체별 일정 거래처 검색창 전폭 + 위 카테고리와 간격 확보(팀원 일정의 목표 박스 위치와 동일) */
+      #pageBiz .biz-filter-bar { min-width: 0 !important; margin: 0 0 12px !important; padding: 8px 12px !important; border: 1px solid #e5e5e5 !important; box-shadow: none !important; min-height: 0 !important; background: #fff; }
+      /* 진행 N건·N건·최근 날짜 숨김 */
+      #pageBiz .biz-card-counts, #pageBiz .biz-card-meta { display: none !important; }
+      /* 거래처명: 글씨 한 단계 축소 + 말줄임 없이 전체 표시(줄바꿈 허용) */
+      #pageBiz .biz-card-name { font-size: 13px !important; white-space: normal !important; overflow: visible !important; text-overflow: clip !important; word-break: break-all; }
+      #pageBiz .biz-card-head-left { overflow: visible !important; }
+      /* 사업자번호(이름 옆 배지): 우측 정렬 */
+      #pageBiz .biz-card-head-left > span:nth-child(2) { margin-left: auto !important; }
       #pageBiz .biz-filter-bar input { flex: 1 1 100% !important; }
       #pageBiz .biz-filter-bar select { flex: 1 1 40% !important; min-width: 0; }
       /* 개인일정: 작은 화면은 달력 대신 '오늘 일정' 뷰 */
@@ -2196,8 +2203,12 @@
       .brand-logo { height: 26px !important; }
       #appTitleLabel, #btnMyProfile, #btnImportLabel { display: none !important; }
       #headerDate { display: none !important; }   /* 년월일·요일 표시 제거 */
-      /* 이름/비밀번호변경/로그아웃/동기화 칩: 우측 정렬 */
+      /* 이름/비밀번호변경/로그아웃/동기화 칩: 우측 정렬 + 상하 가운데 */
       #userChip { margin-left: auto !important; }
+      #headerLeft { align-items: center !important; }
+      .user-chip { align-items: center !important; }
+      .user-chip button { display: inline-flex; align-items: center; }
+      #userChip #syncStatus { display: inline-flex; align-items: center; line-height: 1; }
       /* 동기화 배지: 로그아웃 옆(사용자 칩 안)으로 이동 — 칩은 살짝 컴팩트하게 */
       #syncStatus { margin-left: 0 !important; font-size: 11px !important; padding: 3px 8px !important; white-space: nowrap; }
       .user-chip { gap: 6px !important; padding: 4px 9px !important; }
@@ -15768,16 +15779,23 @@ function reloadState() {
     var inner = '';
     try{ inner = weekCellInner(m, day); }catch(_e){ inner=''; }
     var isEmpty = !inner || inner.indexOf('cell-empty')>=0;
-    el.innerHTML =
-      '<div style="font-size:16px;font-weight:800;color:#14305c;margin-bottom:8px">내 일정'+(isTod?' · 오늘':'')+'</div>'
-      // 팀원 일정과 동일한 날짜 이동 버튼 (크기 고정·터치 잔류색 없음 — 같은 클래스 사용)
-      +'<div class="week-nav" style="display:flex;align-items:center;justify-content:center;gap:6px;margin:0 0 10px">'
-      +   '<button type="button" class="wknav-arrow" onclick="_psMobShift(-1)">←</button>'
-      +   '<span class="week-label">'+dstr+'</span>'
-      +   '<button type="button" class="wknav-arrow" onclick="_psMobShift(1)">→</button>'
-      +   '<button type="button" class="wknav-today" onclick="_psMobToday()">오늘</button>'
-      + '</div>'
-      +'<div onclick="openEntry(\''+m.id+'\',\''+dk(day)+'\')" style="background:#fff;border:1.5px solid #e5e9f0;border-radius:12px;padding:14px;min-height:80px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.05)">'
+    // 네비 버튼은 한 번만 만들고 유지 — 매번 통째로 다시 그리면 누른 버튼이 교체되어
+    // 눌림(:active) 파란색이 팀원 일정처럼 보이지 않음
+    if (!document.getElementById('psMobNavBox')) {
+      el.innerHTML =
+        '<div id="psMobTitle" style="font-size:16px;font-weight:800;color:#14305c;margin-bottom:8px"></div>'
+        +'<div id="psMobNavBox" class="week-nav" style="display:flex;align-items:center;justify-content:center;gap:6px;margin:0 0 10px">'
+        +   '<button type="button" class="wknav-arrow" onclick="_psMobShift(-1)">←</button>'
+        +   '<span class="week-label" id="psMobLabel"></span>'
+        +   '<button type="button" class="wknav-arrow" onclick="_psMobShift(1)">→</button>'
+        +   '<button type="button" class="wknav-today" onclick="_psMobToday()">오늘</button>'
+        + '</div>'
+        +'<div id="psMobCard"></div>';
+    }
+    document.getElementById('psMobTitle').textContent = '내 일정'+(isTod?' · 오늘':'');
+    document.getElementById('psMobLabel').textContent = dstr;
+    document.getElementById('psMobCard').innerHTML =
+      '<div onclick="openEntry(\''+m.id+'\',\''+dk(day)+'\')" style="background:#fff;border:1.5px solid #e5e9f0;border-radius:12px;padding:14px;min-height:80px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.05)">'
       + (isEmpty ? '<div style="color:#9ca3af;font-size:13px;text-align:center;padding:16px 0">'+(isTod?'오늘':'이 날')+' 등록된 일정이 없습니다.<br>여기를 눌러 일정을 추가하세요.</div>' : '<div class="wk-rec-row" style="height:auto;overflow:visible">'+inner+'</div><div style="font-size:11px;color:#9ca3af;text-align:right;margin-top:8px">눌러서 추가/수정</div>')
       +'</div>';
   }
