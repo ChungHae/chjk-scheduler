@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r21 2026-08-11 -->
+<!-- test build r22 2026-08-11 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -2342,6 +2342,34 @@
     @media (max-width: 480px) {
       #pageCardSales .cs-cal-cell { height: 54px !important; }
       #pageCardSales .cs-cal-badge { font-size: 8.5px !important; }
+    }
+
+    /* ── 반응형 보강 7: 견적관리 툴바 모바일 재배치 ──
+       거래처·담당자·날짜·메모를 각각 한 줄(라벨+입력)로, 버튼은 별도 줄 — 가로 스크롤 금지.
+       원장 관리·견적 업로드 버튼은 모바일에서 숨김 (외근용 화면은 꼭 필요한 것만) */
+    @media (max-width: 700px) {
+      #qSubQuote > div:first-child {
+        position: static !important; height: auto !important; margin: 0 0 12px !important;
+        padding: 8px 12px !important; border: 1px solid #e5e5e5 !important; box-shadow: none !important;
+        display: flex !important; flex-direction: row !important; flex-wrap: wrap !important;
+        align-items: center !important; gap: 8px 6px !important; overflow: visible !important;
+      }
+      /* 라벨(거래처·담당자·날짜·메모): 고정폭 → 라벨+입력이 한 줄 */
+      #qSubQuote > div:first-child > span[style*="font-weight:700"] { flex: 0 0 46px !important; width: 46px !important; max-width: 46px !important; margin-left: 0 !important; }
+      /* 입력: 라벨 옆 남은 폭 전부 */
+      #qSubQuote > div:first-child > div[style*="position:relative"],
+      #qManager, #qQuoteDate, #qQuoteNote { flex: 1 1 calc(100% - 58px) !important; width: calc(100% - 58px) !important; max-width: calc(100% - 58px) !important; min-width: 0 !important; box-sizing: border-box !important; }
+      /* 규격(품번) 검색: 전폭 한 줄 */
+      #qSpec { flex: 1 1 100% !important; width: 100% !important; max-width: 100% !important; min-width: 0 !important; }
+      #qMetaInfo { flex: 1 1 100% !important; width: 100% !important; }
+      /* 원장 관리·견적 업로드 숨김 + 구분선 제거 */
+      #qLedgerBtn { display: none !important; }
+      #qSubQuote > div:first-child button[onclick*="qOpenQuoteUpload"] { display: none !important; }
+      #qSubQuote > div:first-child .qic-div { display: none !important; }
+      /* 나머지 버튼(불러오기·저장·비우기·다운로드): 새 줄에서 우측 정렬 + 터치 크기 */
+      #qSubQuote > div:first-child .qic { width: 34px !important; min-width: 34px !important; max-width: 34px !important; height: 34px !important; flex: 0 0 34px !important; }
+      #qSubQuote > div:first-child .qic svg { width: 17px !important; height: 17px !important; }
+      #qLoadBtn { margin-left: auto !important; }
     }
   </style>
 </head>
