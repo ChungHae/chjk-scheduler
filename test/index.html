@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r17 2026-08-11 -->
+<!-- test build r18 2026-08-11 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -2195,8 +2195,10 @@
       .header-right { flex: 1 1 100% !important; flex-wrap: wrap !important; justify-content: flex-start !important; align-items: center; gap: 6px !important; }
       .brand-logo { height: 26px !important; }
       #appTitleLabel, #btnMyProfile, #btnImportLabel { display: none !important; }
-      #headerDate { font-size: 12px !important; white-space: nowrap; }
-      #syncStatus { margin-left: auto !important; font-size: 11px !important; padding: 3px 8px !important; white-space: nowrap; }
+      #headerDate { display: none !important; }   /* 년월일·요일 표시 제거 */
+      /* 동기화 배지: 로그아웃 옆(사용자 칩 안)으로 이동 — 칩은 살짝 컴팩트하게 */
+      #syncStatus { margin-left: 0 !important; font-size: 11px !important; padding: 3px 8px !important; white-space: nowrap; }
+      .user-chip { gap: 6px !important; padding: 4px 9px !important; }
       .header-right .btn { padding: 4px 8px !important; font-size: 11px !important; white-space: nowrap; }
       /* 견적 목록 표 더 컴팩트하게 (래퍼 안에 확실히 들어오도록) */
       #qCart button[onclick*="qCartMove"] { display: none !important; }
@@ -17817,6 +17819,13 @@ function reloadState() {
     if(lo) lo.onclick = _authLogout;
     const cpi = document.getElementById('cpBtnIn');
     if(cpi) cpi.onclick = function(){ _authShowChangePw(_authUser.id, false); };
+    // 모바일: 동기화 배지를 로그아웃 버튼 옆(칩 안)으로 이동
+    try{
+      if (window.matchMedia && window.matchMedia('(max-width:700px)').matches) {
+        var _ss = document.getElementById('syncStatus');
+        if (_ss && _ss.parentElement !== chip) chip.appendChild(_ss);
+      }
+    }catch(_e){}
     // 계정관리는 설정(⚙) 안의 '계정 관리' 소탭으로 이동함 — 헤더 버튼 제거
     var _amb=document.getElementById('acctMgrBtn'); if(_amb) _amb.remove();
     var _imp=document.getElementById('btnImportLabel'); if(_imp) _imp.style.display = _isAdmin()?'':'none';
