@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r14 2026-08-11 -->
+<!-- test build r15 2026-08-11 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -2274,6 +2274,8 @@
       #pageWeekly tr.wk-mob-sel .wk-rec-row .wk-period-lbl { align-self: center !important; }
       #pageWeekly tr.wk-mob-sel .wk-rec-row .wk-task { align-items: center !important; }
       #pageWeekly tr.wk-mob-sel .wk-rec-row .wk-task .wk-task-dot { margin-top: 0 !important; }
+      /* 일정별로 한 줄씩: 할일 목록을 가로 나열(wrap) 대신 세로 나열로 */
+      #pageWeekly tr.wk-mob-sel .wk-rec-row .wk-tasks { flex-direction: column !important; align-items: flex-start !important; gap: 3px !important; }
       /* 목표·주간 이슈: 제목 크기 통일(13px)·내용 글씨도 제목 크기로, 박스 여백 축소 */
       #pageWeekly .team-panel-head { margin-bottom: 4px !important; }
       #pageWeekly .team-goal-text { font-size: 13px !important; padding: 3px 9px !important; margin-bottom: 0 !important; line-height: 1.5 !important; }
@@ -11532,11 +11534,13 @@ function reloadState() {
             ['종일','오전','오후'].forEach(_p => {
               const _arr=_byP[_p]; if(!_arr||!_arr.length) return;
               // 같은 업체끼리 묶기 (등장 순서 유지, 업체 없는 건 개별)
+              // 모바일(팀원 일정)에서는 묶지 않고 일정별로 한 줄씩 표시
+              const _mobUngroup = window.matchMedia && window.matchMedia('(max-width:700px)').matches;
               const _groups = []; const _bizIdx = {};
               _arr.forEach(s => {
                 const _bn = s.bizName || '';
-                if (_bn && _bizIdx[_bn] !== undefined) { _groups[_bizIdx[_bn]].items.push(s); }
-                else { _groups.push({ biz:_bn, items:[s] }); if(_bn) _bizIdx[_bn] = _groups.length-1; }
+                if (!_mobUngroup && _bn && _bizIdx[_bn] !== undefined) { _groups[_bizIdx[_bn]].items.push(s); }
+                else { _groups.push({ biz:_bn, items:[s] }); if(_bn && !_mobUngroup) _bizIdx[_bn] = _groups.length-1; }
               });
               let _ph = '';
               _groups.forEach(g => {
