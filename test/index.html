@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r16 2026-08-11 -->
+<!-- test build r17 2026-08-11 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -2024,6 +2024,14 @@
       #pageBiz .biz-filter-bar select { flex: 1 1 40% !important; min-width: 0; }
       /* 개인일정: 작은 화면은 달력 대신 '오늘 일정' 뷰 */
       #personalTodayMobile { display: block !important; margin-bottom: 12px; }
+      /* 개인일정 날짜 이동 버튼: 팀원 일정과 동일한 고정 크기·터치 잔류색 제거 */
+      #personalTodayMobile .wknav-arrow { width: 26px !important; height: 26px !important; font-size: 13px !important; }
+      #personalTodayMobile .wknav-today { height: 26px !important; width: 46px !important; padding: 0 !important; font-size: 11.5px !important; }
+      #personalTodayMobile .week-label { height: 26px !important; width: 106px !important; min-width: 106px !important; padding: 0 !important; font-size: 13px !important; font-weight: 800 !important; color: #14305c !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; border: 1px solid #cdd8e6 !important; background: #f7f9fc !important; text-align: center; box-sizing: border-box; }
+      #personalTodayMobile .wknav-arrow:hover { background: #fff !important; color: #1B3A6B !important; border-color: #cdd8e6 !important; }
+      #personalTodayMobile .wknav-today:hover { background: #1B3A6B !important; }
+      #personalTodayMobile .wknav-arrow:active { background: #1B3A6B !important; color: #fff !important; border-color: #1B3A6B !important; }
+      #personalTodayMobile .wknav-today:active { background: #14305c !important; }
       #personalWeekView, #personalListView, #personalCalNav { display: none !important; }
       /* 개인일정 컨트롤바: 1줄=잔여연차(전폭), 2줄=연차현황·연차등록, 3줄=일정등록·업체관리 */
       #pagePersonal > div:first-child { flex-wrap: wrap !important; gap: 6px !important; }
@@ -15138,6 +15146,7 @@ function reloadState() {
       setTimeout(_scrollWeeklyToToday, 140);
     }
     if (page === 'personal') {
+      _psMobSel = null;   // 탭 진입 시 항상 오늘부터 (모바일 하루 이동 상태 초기화)
       // 내 프로필이 설정돼 있으면 해당 팀원 자동 선택
       if (myMemberId) {
         const sel = document.getElementById('personalMemberSel');
@@ -15734,20 +15743,38 @@ function reloadState() {
   }
 
   // 리스트 뷰 렌더 — 활성(진행 중) 업무만 표시
+  let _psMobSel = null;      // 개인일정 모바일에서 보고 있는 날짜 (null = 오늘)
+  let _psMobSelId = null;    // 마지막으로 렌더한 팀원 id (날짜 이동 시 재렌더용)
+  window._psMobShift = function(delta){
+    var cur = _psMobSel ? new Date(_psMobSel + 'T12:00:00') : new Date();
+    cur.setDate(cur.getDate() + delta);
+    _psMobSel = dk(cur);
+    renderPersonalTodayMobile(_psMobSelId);
+  };
+  window._psMobToday = function(){ _psMobSel = null; renderPersonalTodayMobile(_psMobSelId); };
   function renderPersonalTodayMobile(selId){
     var el = document.getElementById('personalTodayMobile'); if(!el) return;
     var m = members.find(function(x){return x.id===selId;});
     if(!m){ el.innerHTML=''; return; }
-    var today = new Date();
+    _psMobSelId = selId;
+    var day = _psMobSel ? new Date(_psMobSel + 'T12:00:00') : new Date();
+    var isTod = dk(day) === dk(new Date());
     var DAY_KO = ['일','월','화','수','목','금','토'];
-    var dstr = (today.getMonth()+1)+'월 '+today.getDate()+'일 ('+DAY_KO[today.getDay()]+')';
+    var dstr = (day.getMonth()+1)+'월 '+day.getDate()+'일 ('+DAY_KO[day.getDay()]+')';
     var inner = '';
-    try{ inner = weekCellInner(m, today); }catch(_e){ inner=''; }
+    try{ inner = weekCellInner(m, day); }catch(_e){ inner=''; }
     var isEmpty = !inner || inner.indexOf('cell-empty')>=0;
     el.innerHTML =
-      '<div style="font-size:16px;font-weight:800;color:#14305c;margin-bottom:10px">오늘 · '+dstr+'</div>'
-      +'<div onclick="openEntry(\''+m.id+'\',\''+dk(today)+'\')" style="background:#fff;border:1.5px solid #e5e9f0;border-radius:12px;padding:14px;min-height:80px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.05)">'
-      + (isEmpty ? '<div style="color:#9ca3af;font-size:13px;text-align:center;padding:16px 0">오늘 등록된 일정이 없습니다.<br>여기를 눌러 오늘 일정을 추가하세요.</div>' : '<div class="wk-rec-row" style="height:auto;overflow:visible">'+inner+'</div><div style="font-size:11px;color:#9ca3af;text-align:right;margin-top:8px">눌러서 추가/수정</div>')
+      '<div style="font-size:16px;font-weight:800;color:#14305c;margin-bottom:8px">내 일정'+(isTod?' · 오늘':'')+'</div>'
+      // 팀원 일정과 동일한 날짜 이동 버튼 (크기 고정·터치 잔류색 없음 — 같은 클래스 사용)
+      +'<div class="week-nav" style="display:flex;align-items:center;justify-content:center;gap:6px;margin:0 0 10px">'
+      +   '<button type="button" class="wknav-arrow" onclick="_psMobShift(-1)">←</button>'
+      +   '<span class="week-label">'+dstr+'</span>'
+      +   '<button type="button" class="wknav-arrow" onclick="_psMobShift(1)">→</button>'
+      +   '<button type="button" class="wknav-today" onclick="_psMobToday()">오늘</button>'
+      + '</div>'
+      +'<div onclick="openEntry(\''+m.id+'\',\''+dk(day)+'\')" style="background:#fff;border:1.5px solid #e5e9f0;border-radius:12px;padding:14px;min-height:80px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.05)">'
+      + (isEmpty ? '<div style="color:#9ca3af;font-size:13px;text-align:center;padding:16px 0">'+(isTod?'오늘':'이 날')+' 등록된 일정이 없습니다.<br>여기를 눌러 일정을 추가하세요.</div>' : '<div class="wk-rec-row" style="height:auto;overflow:visible">'+inner+'</div><div style="font-size:11px;color:#9ca3af;text-align:right;margin-top:8px">눌러서 추가/수정</div>')
       +'</div>';
   }
   function renderPersonalListView(selId) {
