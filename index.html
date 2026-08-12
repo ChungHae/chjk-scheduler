@@ -5326,6 +5326,8 @@ function reloadState() {
   function _qDcOf(e, buy){ e=Number(e)||0; if(!e) return null; return 1-(Number(buy)||0)/e; }
   function _qMarginOf(buy, sell){ sell=Number(sell)||0; if(!sell) return null; return 1-(Number(buy)||0)/sell; }
   function _qNorm(s){ return String(s||'').toLowerCase().replace(/[\s\-_.]/g,''); }
+  // 하이픈(-)은 유지하는 정규화 — 규격 검색은 하이픈까지 일치해야 함 (2026-08-11)
+  function _qNormH(s){ return String(s||'').toLowerCase().replace(/[\s_.]/g,''); }
   function _qDedup(rows){
     var seen={}, out=[];
     for(var i=0;i<rows.length;i++){
@@ -6079,7 +6081,7 @@ function reloadState() {
     return r;
   }
   // 통합 검색 해석: 내 원장 + 타 거래처 + 가격표 (+ SMC 불변 조건). 검색창과 견적목록 자동완성이 함께 쓴다.
-  function _qResolveMatches(q){
+  function _qResolveMatches(q, qh){
     if(!q) return [];
     var ownByKey={};
     _qRows.forEach(function(r){ var k=_qNorm(r.spec); if(!k) return; (ownByKey[k]=ownByKey[k]||[]).push(r); });
@@ -6129,6 +6131,9 @@ function reloadState() {
       // 원장에 전혀 없고 가격표에만 있는 규격 (비SMC)
       if(price){ view.push({r:_qMakePriceRow(k,price), badge:{text:'가격표', title:price.maker||'가격표', kind:'price'}, foreign:true, price:true}); }
     });
+    // 하이픈까지 일치 필터: 색인은 하이픈 무시 키를 쓰지만(가격 연동 등 기존 동작 유지),
+    // 검색 결과는 실제 규격의 하이픈 위치까지 입력과 일치하는 것만 보여준다.
+    if(qh) view = view.filter(function(vw){ return _qNormH(vw.r && vw.r.spec).indexOf(qh) >= 0; });
     return view;
   }
   function _qResultRowHtml(r, badgeHtml, foreign, _ri){
@@ -6158,6 +6163,7 @@ function reloadState() {
     var res=document.getElementById('qResults'); if(!res||!_qCurId) return;
     var admin=_isAdmin();
     var q=_qNorm(document.getElementById('qSpec').value);
+    var qh=_qNormH(document.getElementById('qSpec').value);
     if(!q){ res.innerHTML='<div style="text-align:center;padding:22px;color:#bbb;font-size:13px">규격(품번)을 입력해 검색한 뒤 <b style="color:#1B3A6B">＋ 추가</b>로 견적에 담으세요. (Enter 시 단일 일치 자동 추가)</div>'; return; }
     if(!_qAllReady){
       res.innerHTML='<div style="text-align:center;padding:30px;color:#888;font-size:13px">전체 원장 불러오는 중…</div>';
@@ -6165,7 +6171,7 @@ function reloadState() {
       return;
     }
     _qRows.forEach(function(r){ if(!r._rid) r._rid='q'+(_qRidSeq++); });
-    var view=_qResolveMatches(q);
+    var view=_qResolveMatches(q, qh);
     var totalN=view.length; view=view.slice(0,300);
     if(!view.length){ res.innerHTML='<div style="text-align:center;padding:30px;color:#bbb;font-size:13px">일치하는 규격이 없습니다.</div>'; return; }
 
@@ -7960,8 +7966,9 @@ function reloadState() {
     if(e.key!=='Enter') return;
     if(typeof window._qResActive==='number' && window._qResActive>=0 && nav.length){ e.preventDefault(); _qResDo(window._qResActive); return; }
     var q=_qNorm(document.getElementById('qSpec').value); if(!q||!_qCurId) return;
+    var qh=_qNormH(document.getElementById('qSpec').value);
     _qRows.forEach(function(r){ if(!r._rid) r._rid='q'+(_qRidSeq++); });
-    var m=_qRows.filter(function(r){ return _qNorm(r.spec).indexOf(q)>=0; });
+    var m=_qRows.filter(function(r){ return _qNorm(r.spec).indexOf(q)>=0 && _qNormH(r.spec).indexOf(qh)>=0; });
     if(m.length===1){ qAddToCart(m[0]._rid); document.getElementById('qSpec').value=''; renderQResults(); }
     else { renderQResults(); }
   };
@@ -8713,6 +8720,14 @@ function reloadState() {
       m=document.createElement('div'); m.id='qCartCtxMenu';
       m.style.cssText='position:fixed;z-index:100098;background:#fff;border:1px solid #c8d2de;border-top:2px solid #1B3A6B;border-radius:0;box-shadow:0 8px 24px rgba(15,23,42,.16);padding:4px;display:none;min-width:158px;font-family:inherit';
       document.body.appendChild(m);
+      // 엑셀식 단축키: 메뉴가 열려 있는 동안 I = 행 삽입, D = 행 삭제 (Esc = 닫기)
+      document.addEventListener('keydown', function(e){
+        if(m.style.display!=='block') return;
+        var k=(e.key||'').toLowerCase();
+        if(k==='i'){ e.preventDefault(); m.style.display='none'; qCartInsertRow(m._ctxRow,false,_qInsCnt()); }
+        else if(k==='d'){ e.preventDefault(); m.style.display='none'; qCartDel(m._ctxRow); }
+        else if(k==='escape'){ m.style.display='none'; }
+      });
       document.addEventListener('click', function(){ m.style.display='none'; });
       document.addEventListener('contextmenu', function(e){ if(!e.target.closest || !e.target.closest('#qCart tbody tr')) m.style.display='none'; });
       window.addEventListener('scroll', function(){ m.style.display='none'; }, true);
@@ -8731,11 +8746,11 @@ function reloadState() {
     var _selDelItem=_selR.length?(it('선택한 행 삭제 ('+_selR.length+'개)','_qgDeleteRows()','#dc2626')+'<div style="height:1px;background:#eef1f4;margin:4px 6px"></div>'):'';
     m.innerHTML='<div style="padding:7px 12px 8px;display:flex;align-items:center;gap:6px" onclick="event.stopPropagation()"><span style="font-size:12px;color:#6b7280">삽입 개수</span><input id="qCartInsCnt" type="text" inputmode="numeric" value="1" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()" style="width:54px;padding:3px 6px;border:1px solid #c8d2de;border-radius:0;font-size:13px;font-family:inherit;text-align:center"><span style="font-size:12px;color:#6b7280">개</span></div>'
       +'<div style="height:1px;background:#eef1f4;margin:2px 6px"></div>'
-      +it('행 위에 삽입','qCartInsertRow('+i+',false,_qInsCnt())')
-      +it('행 아래에 삽입','qCartInsertRow('+i+',true,_qInsCnt())')
+      +it('행 삽입 <span style="float:right;color:#9ca3af;font-size:11px;margin-left:14px">I</span>','qCartInsertRow('+i+',false,_qInsCnt())')
       +'<div style="height:1px;background:#eef1f4;margin:4px 6px"></div>'
       +_selDelItem
-      +it('이 행 삭제','qCartDel('+i+')','#dc2626');
+      +it('행 삭제 <span style="float:right;color:#9ca3af;font-size:11px;margin-left:14px">D</span>','qCartDel('+i+')','#dc2626');
+    m._ctxRow=i;
     m.style.display='block';
     var mw=m.offsetWidth||160, mh=m.offsetHeight||120;
     var x=Math.min(ev.clientX, window.innerWidth-mw-8), y=Math.min(ev.clientY, window.innerHeight-mh-8);
@@ -8839,6 +8854,7 @@ function reloadState() {
   window.qCartSpecInput = function(i, el){
     qCartFieldNoRender(i,'spec',el.value);
     var q=_qNorm(el.value);
+    var _qcsQh=_qNormH(el.value); window.__qcsQh=_qcsQh;
     if(!q){ _qcsHide(); return; }
     if(!_qAllReady){
       _qcsShow(el,'<div style="padding:10px 12px;font-size:12px;color:#888">전체 원장 불러오는 중…</div>');
@@ -8852,7 +8868,7 @@ function reloadState() {
       }
       return;
     }
-    var list=_qResolveMatches(q).slice(0,200);   // 5줄까지만 보이고 나머지는 스크롤
+    var list=_qResolveMatches(q, window.__qcsQh).slice(0,200);   // 5줄까지만 보이고 나머지는 스크롤
     _qcsCur=list; _qcsSel=-1;
     if(!list.length){ _qcsShow(el,'<div style="padding:10px 12px;font-size:12px;color:#bbb">일치하는 규격이 없습니다. (그대로 두면 새 규격으로 등록됩니다)</div>'); return; }
     var html=list.map(function(vw,ix){
