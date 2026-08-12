@@ -3500,8 +3500,8 @@
   function isOverdue(a) { return !a.done && getDue(a) < dk(new Date()); }
 
   // ─── 연차 관리 ────────────────────────────────────────
-  function calcVacationUsed(memberId) {
-    const year = String(new Date().getFullYear());
+  function calcVacationUsed(memberId, yearArg) {
+    const year = String(yearArg != null ? yearArg : new Date().getFullYear());
     let used = 0;
     Object.entries(entries).forEach(([key, en]) => {
       if (!key.startsWith(memberId + '_')) return;
@@ -3527,10 +3527,10 @@
   // · 1년 미만: 매월 1일 (최대 11일)
   // · 1년차~: 15일
   // · 이후 2년마다 +1일, 최대 25일
-  function calcVacAllocByHireDate(hireDateStr) {
+  function calcVacAllocByHireDate(hireDateStr, asOf) {
     if (!hireDateStr) return null;
     const hire  = new Date(hireDateStr + 'T00:00:00');
-    const today = new Date();
+    const today = asOf || new Date();
     if (isNaN(hire.getTime()) || hire > today) return 0;
 
     let months = (today.getFullYear() - hire.getFullYear()) * 12
@@ -3544,18 +3544,32 @@
     return Math.min(15 + Math.floor((years - 1) / 2), 20);
   }
 
-  function calcVacationAlloc(memberId) {
+  function calcVacationAlloc(memberId, asOf) {
     const m = members.find(x => x.id === memberId);
     if (!m) return 15;
     const BONUS = { '함현식': 3, '김은석': 3 }; // 특정 인원 추가 연차
     const bonus = BONUS[m.name] || 0;
-    if (m.hireDate) return (calcVacAllocByHireDate(m.hireDate) ?? 0) + bonus; // 입사일 기준 자동계산 우선
+    if (m.hireDate) return (calcVacAllocByHireDate(m.hireDate, asOf) ?? 0) + bonus; // 입사일 기준 자동계산 우선
     if (m.vacationAlloc != null) return m.vacationAlloc;
     return 15 + bonus;
   }
 
+  // 특정 연도 기준 발생 연차 (올해와의 연도 차이만큼 이동한 같은 날짜 기준으로 계산)
+  function calcVacationAllocForYear(memberId, year) {
+    const now = new Date();
+    const diff = year - now.getFullYear();
+    if (diff === 0) return calcVacationAlloc(memberId);
+    const d = new Date(now.getTime());
+    d.setFullYear(now.getFullYear() + diff);
+    return calcVacationAlloc(memberId, d);
+  }
   function calcVacationRemain(memberId) {
-    return Math.max(0, calcVacationAlloc(memberId) - calcVacationUsed(memberId));
+    const y = new Date().getFullYear();
+    let remain = calcVacationAlloc(memberId) - calcVacationUsed(memberId);
+    // 작년에 올해 연차를 미리 당겨쓴 경우(작년 잔여가 마이너스) 그만큼 올해 잔여에서 차감
+    const prevOver = calcVacationAllocForYear(memberId, y - 1) - calcVacationUsed(memberId, y - 1);
+    if (prevOver < 0) remain += prevOver;
+    return Math.round(remain * 100) / 100;
   }
 
   // 현재 로그인된 사용자가 팀장인지 확인
@@ -15356,7 +15370,7 @@ function reloadState() {
     var alloc  = calcVacationAlloc(_vacTarget);
     var _tgt = members.find(function(x){return x.id===_vacTarget;});
     var _who = (_tgt && _vacTarget!==myMemberId) ? (_tgt.name + ' · ') : '';
-    document.getElementById('vacModalSub').textContent = _who + (_vacUnlimited(_vacTarget) ? '무제한 등록 (차감 없음)' : ('잔여 연차: ' + remain + '/' + alloc + '일'));
+    document.getElementById('vacModalSub').textContent = _who + (_vacUnlimited(_vacTarget) ? '무제한 등록 (차감 없음)' : ('잔여 연차: ' + remain + '/' + alloc + '일' + (remain < 0 ? ' (내년 연차 ' + (Math.round(-remain*100)/100) + '일 미리 사용 중)' : '')));
     document.getElementById('vacationModal').style.display = 'flex';
   };
   window.previewVacation = function() {
@@ -15368,8 +15382,9 @@ function reloadState() {
     var total  = Math.round(ctx.dates.length * ctx.dayVal * 100) / 100;
     var _unl = _vacUnlimited(_vacTarget || myMemberId);
     var remain = calcVacationRemain(_vacTarget || myMemberId);
+    var nextAlloc = calcVacationAllocForYear(_vacTarget || myMemberId, new Date().getFullYear() + 1);
     var after  = Math.round((remain - total) * 100) / 100;
-    var enough = total <= remain;
+    var enough = total <= remain + nextAlloc; // 내년 연차까지 미리 사용 가능 (내후년은 불가)
     var DAY_KO = ['일','월','화','수','목','금','토'];
     function fmtD(d){ var dt=new Date(d+'T12:00:00'); return (dt.getMonth()+1)+'/'+dt.getDate()+'('+DAY_KO[dt.getDay()]+')'; }
     var title='', detail='';
@@ -15391,7 +15406,7 @@ function reloadState() {
           ? ('<span style="font-size:12px;color:#6b7280">등록 일수 <b style="color:#14305c;font-size:13px">'+total+'일</b></span>'
              + '<span style="font-size:12px;font-weight:700;color:#2f5288">무제한 등록 · 차감 없음</span>')
           : ('<span style="font-size:12px;color:#6b7280">차감 <b style="color:#14305c;font-size:13px">'+total+'일</b></span>'
-             + '<span style="font-size:12px;font-weight:700;color:'+(enough?'#2f5288':'#ef4444')+'">'+(enough?('등록 후 잔여 '+after+'일 ✓'):'잔여 부족 ⚠️')+'</span>'))
+             + '<span style="font-size:12px;font-weight:700;color:'+(enough?'#2f5288':'#ef4444')+'">'+(enough?('등록 후 잔여 '+after+'일'+(after<0?' · 내년 연차 '+(Math.round(-after*100)/100)+'일 미리 사용':'')+' ✓'):'내년 연차까지 모두 부족 ⚠️')+'</span>'))
       + '</div>';
     preview.style.display='block';
   };
@@ -15402,7 +15417,9 @@ function reloadState() {
     var total  = Math.round(ctx.dates.length * ctx.dayVal * 100) / 100;
     if(!_vacUnlimited(_vacTarget)){
       var remain = calcVacationRemain(_vacTarget);
-      if(total > remain){ showInfoModal('연차 등록','잔여 연차가 '+remain+'일 남아, 신청한 '+total+'일은 등록할 수 없습니다.'); return; }
+      var nextAlloc = calcVacationAllocForYear(_vacTarget, new Date().getFullYear() + 1);
+      // 내년 연차까지는 미리 당겨쓸 수 있음 (잔여 -nextAlloc까지 허용 · 내후년 연차는 불가)
+      if(total > remain + nextAlloc){ showInfoModal('연차 등록','잔여 연차 '+remain+'일에 내년 연차 '+nextAlloc+'일을 모두 당겨써도 신청한 '+total+'일은 등록할 수 없습니다.'); return; }
     }
     ctx.dates.forEach(function(dkStr){
       var key = _vacTarget + '_' + dkStr;
