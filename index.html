@@ -2256,6 +2256,7 @@
   <button class="sub-tab active" data-page="personal">개인 일정</button>
   <button class="sub-tab" data-page="weekly">팀원 일정</button>
   <button class="sub-tab" data-page="biz" style="display:none">업체별 일정</button><!-- 2026-08-11 사용자 요청으로 숨김 (완전 삭제 대신 — 필요 시 display 복원) -->
+  <button class="sub-tab" data-page="project">프로젝트</button>
 </nav>
 <nav class="sub-nav" id="fileGroupTabs" style="display:none">
   <button class="file-grp-tab active" data-grp="충해전기" onclick="setFileGroup('충해전기')">충해전기</button>
@@ -2322,6 +2323,15 @@
   </div><!-- /pageWeekly -->
 
   <!-- 업체별 페이지 -->
+  <!-- ─── 프로젝트 페이지 ───────────────────────────────── -->
+  <section class="page-section" id="pageProject">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <span style="font-size:14px;font-weight:700;color:#1B3A6B">프로젝트 <span style="font-size:11.5px;color:#8b97a5;font-weight:500">각자의 프로젝트 진행 노트 · 작성자 본인만 수정</span></span>
+      <button id="btnProjectAdd" onclick="openProjectNew()" style="padding:4px 12px;border-radius:8px;border:1.5px solid #1B3A6B;background:#1B3A6B;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit" onmouseover="this.style.background='#14305c'" onmouseout="this.style.background='#1B3A6B'">프로젝트 등록</button>
+    </div>
+    <div id="projectList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;align-items:start"></div>
+  </section>
+
   <div id="pageBiz" class="page-section">
     <div class="biz-filter-bar">
       <span class="biz-flat-label">거래처</span>
@@ -3494,6 +3504,8 @@
   // [{id, memberId, date, time, category, bizName, title, note}]
   let schedComments = load('sched_comments') ?? {};
   // { 'memberId_dateKey': [{id, authorId, authorName, text, ts}] }
+  let projectsList = load('sched_projects') ?? [];
+  // 프로젝트 노트 [{id, memberId, authorName, title, content, createdAt, updatedAt}]
 
   // 마감일 헬퍼: dueDate 없으면 date 사용
   function getDue(a) { return a.dueDate || a.date; }
@@ -3631,6 +3643,7 @@
     save('sched_price_note', _priceNote);
     save('sched_comments', schedComments);
     save('sched_assign_comments', assignComments);
+    save('sched_projects', projectsList);
     localStorage.setItem('sched_local_ts', Date.now().toString()); // 로컬 변경 시각 기록
     debouncedFbSave();
   }
@@ -4256,6 +4269,7 @@
         sched_inventory_hidden: invHidden,
         sched_inv_reset: invResetVer,
         sched_personal: personalSchedules,
+        sched_projects: projectsList,
         sched_comments: schedComments,
         sched_categories: schedCategories,
         sched_files: filesList,
@@ -4291,6 +4305,7 @@
       else if(_id==='pageAr' && typeof renderArPage==='function') renderArPage();
       else if(_id==='pageFinance' && typeof renderFinancePage==='function') renderFinancePage();
       else if(_id==='pageAssign' && typeof renderAssignPage==='function') renderAssignPage();
+      else if(_id==='pageProject' && typeof renderProjectPage==='function') renderProjectPage();
       // 견적/가격 페이지는 작성 중 방해 방지를 위해 자동 재렌더 제외
     }catch(e){}
     // 열려있는 배정 일정 모달의 댓글 스레드도 실시간 갱신 (입력 중이면 건너뜀)
@@ -4317,7 +4332,7 @@
       const d = await _syncGet();
       if (!d || (d._updatedAt || 0) <= _fbLastUpdatedAt) return;
       _fbLastUpdatedAt = d._updatedAt || 0;
-      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list'];
+      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects'];
       KEYS.forEach(k => { if (d[k] !== undefined) save(k, d[k]); });
       // ── 바로가기(sched_links) 보호 ──
       // 키가 없을 때: sched_links_ts가 있으면 신버전 클라이언트의 정상 저장(목록이 비어서
@@ -4420,7 +4435,7 @@
       const d = await _syncGet();
       const fbTs    = (d && d._updatedAt) || 0;
       const localTs = parseInt(localStorage.getItem('sched_local_ts') || '0');
-      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list'];
+      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects'];
 
       // ── 올바른 팀원 ID 목록 (하드코딩) ──────────────────────
       const _VALID_MEMBER_IDS = defaultMembers().map(m => m.id);
@@ -4540,6 +4555,7 @@ function reloadState() {
     filesList        = load('sched_files') ?? [];
     quoteVendors     = load('sched_quote_index') ?? [];
     clientList       = load('sched_client_list') ?? [];
+    projectsList     = load('sched_projects') ?? [];
     personalSchedules= load('sched_personal')    ?? [];
     schedCategories  = load('sched_categories')  ?? schedCategories;
     weeklyIssues     = load('sched_issues')      ?? [];
@@ -10081,7 +10097,8 @@ function reloadState() {
       sched_personal: personalSchedules, sched_comments: schedComments, sched_categories: schedCategories,
       sched_files: filesList, sched_quote_index: quoteVendors, sched_quote_saved: quoteSaved,
       sched_price_makers: priceMakers, sched_issues: weeklyIssues,
-      sched_leave2026: _leaveVer, sched_clients_added: customClients, sched_client_list: clientList
+      sched_leave2026: _leaveVer, sched_clients_added: customClients, sched_client_list: clientList,
+      sched_projects: projectsList
     };
   }
   document.getElementById('btnExport').addEventListener('click', async () => {
@@ -14978,7 +14995,7 @@ function reloadState() {
     if(!page) return;   // 실제 페이지가 없는 바로가기 버튼 등의 오작동 방지
     // 견적 작성 중 다른 카테고리로 이동 → 저장 여부 확인 (저장 안 하면 비움)
     try{ if(typeof _qLeaveGuard==='function' && _qLeaveGuard(page)) return; }catch(_e){}
-    var _SCHED=['personal','weekly','biz'];
+    var _SCHED=['personal','weekly','biz','project'];
     var _ETC=['links'];
     var _ACCT=['armatch','cardsales'];
     document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
@@ -14993,7 +15010,7 @@ function reloadState() {
     var _acctnav=document.getElementById('acctSubNav'); if(_acctnav) _acctnav.style.display = _ACCT.indexOf(page)>=0 ? 'flex' : 'none';
     document.querySelectorAll('.sub-tab').forEach(t => t.classList.toggle('active', t.dataset.page === page));
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-    const pageMap = { weekly:'pageWeekly', biz:'pageBiz', assign:'pageAssign', personal:'pagePersonal', finance:'pageFinance', ar:'pageAr', inventory:'pageInventory', purchase:'pagePurchase', files:'pageFiles', estimate:'pageEstimate', armatch:'pageArmatch', links:'pageLinks', cardsales:'pageCardSales' };
+    const pageMap = { weekly:'pageWeekly', biz:'pageBiz', project:'pageProject', assign:'pageAssign', personal:'pagePersonal', finance:'pageFinance', ar:'pageAr', inventory:'pageInventory', purchase:'pagePurchase', files:'pageFiles', estimate:'pageEstimate', armatch:'pageArmatch', links:'pageLinks', cardsales:'pageCardSales' };
     document.getElementById(pageMap[page] || 'pageWeekly').classList.add('active');
     // 견적 화면에서만 .main 의 가로 스크롤을 풀어 툴바 sticky 가 화면 기준으로 붙게 한다
     var _mn=document.querySelector('.main'); if(_mn) _mn.classList.toggle('main-estimate', page==='estimate');
@@ -15006,6 +15023,7 @@ function reloadState() {
       renderBizPage();
     }
     if (page === 'assign')    renderAssignPage();
+    if (page === 'project')   renderProjectPage();
     if (page === 'weekly') {
       weekStart = getMonday(new Date());
       render();
@@ -15355,6 +15373,133 @@ function reloadState() {
     ov.style.display='flex';
   };
 
+  // ─── 프로젝트 (프로젝트별 진행 노트) ──────────────────────
+  // 전 직원 열람 가능, 내용 입력/수정/삭제는 작성자 본인만.
+  function _projSave(){
+    save('sched_projects', projectsList);
+    localStorage.setItem('sched_local_ts', Date.now().toString());
+    try{ debouncedFbSave(); }catch(_e){}
+  }
+  function _projFmtD(ts){
+    if(!ts) return '';
+    var d = new Date(ts);
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+  function _projAuthor(p){
+    var m = members.find(function(x){ return x.id===p.memberId; });
+    return m ? m.name : (p.authorName || '');
+  }
+  window.renderProjectPage = function(){
+    var box = document.getElementById('projectList'); if(!box) return;
+    var list = projectsList.slice().sort(function(a,b){ return (b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0); });
+    if(!list.length){
+      box.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:52px 16px;color:#b6bec9;font-size:13px;line-height:1.8">등록된 프로젝트가 없습니다.<br>우측 상단의 [프로젝트 등록] 버튼으로 첫 프로젝트를 만들어보세요.</div>';
+      return;
+    }
+    box.innerHTML = list.map(function(p){
+      var mine = myMemberId && p.memberId===myMemberId;
+      var lines = String(p.content||'').split('\n');
+      var prev = lines.slice(0,7).map(function(l){ return esc(l); }).join('<br>') + (lines.length>7 ? '<br><span style="color:#9ca3af">&hellip;</span>' : '');
+      var meta = _projFmtD(p.createdAt) + ((p.updatedAt && _projFmtD(p.updatedAt)!==_projFmtD(p.createdAt)) ? (' &middot; 수정 '+_projFmtD(p.updatedAt)) : '');
+      return '<div onclick="openProjectView(\''+p.id+'\')" style="background:#fff;border:1px solid #d8e1ec;border-top:3px solid '+(mine?'#1B3A6B':'#c3cfde')+';padding:13px 15px 14px;cursor:pointer;box-shadow:0 1px 3px rgba(27,58,107,.06)" onmouseover="this.style.boxShadow=\'0 4px 12px rgba(27,58,107,.14)\'" onmouseout="this.style.boxShadow=\'0 1px 3px rgba(27,58,107,.06)\'">'
+        + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">'
+        +   '<span style="font-size:14px;font-weight:700;color:#14305c;word-break:break-all">'+esc(p.title||'(제목 없음)')+'</span>'
+        +   (mine?'<span style="flex-shrink:0;font-size:10px;font-weight:700;color:#1B3A6B;border:1px solid #aac4e6;background:#eaf1fb;padding:1px 6px;border-radius:9px">내 프로젝트</span>':'')
+        + '</div>'
+        + '<div style="font-size:11px;color:#8b97a5;margin-bottom:9px">'+esc(_projAuthor(p))+' &middot; '+meta+'</div>'
+        + '<div style="font-size:12.5px;color:#374151;line-height:1.65;word-break:break-all;min-height:20px;border-top:1px solid #eef2f7;padding-top:8px">'+(prev||'<span style="color:#c2c9d2">내용 없음</span>')+'</div>'
+        + '</div>';
+    }).join('');
+  };
+  window.openProjectView = function(id){
+    var p = projectsList.find(function(x){ return x.id===id; }); if(!p) return;
+    var mine = myMemberId && p.memberId===myMemberId;
+    var ov = document.getElementById('projViewOverlay');
+    if(!ov){
+      ov = document.createElement('div'); ov.id='projViewOverlay';
+      ov.style.cssText='position:fixed;inset:0;z-index:100060;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px';
+      document.body.appendChild(ov);
+      ov.addEventListener('click', function(e){ if(e.target===ov) ov.style.display='none'; });
+    }
+    var meta = esc(_projAuthor(p))+' &middot; 작성 '+_projFmtD(p.createdAt)+((p.updatedAt && _projFmtD(p.updatedAt)!==_projFmtD(p.createdAt))?(' &middot; 수정 '+_projFmtD(p.updatedAt)):'');
+    ov.innerHTML = '<div style="width:100%;max-width:640px;background:#fff;border:1px solid #c8d2de;max-height:86vh;display:flex;flex-direction:column">'
+      + '<div style="padding:9px 14px;border-bottom:1px solid #c8d2de;background:#f4f6f9;display:flex;align-items:center;gap:8px;flex-shrink:0">'
+      +   '<span style="width:3px;height:15px;background:#1a1a1a;flex-shrink:0"></span>'
+      +   '<span style="flex:1;min-width:0;font-size:13.5px;font-weight:700;color:#1a1a1a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.title||'(제목 없음)')+'</span>'
+      + '</div>'
+      + '<div style="padding:10px 14px 0;font-size:11.5px;color:#8b97a5;flex-shrink:0">'+meta+'</div>'
+      + '<div style="padding:10px 14px 14px;font-size:13px;color:#374151;line-height:1.7;white-space:pre-wrap;word-break:break-all;overflow:auto;flex:1">'+esc(p.content||'')+'</div>'
+      + '<div style="display:flex;justify-content:flex-end;gap:6px;padding:0 14px 14px;flex-shrink:0">'
+      +   (mine?'<button type="button" onclick="deleteProject(\''+p.id+'\')" style="padding:0 14px;height:28px;background:#fff;color:#dc2626;border:1px solid #dc2626;border-radius:0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">삭제</button>':'')
+      +   '<button type="button" onclick="document.getElementById(\'projViewOverlay\').style.display=\'none\'" style="padding:0 14px;height:28px;background:#fff;color:#444;border:1px solid #c8d2de;border-radius:0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">닫기</button>'
+      +   (mine?'<button type="button" onclick="openProjectEdit(\''+p.id+'\')" style="padding:0 14px;height:28px;background:#1a1a1a;color:#fff;border:1px solid #1a1a1a;border-radius:0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">수정</button>':'')
+      + '</div></div>';
+    ov.style.display='flex';
+  };
+  var _projEditingId = null;
+  function _projOpenEditor(p){
+    var ov = document.getElementById('projEditOverlay');
+    if(!ov){
+      ov = document.createElement('div'); ov.id='projEditOverlay';
+      ov.style.cssText='position:fixed;inset:0;z-index:100061;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px';
+      document.body.appendChild(ov);
+    }
+    _projEditingId = p ? p.id : null;
+    ov.innerHTML = '<div style="width:100%;max-width:640px;background:#fff;border:1px solid #c8d2de;max-height:88vh;display:flex;flex-direction:column">'
+      + '<div style="padding:9px 14px;border-bottom:1px solid #c8d2de;background:#f4f6f9;display:flex;align-items:center;gap:8px;flex-shrink:0">'
+      +   '<span style="width:3px;height:15px;background:#1a1a1a"></span>'
+      +   '<span style="font-size:13.5px;font-weight:700;color:#1a1a1a">'+(p?'프로젝트 수정':'프로젝트 등록')+'</span>'
+      + '</div>'
+      + '<div style="padding:14px;display:flex;flex-direction:column;gap:10px;overflow:auto;flex:1">'
+      +   '<input id="projTitleInput" type="text" placeholder="프로젝트 명" maxlength="120" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #c8d2de;border-radius:0;font-size:13.5px;font-weight:700;color:#14305c;font-family:inherit;outline:none" onfocus="this.style.borderColor=\'#1B3A6B\'" onblur="this.style.borderColor=\'#c8d2de\'">'
+      +   '<textarea id="projContentInput" placeholder="내용을 자유롭게 적어보세요.&#10;진행 상황, 시도한 것, 결과 등을 노트처럼 계속 적으면 됩니다." style="width:100%;box-sizing:border-box;min-height:300px;padding:10px;border:1px solid #c8d2de;border-radius:0;font-size:13px;color:#374151;line-height:1.7;font-family:inherit;resize:vertical;outline:none" onfocus="this.style.borderColor=\'#1B3A6B\'" onblur="this.style.borderColor=\'#c8d2de\'"></textarea>'
+      + '</div>'
+      + '<div style="display:flex;justify-content:flex-end;gap:6px;padding:0 14px 14px;flex-shrink:0">'
+      +   '<button type="button" onclick="document.getElementById(\'projEditOverlay\').style.display=\'none\'" style="padding:0 14px;height:28px;background:#fff;color:#444;border:1px solid #c8d2de;border-radius:0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">취소</button>'
+      +   '<button type="button" onclick="saveProjectEdit()" style="padding:0 14px;height:28px;background:#1a1a1a;color:#fff;border:1px solid #1a1a1a;border-radius:0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">저장</button>'
+      + '</div></div>';
+    document.getElementById('projTitleInput').value = p ? (p.title||'') : '';
+    document.getElementById('projContentInput').value = p ? (p.content||'') : '';
+    ov.style.display='flex';
+    setTimeout(function(){ var i=document.getElementById(p?'projContentInput':'projTitleInput'); if(i) i.focus(); }, 60);
+  }
+  window.openProjectNew = function(){
+    if(!myMemberId){ showInfoModal('알림','프로필을 먼저 설정해주세요.'); return; }
+    _projOpenEditor(null);
+  };
+  window.openProjectEdit = function(id){
+    var p = projectsList.find(function(x){ return x.id===id; }); if(!p) return;
+    if(p.memberId!==myMemberId){ showInfoModal('알림','본인이 작성한 프로젝트만 수정할 수 있습니다.'); return; }
+    var vv=document.getElementById('projViewOverlay'); if(vv) vv.style.display='none';
+    _projOpenEditor(p);
+  };
+  window.saveProjectEdit = function(){
+    var t = (document.getElementById('projTitleInput').value||'').trim();
+    var c = document.getElementById('projContentInput').value||'';
+    if(!t){ showInfoModal('프로젝트','프로젝트 명을 입력해주세요.'); return; }
+    var now = Date.now();
+    if(_projEditingId){
+      var p = projectsList.find(function(x){ return x.id===_projEditingId; });
+      if(!p || p.memberId!==myMemberId){ return; }
+      p.title=t; p.content=c; p.updatedAt=now;
+    } else {
+      var me = members.find(function(x){ return x.id===myMemberId; });
+      projectsList.push({ id:'prj'+now+'_'+Math.floor(Math.random()*10000), memberId:myMemberId, authorName:(me?me.name:''), title:t, content:c, createdAt:now, updatedAt:now });
+    }
+    _projSave();
+    document.getElementById('projEditOverlay').style.display='none';
+    renderProjectPage();
+  };
+  window.deleteProject = function(id){
+    var p = projectsList.find(function(x){ return x.id===id; }); if(!p) return;
+    if(p.memberId!==myMemberId){ showInfoModal('알림','본인이 작성한 프로젝트만 삭제할 수 있습니다.'); return; }
+    showConfirmModal('프로젝트 삭제', esc(p.title)+' 프로젝트를 삭제할까요?\n삭제하면 되돌릴 수 없습니다.', function(){
+      projectsList = projectsList.filter(function(x){ return x.id!==id; });
+      _projSave();
+      var vv=document.getElementById('projViewOverlay'); if(vv) vv.style.display='none';
+      renderProjectPage();
+    }, '삭제', '#dc2626');
+  };
   function _vacUnlimited(id){ var m=members.find(function(x){return x.id===id;}); return !!(m && m.name==='김재성'); }
   window.openVacationModal = function(targetId) {
     _vacTarget = targetId || myMemberId;
