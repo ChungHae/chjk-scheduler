@@ -2332,11 +2332,14 @@
   <!-- 업체별 페이지 -->
   <!-- ─── 프로젝트 페이지 ───────────────────────────────── -->
   <section class="page-section" id="pageProject">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-      <span style="font-size:14px;font-weight:700;color:#1B3A6B">프로젝트 <span style="font-size:11.5px;color:#8b97a5;font-weight:500">각자의 프로젝트 진행 노트 · 작성자 본인만 수정</span></span>
-      <button id="btnProjectAdd" onclick="openProjectNew()" style="padding:0 12px;height:26px;box-sizing:border-box;display:inline-flex;align-items:center;border-radius:0;border:1.5px solid #1B3A6B;background:#1B3A6B;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit" onmouseover="this.style.background='#14305c'" onmouseout="this.style.background='#1B3A6B'">프로젝트 등록</button>
+    <div id="projListView">
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <button id="btnProjectAdd" onclick="openProjectNew()" style="padding:0 12px;height:26px;box-sizing:border-box;display:inline-flex;align-items:center;border-radius:0;border:1.5px solid #1B3A6B;background:#1B3A6B;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit" onmouseover="this.style.background='#14305c'" onmouseout="this.style.background='#1B3A6B'">프로젝트 등록</button>
+      </div>
+      <div id="projectList" style="display:flex;flex-direction:column;gap:8px"></div>
     </div>
-    <div id="projectList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;align-items:start"></div>
+    <div id="projFormView" style="display:none;max-width:780px;margin:0 auto"></div>
+    <div id="projDetailView" style="display:none;max-width:1020px;margin:0 auto"></div>
   </section>
 
   <div id="pageBiz" class="page-section">
@@ -6157,11 +6160,12 @@ function reloadState() {
       }
       if(own.length && others.length){
         var ob=_qCheapest(own), tb=_qCheapest(others);
+        // 내 원장에 있는 규격은 항상 내 원장 행이 기본 (E가·DC율 등 내 거래처 값 유지)
+        view.push({r:ob.item||own[0], badge:null});
+        // 타 거래처 구매가가 더 저렴하면 참고용 행을 '추가'로만 보여준다 (기본 행 대체 금지)
         if(tb.buy!=null && (ob.buy==null || tb.buy<ob.buy)){
           var fr2=tb.item.r; if(!fr2._rid) fr2._rid='f'+(_qRidSeq++); _qForeignRows.push(fr2);
           view.push({r:fr2, badge:{text:tb.item.vname||'타업체', title:'구매가 더 저렴: '+(tb.item.vname||''), kind:'cheap'}, foreign:true});
-        } else {
-          view.push({r:ob.item||own[0], badge:null});
         }
         return;
       }
@@ -15030,7 +15034,7 @@ function reloadState() {
       renderBizPage();
     }
     if (page === 'assign')    renderAssignPage();
-    if (page === 'project')   renderProjectPage();
+    if (page === 'project'){ _projMode={view:'list',id:null}; _projLogEditId=null; renderProjectPage(); }
     if (page === 'weekly') {
       weekStart = getMonday(new Date());
       render();
@@ -15380,8 +15384,9 @@ function reloadState() {
     ov.style.display='flex';
   };
 
-  // ─── 프로젝트 (프로젝트별 진행 노트) ──────────────────────
-  // 전 직원 열람 가능, 내용 입력/수정/삭제는 작성자 본인만.
+  // ─── 프로젝트 (날짜별 진행 기록 누적 · 팝업 없이 페이지 내 전환) ─────
+  // 전 직원 열람 가능, 기록 추가/수정/삭제는 작성자 본인만.
+  // [{id, memberId, authorName, title, logs:[{id,date:'YYYY-MM-DD',text,ts}], createdAt, updatedAt}]
   function _projSave(){
     save('sched_projects', projectsList);
     localStorage.setItem('sched_local_ts', Date.now().toString());
@@ -15396,7 +15401,57 @@ function reloadState() {
     var m = members.find(function(x){ return x.id===p.memberId; });
     return m ? m.name : (p.authorName || '');
   }
+  function _projLogs(p){
+    if (Array.isArray(p.logs)) return p.logs;
+    if (p.content) return [{ id:'lg_legacy', date:_projFmtD(p.createdAt||Date.now()), text:p.content, ts:(p.createdAt||0) }];
+    return [];
+  }
+  function _projLogsSorted(p){
+    return _projLogs(p).slice().sort(function(a,b){ return a.date===b.date ? ((a.ts||0)-(b.ts||0)) : (a.date<b.date?-1:1); });
+  }
+  function _projMigrate(p){ if(!Array.isArray(p.logs)){ p.logs=_projLogs(p); delete p.content; } return p; }
+  function _projDLabel(ds){
+    var dt=new Date(ds+'T12:00:00'); if(isNaN(dt.getTime())) return esc(ds||'');
+    var DAY=['일','월','화','수','목','금','토'];
+    return esc(ds)+'('+DAY[dt.getDay()]+')';
+  }
+  var _projMode = { view:'list', id:null };
+  var _projLogEditId = null;
+  var _projTitleEdit = false;
+  var _PJ_BTN  = 'padding:0 14px;height:28px;box-sizing:border-box;display:inline-flex;align-items:center;border-radius:0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit';
+  var _PJ_SBTN = 'padding:0 8px;height:22px;box-sizing:border-box;display:inline-flex;align-items:center;background:#fff;border:1px solid #c8d2de;border-radius:0;font-size:11px;font-weight:600;color:#556;cursor:pointer;font-family:inherit';
+  var _PJ_DATE = 'height:30px;width:130px;flex-shrink:0;box-sizing:border-box;padding:0 6px;border:1px solid #c8d2de;border-radius:0;font-size:12px;font-family:inherit;outline:none';
+  var _PJ_TA   = 'flex:1;min-width:0;box-sizing:border-box;padding:7px 10px;border:1px solid #c8d2de;border-radius:0;font-size:13px;color:#374151;line-height:1.6;font-family:inherit;resize:vertical;outline:none';
+  function _projForceRender(){
+    var lv=document.getElementById('projListView'), fv=document.getElementById('projFormView'), dv=document.getElementById('projDetailView');
+    if(!lv||!fv||!dv) return;
+    if(_projMode.view==='detail' && !projectsList.some(function(x){ return x.id===_projMode.id; })) _projMode={view:'list',id:null};
+    lv.style.display = _projMode.view==='list'   ? '' : 'none';
+    fv.style.display = _projMode.view==='form'   ? '' : 'none';
+    dv.style.display = _projMode.view==='detail' ? '' : 'none';
+    if(_projMode.view==='list') _projRenderList();
+    else if(_projMode.view==='form') _projRenderForm();
+    else _projRenderDetail();
+  }
   window.renderProjectPage = function(){
+    // 동기화 폴링 등 외부 진입점 — 작성/수정 중에는 화면을 건드리지 않는다
+    if(_projMode.view==='form') return;
+    if(_projMode.view==='detail'){
+      var _t=document.getElementById('projLogText');
+      if((_t && _t.value && _t.value.trim()) || _projLogEditId || _projTitleEdit) return;
+    }
+    var _ae=document.activeElement;
+    if(_ae && (_ae.tagName==='INPUT'||_ae.tagName==='TEXTAREA') && /^proj/.test(_ae.id||'')) return;
+    _projForceRender();
+  };
+  function _projGo(view, id){
+    _projMode = { view:view, id:(id||null) };
+    _projLogEditId = null;
+    _projTitleEdit = false;
+    _projForceRender();
+    try{ window.scrollTo(0,0); }catch(_e){}
+  }
+  function _projRenderList(){
     var box = document.getElementById('projectList'); if(!box) return;
     var list = projectsList.slice().sort(function(a,b){ return (b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0); });
     if(!list.length){
@@ -15405,106 +15460,175 @@ function reloadState() {
     }
     box.innerHTML = list.map(function(p){
       var mine = myMemberId && p.memberId===myMemberId;
-      var lines = String(p.content||'').split('\n');
-      var prev = lines.slice(0,7).map(function(l){ return esc(l); }).join('<br>') + (lines.length>7 ? '<br><span style="color:#9ca3af">&hellip;</span>' : '');
-      var meta = _projFmtD(p.createdAt) + ((p.updatedAt && _projFmtD(p.updatedAt)!==_projFmtD(p.createdAt)) ? (' &middot; 수정 '+_projFmtD(p.updatedAt)) : '');
-      return '<div onclick="openProjectView(\''+p.id+'\')" style="background:#fff;border:1px solid #d8e1ec;border-top:3px solid '+(mine?'#1B3A6B':'#c3cfde')+';padding:13px 15px 14px;cursor:pointer" onmouseover="this.style.background=\'#f7fafd\'" onmouseout="this.style.background=\'#fff\'">'
-        + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">'
-        +   '<span style="font-size:14px;font-weight:700;color:#14305c;word-break:break-all">'+esc(p.title||'(제목 없음)')+'</span>'
-        +   (mine?'<span style="flex-shrink:0;font-size:10px;font-weight:700;color:#1B3A6B;border:1px solid #aac4e6;background:#eaf1fb;padding:1px 6px;border-radius:0">내 프로젝트</span>':'')
-        + '</div>'
-        + '<div style="font-size:11px;color:#8b97a5;margin-bottom:9px">'+esc(_projAuthor(p))+' &middot; '+meta+'</div>'
-        + '<div style="font-size:12.5px;color:#374151;line-height:1.65;word-break:break-all;min-height:20px;border-top:1px solid #eef2f7;padding-top:8px">'+(prev||'<span style="color:#c2c9d2">내용 없음</span>')+'</div>'
+      return '<div onclick="openProjectView(\''+p.id+'\')" style="background:#fff;border:1px solid #d8e1ec;border-left:3px solid '+(mine?'#1B3A6B':'#c3cfde')+';padding:11px 16px;cursor:pointer;display:flex;align-items:center;gap:12px" onmouseover="this.style.background=\'#f7fafd\'" onmouseout="this.style.background=\'#fff\'">'
+        + '<span style="flex:1;min-width:0;font-size:14px;font-weight:700;color:#14305c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.title||'(제목 없음)')+'</span>'
+        + '<span style="flex-shrink:0;font-size:12px;color:#8b97a5">'+esc(_projAuthor(p))+' &middot; '+_projFmtD(p.createdAt)+'</span>'
         + '</div>';
     }).join('');
-  };
-  window.openProjectView = function(id){
-    var p = projectsList.find(function(x){ return x.id===id; }); if(!p) return;
-    var mine = myMemberId && p.memberId===myMemberId;
-    var ov = document.getElementById('projViewOverlay');
-    if(!ov){
-      ov = document.createElement('div'); ov.id='projViewOverlay';
-      ov.style.cssText='position:fixed;inset:0;z-index:100060;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px';
-      document.body.appendChild(ov);
-      ov.addEventListener('click', function(e){ if(e.target===ov) ov.style.display='none'; });
-    }
-    var meta = esc(_projAuthor(p))+' &middot; 작성 '+_projFmtD(p.createdAt)+((p.updatedAt && _projFmtD(p.updatedAt)!==_projFmtD(p.createdAt))?(' &middot; 수정 '+_projFmtD(p.updatedAt)):'');
-    ov.innerHTML = '<div style="width:100%;max-width:640px;background:#fff;border:1px solid #c8d2de;max-height:86vh;display:flex;flex-direction:column">'
-      + '<div style="padding:9px 14px;border-bottom:1px solid #c8d2de;background:#f4f6f9;display:flex;align-items:center;gap:8px;flex-shrink:0">'
-      +   '<span style="width:3px;height:15px;background:#1a1a1a;flex-shrink:0"></span>'
-      +   '<span style="flex:1;min-width:0;font-size:13.5px;font-weight:700;color:#1a1a1a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.title||'(제목 없음)')+'</span>'
-      + '</div>'
-      + '<div style="padding:10px 14px 0;font-size:11.5px;color:#8b97a5;flex-shrink:0">'+meta+'</div>'
-      + '<div style="padding:10px 14px 14px;font-size:13px;color:#374151;line-height:1.7;white-space:pre-wrap;word-break:break-all;overflow:auto;flex:1">'+esc(p.content||'')+'</div>'
-      + '<div style="display:flex;justify-content:flex-end;gap:6px;padding:0 14px 14px;flex-shrink:0">'
-      +   (mine?'<button type="button" onclick="deleteProject(\''+p.id+'\')" style="padding:0 14px;height:28px;background:#fff;color:#dc2626;border:1px solid #dc2626;border-radius:0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">삭제</button>':'')
-      +   '<button type="button" onclick="document.getElementById(\'projViewOverlay\').style.display=\'none\'" style="padding:0 14px;height:28px;background:#fff;color:#444;border:1px solid #c8d2de;border-radius:0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">닫기</button>'
-      +   (mine?'<button type="button" onclick="openProjectEdit(\''+p.id+'\')" style="padding:0 14px;height:28px;background:#1a1a1a;color:#fff;border:1px solid #1a1a1a;border-radius:0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">수정</button>':'')
-      + '</div></div>';
-    ov.style.display='flex';
-  };
-  var _projEditingId = null;
-  function _projOpenEditor(p){
-    var ov = document.getElementById('projEditOverlay');
-    if(!ov){
-      ov = document.createElement('div'); ov.id='projEditOverlay';
-      ov.style.cssText='position:fixed;inset:0;z-index:100061;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px';
-      document.body.appendChild(ov);
-    }
-    _projEditingId = p ? p.id : null;
-    ov.innerHTML = '<div style="width:100%;max-width:640px;background:#fff;border:1px solid #c8d2de;max-height:88vh;display:flex;flex-direction:column">'
-      + '<div style="padding:9px 14px;border-bottom:1px solid #c8d2de;background:#f4f6f9;display:flex;align-items:center;gap:8px;flex-shrink:0">'
-      +   '<span style="width:3px;height:15px;background:#1a1a1a"></span>'
-      +   '<span style="font-size:13.5px;font-weight:700;color:#1a1a1a">'+(p?'프로젝트 수정':'프로젝트 등록')+'</span>'
-      + '</div>'
-      + '<div style="padding:14px;display:flex;flex-direction:column;gap:10px;overflow:auto;flex:1">'
-      +   '<input id="projTitleInput" type="text" placeholder="프로젝트 명" maxlength="120" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #c8d2de;border-radius:0;font-size:13.5px;font-weight:700;color:#14305c;font-family:inherit;outline:none" onfocus="this.style.borderColor=\'#1B3A6B\'" onblur="this.style.borderColor=\'#c8d2de\'">'
-      +   '<textarea id="projContentInput" placeholder="내용을 자유롭게 적어보세요.&#10;진행 상황, 시도한 것, 결과 등을 노트처럼 계속 적으면 됩니다." style="width:100%;box-sizing:border-box;min-height:300px;padding:10px;border:1px solid #c8d2de;border-radius:0;font-size:13px;color:#374151;line-height:1.7;font-family:inherit;resize:vertical;outline:none" onfocus="this.style.borderColor=\'#1B3A6B\'" onblur="this.style.borderColor=\'#c8d2de\'"></textarea>'
-      + '</div>'
-      + '<div style="display:flex;justify-content:flex-end;gap:6px;padding:0 14px 14px;flex-shrink:0">'
-      +   '<button type="button" onclick="document.getElementById(\'projEditOverlay\').style.display=\'none\'" style="padding:0 14px;height:28px;background:#fff;color:#444;border:1px solid #c8d2de;border-radius:0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">취소</button>'
-      +   '<button type="button" onclick="saveProjectEdit()" style="padding:0 14px;height:28px;background:#1a1a1a;color:#fff;border:1px solid #1a1a1a;border-radius:0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">저장</button>'
-      + '</div></div>';
-    document.getElementById('projTitleInput').value = p ? (p.title||'') : '';
-    document.getElementById('projContentInput').value = p ? (p.content||'') : '';
-    ov.style.display='flex';
-    setTimeout(function(){ var i=document.getElementById(p?'projContentInput':'projTitleInput'); if(i) i.focus(); }, 60);
   }
+  function _projRenderForm(){
+    var fv = document.getElementById('projFormView'); if(!fv) return;
+    fv.innerHTML = '<div style="background:#fff;border:1px solid #c8d2de">'
+      + '<div style="padding:9px 14px;border-bottom:1px solid #c8d2de;background:#f4f6f9;display:flex;align-items:center;gap:8px">'
+      +   '<span style="width:3px;height:15px;background:#1a1a1a;flex-shrink:0"></span>'
+      +   '<span style="font-size:13.5px;font-weight:700;color:#1a1a1a">프로젝트 등록</span>'
+      + '</div>'
+      + '<div style="padding:14px;display:flex;flex-direction:column;gap:10px">'
+      +   '<input id="projTitleInput" type="text" placeholder="프로젝트 명" maxlength="120" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #c8d2de;border-radius:0;font-size:13.5px;font-weight:700;color:#14305c;font-family:inherit;outline:none" onfocus="this.style.borderColor=\'#1B3A6B\'" onblur="this.style.borderColor=\'#c8d2de\'">'
+      +   '<div style="display:flex;gap:8px;align-items:flex-start">'
+      +     '<input id="projLogDate0" type="date" value="'+dk(new Date())+'" style="'+_PJ_DATE+'">'
+      +     '<textarea id="projLogText0" placeholder="진행한 내용을 적어주세요. (비워두면 프로젝트만 만들어집니다)" style="'+_PJ_TA+';min-height:170px" onfocus="this.style.borderColor=\'#1B3A6B\'" onblur="this.style.borderColor=\'#c8d2de\'"></textarea>'
+      +   '</div>'
+      + '</div>'
+      + '<div style="display:flex;justify-content:flex-end;gap:6px;padding:0 14px 14px">'
+      +   '<button type="button" onclick="cancelProjectForm()" style="'+_PJ_BTN+';background:#fff;color:#444;border:1px solid #c8d2de">취소</button>'
+      +   '<button type="button" onclick="saveProjectEdit()" style="'+_PJ_BTN+';background:#1a1a1a;color:#fff;border:1px solid #1a1a1a">저장</button>'
+      + '</div></div>';
+    setTimeout(function(){ var i=document.getElementById('projTitleInput'); if(i) try{ i.focus(); }catch(_e){} }, 60);
+  }
+  function _projRenderDetail(){
+    var dv = document.getElementById('projDetailView'); if(!dv) return;
+    var p = projectsList.find(function(x){ return x.id===_projMode.id; }); if(!p) return;
+    var mine = myMemberId && p.memberId===myMemberId;
+    var logs = _projLogsSorted(p);
+    var rows = logs.length ? logs.map(function(lg){
+      if(mine && _projLogEditId===lg.id){
+        return '<div style="padding:9px 2px;border-bottom:1px solid #eef2f7">'
+          + '<div style="display:flex;gap:8px;align-items:flex-start">'
+          +   '<input id="projLogEditDate" type="date" value="'+esc(lg.date)+'" style="'+_PJ_DATE+'">'
+          +   '<textarea id="projLogEditText" style="'+_PJ_TA+';min-height:60px">'+esc(lg.text||'')+'</textarea>'
+          +   '<span style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">'
+          +     '<button onclick="saveProjectLogEdit(\''+p.id+'\',\''+lg.id+'\')" style="'+_PJ_SBTN+';background:#1a1a1a;border-color:#1a1a1a;color:#fff">저장</button>'
+          +     '<button onclick="cancelProjectLogEdit(\''+p.id+'\')" style="'+_PJ_SBTN+'">취소</button>'
+          +   '</span>'
+          + '</div></div>';
+      }
+      return '<div style="display:flex;gap:10px;padding:9px 2px;border-bottom:1px solid #eef2f7;align-items:flex-start">'
+        + '<span style="flex-shrink:0;width:108px;font-size:11.5px;font-weight:700;color:#4a6c99;padding-top:2px">'+_projDLabel(lg.date)+'</span>'
+        + '<div style="flex:1;min-width:0;font-size:13px;color:#374151;line-height:1.65;white-space:pre-wrap;word-break:break-all">'+esc(lg.text||'')+'</div>'
+        + (mine ? ('<span style="flex-shrink:0;display:flex;gap:4px">'
+            + '<button onclick="editProjectLog(\''+p.id+'\',\''+lg.id+'\')" style="'+_PJ_SBTN+'">수정</button>'
+            + '<button onclick="deleteProjectLog(\''+p.id+'\',\''+lg.id+'\')" style="'+_PJ_SBTN+';color:#dc2626;border-color:#e5c0c0">삭제</button>'
+            + '</span>') : '')
+        + '</div>';
+    }).join('') : '<div style="text-align:center;color:#b6bec9;font-size:12px;padding:22px 0">아직 기록이 없습니다.</div>';
+    var addForm = mine ? ('<div style="border-top:2px solid #1B3A6B;padding:10px 14px 12px;background:#fbfcfe">'
+      + '<div style="font-size:12px;font-weight:700;color:#1a1a1a;margin-bottom:6px">기록 추가</div>'
+      + '<div style="display:flex;gap:8px;align-items:flex-start">'
+      +   '<input id="projLogDate" type="date" value="'+dk(new Date())+'" style="'+_PJ_DATE+'">'
+      +   '<textarea id="projLogText" placeholder="진행한 내용을 적어주세요." style="'+_PJ_TA+';min-height:60px" onfocus="this.style.borderColor=\'#1B3A6B\'" onblur="this.style.borderColor=\'#c8d2de\'"></textarea>'
+      + '</div>'
+      + '<div style="display:flex;justify-content:flex-end;margin-top:6px">'
+      +   '<button onclick="addProjectLog(\''+p.id+'\')" style="'+_PJ_BTN+';background:#1a1a1a;color:#fff;border:1px solid #1a1a1a">기록 추가</button>'
+      + '</div></div>') : '';
+    var headMid;
+    if(mine && _projTitleEdit){
+      headMid = '<input id="projTitleInline" type="text" maxlength="120" value="'+esc(p.title||'')+'" onkeydown="if(event.key===\'Enter\')projTitleSave(\''+p.id+'\')" style="flex:1;min-width:0;height:26px;box-sizing:border-box;padding:0 8px;border:1px solid #1B3A6B;border-radius:0;font-size:13px;font-weight:700;color:#14305c;font-family:inherit;outline:none">'
+        + '<button onclick="projTitleSave(\''+p.id+'\')" style="'+_PJ_SBTN+';background:#1a1a1a;border-color:#1a1a1a;color:#fff;flex-shrink:0">저장</button>'
+        + '<button onclick="projTitleCancel()" style="'+_PJ_SBTN+';flex-shrink:0">취소</button>'
+        + '<span style="flex:0 1 0"></span>';
+    } else {
+      headMid = '<span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px;font-weight:700;color:#1a1a1a">'+esc(p.title||'(제목 없음)')+'</span>'
+        + (mine?'<button onclick="projTitleEditStart()" title="제목 수정" style="flex-shrink:0;border:none;background:none;cursor:pointer;padding:0 3px;color:#5b7ba6;display:inline-flex;align-items:center" onmouseover="this.style.color=\'#1B3A6B\'" onmouseout="this.style.color=\'#5b7ba6\'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;display:block"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>':'')
+        + '<span style="flex:1"></span>';
+    }
+    var meta = esc(_projAuthor(p))+' &middot; 시작 '+_projFmtD(p.createdAt)+' &middot; 기록 '+logs.length+'건';
+    dv.innerHTML = '<div style="background:#fff;border:1px solid #c8d2de">'
+      + '<div style="height:44px;box-sizing:border-box;padding:0 14px;border-bottom:1px solid #c8d2de;background:#f4f6f9;display:flex;align-items:center;gap:8px">'
+      +   '<span style="width:3px;height:15px;background:#1a1a1a;flex-shrink:0"></span>'
+      +   headMid
+      +   '<button type="button" onclick="projBackToList()" style="'+_PJ_SBTN+';flex-shrink:0">목록으로</button>'
+      + '</div>'
+      + '<div style="padding:8px 14px;font-size:11.5px;color:#8b97a5;border-bottom:1px solid #eef2f7">'+meta+'</div>'
+      + '<div style="padding:2px 14px 8px">'+rows+'</div>'
+      + addForm
+      + (mine ? ('<div style="display:flex;padding:10px 14px 14px;border-top:1px solid #eef2f7">'
+        +   '<button type="button" onclick="deleteProject(\''+p.id+'\')" style="'+_PJ_BTN+';background:#fff;color:#dc2626;border:1px solid #dc2626">프로젝트 삭제</button>'
+        + '</div>') : '')
+      + '</div>';
+  }
+  window.projBackToList = function(){ _projGo('list', null); };
+  window.cancelProjectForm = function(){ _projGo('list', null); };
+  window.openProjectView = function(id){ _projGo('detail', id); };
   window.openProjectNew = function(){
     if(!myMemberId){ showInfoModal('알림','프로필을 먼저 설정해주세요.'); return; }
-    _projOpenEditor(null);
+    _projGo('form', null);
   };
-  window.openProjectEdit = function(id){
-    var p = projectsList.find(function(x){ return x.id===id; }); if(!p) return;
-    if(p.memberId!==myMemberId){ showInfoModal('알림','본인이 작성한 프로젝트만 수정할 수 있습니다.'); return; }
-    var vv=document.getElementById('projViewOverlay'); if(vv) vv.style.display='none';
-    _projOpenEditor(p);
+  window.projTitleEditStart = function(){
+    _projTitleEdit = true; _projForceRender();
+    setTimeout(function(){ var i=document.getElementById('projTitleInline'); if(i){ try{ i.focus(); i.select(); }catch(_e){} } }, 60);
+  };
+  window.projTitleCancel = function(){ _projTitleEdit = false; _projForceRender(); };
+  window.projTitleSave = function(pid){
+    var p = projectsList.find(function(x){ return x.id===pid; }); if(!p || p.memberId!==myMemberId) return;
+    var t = (document.getElementById('projTitleInline').value||'').trim();
+    if(!t){ showInfoModal('프로젝트','프로젝트 명을 입력해주세요.'); return; }
+    p.title = t; p.updatedAt = Date.now();
+    _projTitleEdit = false;
+    _projSave(); _projForceRender();
   };
   window.saveProjectEdit = function(){
     var t = (document.getElementById('projTitleInput').value||'').trim();
-    var c = document.getElementById('projContentInput').value||'';
     if(!t){ showInfoModal('프로젝트','프로젝트 명을 입력해주세요.'); return; }
     var now = Date.now();
-    if(_projEditingId){
-      var p = projectsList.find(function(x){ return x.id===_projEditingId; });
-      if(!p || p.memberId!==myMemberId){ return; }
-      p.title=t; p.content=c; p.updatedAt=now;
-    } else {
-      var me = members.find(function(x){ return x.id===myMemberId; });
-      projectsList.push({ id:'prj'+now+'_'+Math.floor(Math.random()*10000), memberId:myMemberId, authorName:(me?me.name:''), title:t, content:c, createdAt:now, updatedAt:now });
+    var me = members.find(function(x){ return x.id===myMemberId; });
+    var logs = [];
+    var d0el = document.getElementById('projLogDate0');
+    var t0el = document.getElementById('projLogText0');
+    var t0 = t0el ? (t0el.value||'').trim() : '';
+    if(t0){
+      var d0 = (d0el && d0el.value) || dk(new Date());
+      logs.push({ id:'lg'+now+'_'+Math.floor(Math.random()*10000), date:d0, text:t0, ts:now });
     }
+    var np = { id:'prj'+now+'_'+Math.floor(Math.random()*10000), memberId:myMemberId, authorName:(me?me.name:''), title:t, logs:logs, createdAt:now, updatedAt:now };
+    projectsList.push(np);
     _projSave();
-    document.getElementById('projEditOverlay').style.display='none';
-    renderProjectPage();
+    _projGo('detail', np.id);
+  };
+  window.addProjectLog = function(pid){
+    var p = projectsList.find(function(x){ return x.id===pid; }); if(!p || p.memberId!==myMemberId) return;
+    var d = document.getElementById('projLogDate').value;
+    var t = (document.getElementById('projLogText').value||'').trim();
+    if(!d){ showInfoModal('프로젝트','날짜를 선택해주세요.'); return; }
+    if(!t){ showInfoModal('프로젝트','내용을 입력해주세요.'); return; }
+    _projMigrate(p);
+    p.logs.push({ id:'lg'+Date.now()+'_'+Math.floor(Math.random()*10000), date:d, text:t, ts:Date.now() });
+    p.updatedAt = Date.now();
+    _projSave(); _projForceRender();
+  };
+  window.editProjectLog = function(pid, lid){
+    _projLogEditId = lid; _projForceRender();
+    setTimeout(function(){ var te=document.getElementById('projLogEditText'); if(te) te.focus(); }, 60);
+  };
+  window.cancelProjectLogEdit = function(pid){ _projLogEditId = null; _projForceRender(); };
+  window.saveProjectLogEdit = function(pid, lid){
+    var p = projectsList.find(function(x){ return x.id===pid; }); if(!p || p.memberId!==myMemberId) return;
+    var d = document.getElementById('projLogEditDate').value;
+    var t = (document.getElementById('projLogEditText').value||'').trim();
+    if(!d){ showInfoModal('프로젝트','날짜를 선택해주세요.'); return; }
+    if(!t){ showInfoModal('프로젝트','내용을 입력해주세요.'); return; }
+    _projMigrate(p);
+    var lg = p.logs.find(function(x){ return x.id===lid; });
+    if(lg){ lg.date=d; lg.text=t; p.updatedAt=Date.now(); }
+    _projLogEditId = null;
+    _projSave(); _projForceRender();
+  };
+  window.deleteProjectLog = function(pid, lid){
+    var p = projectsList.find(function(x){ return x.id===pid; }); if(!p || p.memberId!==myMemberId) return;
+    showConfirmModal('기록 삭제','이 날짜의 기록을 삭제할까요?', function(){
+      _projMigrate(p);
+      p.logs = p.logs.filter(function(x){ return x.id!==lid; });
+      p.updatedAt = Date.now();
+      _projSave(); _projForceRender();
+    }, '삭제', '#dc2626');
   };
   window.deleteProject = function(id){
     var p = projectsList.find(function(x){ return x.id===id; }); if(!p) return;
     if(p.memberId!==myMemberId){ showInfoModal('알림','본인이 작성한 프로젝트만 삭제할 수 있습니다.'); return; }
-    showConfirmModal('프로젝트 삭제', esc(p.title)+' 프로젝트를 삭제할까요?\n삭제하면 되돌릴 수 없습니다.', function(){
+    showConfirmModal('프로젝트 삭제', esc(p.title)+' 프로젝트를 삭제할까요?\n모든 기록이 함께 삭제되며 되돌릴 수 없습니다.', function(){
       projectsList = projectsList.filter(function(x){ return x.id!==id; });
       _projSave();
-      var vv=document.getElementById('projViewOverlay'); if(vv) vv.style.display='none';
-      renderProjectPage();
+      _projGo('list', null);
     }, '삭제', '#dc2626');
   };
   function _vacUnlimited(id){ var m=members.find(function(x){return x.id===id;}); return !!(m && m.name==='김재성'); }
