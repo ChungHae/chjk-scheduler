@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r23 2026-08-11 -->
+<!-- test build r24 2026-08-11 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -8918,7 +8918,7 @@ function reloadState() {
         if(m.style.display!=='block') return;
         var k=(e.key||'').toLowerCase();
         if(k==='i'){ e.preventDefault(); m.style.display='none'; qCartInsertRow(m._ctxRow,false,_qInsCnt()); }
-        else if(k==='d'){ e.preventDefault(); m.style.display='none'; qCartDel(m._ctxRow); }
+        else if(k==='d'){ e.preventDefault(); m.style.display='none'; if(m._ctxSel>1){ _qgDeleteRows(); } else { qCartDel(m._ctxDel); } }
         else if(k==='escape'){ m.style.display='none'; }
       });
       document.addEventListener('click', function(){ m.style.display='none'; });
@@ -8936,14 +8936,17 @@ function reloadState() {
     var m=_qCartCtxMenu();
     var it=function(txt,onclick,color){ return '<div onclick="'+onclick+'" style="padding:8px 12px;font-size:13px;cursor:pointer;border-radius:0;color:'+(color||'#1a1a1a')+';white-space:nowrap" onmouseover="this.style.background=\'#eef4fb\'" onmouseout="this.style.background=\'#fff\'">'+txt+'</div>'; };
     var _selR=(typeof _qgSelRows==='function')?_qgSelRows():[];
+    // 엑셀식: 여러 행을 선택한 뒤 우클릭 → 선택한 행 수만큼, 선택의 맨 위 행 위에 삽입
+    var _insAt=(_selR.length>1)?_selR[0]:i;
+    var _insDef=(_selR.length>1)?_selR.length:1;
     var _selDelItem=_selR.length?(it('선택한 행 삭제 ('+_selR.length+'개)','_qgDeleteRows()','#dc2626')+'<div style="height:1px;background:#eef1f4;margin:4px 6px"></div>'):'';
-    m.innerHTML='<div style="padding:7px 12px 8px;display:flex;align-items:center;gap:6px" onclick="event.stopPropagation()"><span style="font-size:12px;color:#6b7280">삽입 개수</span><input id="qCartInsCnt" type="text" inputmode="numeric" value="1" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()" style="width:54px;padding:3px 6px;border:1px solid #c8d2de;border-radius:0;font-size:13px;font-family:inherit;text-align:center"><span style="font-size:12px;color:#6b7280">개</span></div>'
+    m.innerHTML='<div style="padding:7px 12px 8px;display:flex;align-items:center;gap:6px" onclick="event.stopPropagation()"><span style="font-size:12px;color:#6b7280">삽입 개수</span><input id="qCartInsCnt" type="text" inputmode="numeric" value="'+_insDef+'" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()" style="width:54px;padding:3px 6px;border:1px solid #c8d2de;border-radius:0;font-size:13px;font-family:inherit;text-align:center"><span style="font-size:12px;color:#6b7280">개</span></div>'
       +'<div style="height:1px;background:#eef1f4;margin:2px 6px"></div>'
-      +it('행 삽입 <span style="float:right;color:#9ca3af;font-size:11px;margin-left:14px">I</span>','qCartInsertRow('+i+',false,_qInsCnt())')
+      +it('행 삽입 (I)'+(_selR.length>1?' <span style="color:#9ca3af;font-size:11px">· 선택 '+_selR.length+'행만큼</span>':''),'qCartInsertRow('+_insAt+',false,_qInsCnt())')
       +'<div style="height:1px;background:#eef1f4;margin:4px 6px"></div>'
       +_selDelItem
-      +it('행 삭제 <span style="float:right;color:#9ca3af;font-size:11px;margin-left:14px">D</span>','qCartDel('+i+')','#dc2626');
-    m._ctxRow=i;
+      +it('행 삭제 (D)','qCartDel('+i+')','#dc2626');
+    m._ctxRow=_insAt; m._ctxDel=i; m._ctxSel=_selR.length;
     m.style.display='block';
     var mw=m.offsetWidth||160, mh=m.offsetHeight||120;
     var x=Math.min(ev.clientX, window.innerWidth-mw-8), y=Math.min(ev.clientY, window.innerHeight-mh-8);
