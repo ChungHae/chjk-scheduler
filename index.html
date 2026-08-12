@@ -8721,13 +8721,16 @@ function reloadState() {
       m.style.cssText='position:fixed;z-index:100098;background:#fff;border:1px solid #c8d2de;border-top:2px solid #1B3A6B;border-radius:0;box-shadow:0 8px 24px rgba(15,23,42,.16);padding:4px;display:none;min-width:158px;font-family:inherit';
       document.body.appendChild(m);
       // 엑셀식 단축키: 메뉴가 열려 있는 동안 I = 행 삽입, D = 행 삭제 (Esc = 닫기)
+      // e.code(물리 키) 기준 → 한글 입력 모드에서도 동작. capture 단계라 셀 입력보다 먼저 가로챈다.
       document.addEventListener('keydown', function(e){
         if(m.style.display!=='block') return;
-        var k=(e.key||'').toLowerCase();
-        if(k==='i'){ e.preventDefault(); m.style.display='none'; qCartInsertRow(m._ctxRow,false,_qInsCnt()); }
-        else if(k==='d'){ e.preventDefault(); m.style.display='none'; if(m._ctxSel>1){ _qgDeleteRows(); } else { qCartDel(m._ctxDel); } }
+        if(e.ctrlKey||e.metaKey||e.altKey) return;
+        var k=(e.key||'').toLowerCase(), c=String(e.code||'');
+        var _inCnt=(e.target&&e.target.id==='qCartInsCnt');
+        if((k==='i'||c==='KeyI') && !_inCnt){ e.preventDefault(); e.stopPropagation(); m.style.display='none'; qCartInsertRow(m._ctxRow,false,_qInsCnt()); }
+        else if((k==='d'||c==='KeyD') && !_inCnt){ e.preventDefault(); e.stopPropagation(); m.style.display='none'; if(m._ctxSel>1){ _qgDeleteRows(); } else { qCartDel(m._ctxDel); } }
         else if(k==='escape'){ m.style.display='none'; }
-      });
+      }, true);
       document.addEventListener('click', function(){ m.style.display='none'; });
       document.addEventListener('contextmenu', function(e){ if(!e.target.closest || !e.target.closest('#qCart tbody tr')) m.style.display='none'; });
       window.addEventListener('scroll', function(){ m.style.display='none'; }, true);
@@ -8754,6 +8757,8 @@ function reloadState() {
       +_selDelItem
       +it('행 삭제 (D)','qCartDel('+i+')','#dc2626');
     m._ctxRow=_insAt; m._ctxDel=i; m._ctxSel=_selR.length;
+    // 메뉴가 열리면 셀 입력 포커스를 해제 — 단축키 글자가 규격칸에 입력되는 것 방지
+    try{ var _ae=document.activeElement; if(_ae && _ae.classList && _ae.classList.contains('qc-in')) _ae.blur(); }catch(_e){}
     m.style.display='block';
     var mw=m.offsetWidth||160, mh=m.offsetHeight||120;
     var x=Math.min(ev.clientX, window.innerWidth-mw-8), y=Math.min(ev.clientY, window.innerHeight-mh-8);
