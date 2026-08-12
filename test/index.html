@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r30 2026-08-12 -->
+<!-- test build r31 2026-08-12 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -250,6 +250,13 @@
     /* ── 개인일정: 각진·미니멀 네이비 통일 (원형 점·아바타는 제외) ── */
     #pagePersonal *:not(.avatar):not([style*="border-radius:50%"]) { border-radius: 0 !important; }
     #pagePersonal .day-cell { border-left: 1px solid #e6ebf2; }
+    /* ── 프로젝트: 각진·미니멀 네이비 통일 (개인일정과 동일 결) ──
+       ★ 신규 UI 디자인 규칙 (새 페이지/팝업 만들 때 반드시 이 결로):
+       · 모서리 둥글림 없음(원형 아바타/점 제외) · 테두리 #c8d2de~#d8e1ec 1px · 그림자 없음(플랫)
+       · 팝업은 id를 …Overlay/…Ov 로 지어 전역 각진 규칙을 태운다 (회색 헤더바+검은 막대+28px 버튼 자동)
+       · 페이지 컨트롤바 버튼은 26px 각진 네이비(#1B3A6B), 표 헤더는 #fafafa+#888 */
+    #pageProject *:not(.avatar):not([style*="border-radius:50%"]) { border-radius: 0 !important; }
+    #pageProject #btnProjectAdd { height: 26px; box-sizing: border-box; display: inline-flex; align-items: center; padding: 0 12px; }
     /* 컨트롤바 버튼·배지 높이 통일 (작게, 26px) */
     #btnVacationApply, #btnEntryAdd, #btnClientMgr, #btnAssignSuggest, #vacRemainBadge,
     /* 개인일정 네비 버튼은 주간일정 네비(.wknav-*)와 동일한 높이(32px)로 통일 */
@@ -2504,7 +2511,7 @@
   <section class="page-section" id="pageProject">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;flex-wrap:wrap">
       <span style="font-size:14px;font-weight:700;color:#1B3A6B">프로젝트 <span style="font-size:11.5px;color:#8b97a5;font-weight:500">각자의 프로젝트 진행 노트 · 작성자 본인만 수정</span></span>
-      <button id="btnProjectAdd" onclick="openProjectNew()" style="padding:4px 12px;border-radius:8px;border:1.5px solid #1B3A6B;background:#1B3A6B;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit" onmouseover="this.style.background='#14305c'" onmouseout="this.style.background='#1B3A6B'">프로젝트 등록</button>
+      <button id="btnProjectAdd" onclick="openProjectNew()" style="padding:0 12px;height:26px;box-sizing:border-box;display:inline-flex;align-items:center;border-radius:0;border:1.5px solid #1B3A6B;background:#1B3A6B;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit" onmouseover="this.style.background='#14305c'" onmouseout="this.style.background='#1B3A6B'">프로젝트 등록</button>
     </div>
     <div id="projectList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;align-items:start"></div>
   </section>
@@ -15626,10 +15633,10 @@ function reloadState() {
       var lines = String(p.content||'').split('\n');
       var prev = lines.slice(0,7).map(function(l){ return esc(l); }).join('<br>') + (lines.length>7 ? '<br><span style="color:#9ca3af">&hellip;</span>' : '');
       var meta = _projFmtD(p.createdAt) + ((p.updatedAt && _projFmtD(p.updatedAt)!==_projFmtD(p.createdAt)) ? (' &middot; 수정 '+_projFmtD(p.updatedAt)) : '');
-      return '<div onclick="openProjectView(\''+p.id+'\')" style="background:#fff;border:1px solid #d8e1ec;border-top:3px solid '+(mine?'#1B3A6B':'#c3cfde')+';padding:13px 15px 14px;cursor:pointer;box-shadow:0 1px 3px rgba(27,58,107,.06)" onmouseover="this.style.boxShadow=\'0 4px 12px rgba(27,58,107,.14)\'" onmouseout="this.style.boxShadow=\'0 1px 3px rgba(27,58,107,.06)\'">'
+      return '<div onclick="openProjectView(\''+p.id+'\')" style="background:#fff;border:1px solid #d8e1ec;border-top:3px solid '+(mine?'#1B3A6B':'#c3cfde')+';padding:13px 15px 14px;cursor:pointer" onmouseover="this.style.background=\'#f7fafd\'" onmouseout="this.style.background=\'#fff\'">'
         + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">'
         +   '<span style="font-size:14px;font-weight:700;color:#14305c;word-break:break-all">'+esc(p.title||'(제목 없음)')+'</span>'
-        +   (mine?'<span style="flex-shrink:0;font-size:10px;font-weight:700;color:#1B3A6B;border:1px solid #aac4e6;background:#eaf1fb;padding:1px 6px;border-radius:9px">내 프로젝트</span>':'')
+        +   (mine?'<span style="flex-shrink:0;font-size:10px;font-weight:700;color:#1B3A6B;border:1px solid #aac4e6;background:#eaf1fb;padding:1px 6px;border-radius:0">내 프로젝트</span>':'')
         + '</div>'
         + '<div style="font-size:11px;color:#8b97a5;margin-bottom:9px">'+esc(_projAuthor(p))+' &middot; '+meta+'</div>'
         + '<div style="font-size:12.5px;color:#374151;line-height:1.65;word-break:break-all;min-height:20px;border-top:1px solid #eef2f7;padding-top:8px">'+(prev||'<span style="color:#c2c9d2">내용 없음</span>')+'</div>'
