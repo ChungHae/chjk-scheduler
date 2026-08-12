@@ -6295,7 +6295,9 @@ function reloadState() {
     qCartGridKey(e, e.target);   // 탭 → 오른쪽 칸 (다른 칸들과 동일하게 동작)
   };
   window.qCartQtyAdj = function(i,d){ if(!_qCart[i]) return; _qPushUndo(); _qCart[i].qty=Math.max(1,(Number(_qCart[i].qty)||1)+d); _qCartSave(); renderQCart(); };
-  window.qCartDel = function(i){ if(!_guardW()) return; _qPushUndo(); _qCart.splice(i,1); _qCartSave(); renderQCart(); };
+  window.qCartDel = function(i){ if(!_guardW()) return; _qPushUndo(); _qCart.splice(i,1);
+    if(typeof _qgSel!=='undefined' && _qgSel){ var _keep=new Set(); _qgSel.set.forEach(function(k){ if(+k.split(',')[0] < _qCart.length) _keep.add(k); }); if(_keep.size){ _qgSel.set=_keep; } else { _qgSel=null; } }
+    _qCartSave(); renderQCart(); try{ if(typeof _qgPaint==='function') _qgPaint(); }catch(e){} };
   window.qCartMove = function(i, dir){ if(!_guardW()) return; _qPushUndo(); var j=i+dir; if(j<0||j>=_qCart.length) return; var t=_qCart[i]; _qCart[i]=_qCart[j]; _qCart[j]=t; _qCartSave(); renderQCart(); };
   var _priceMakerId=null, _priceRows=[], _priceLoadedId=null, _priceFile=null, _priceExact=false, _pricePage=0, _priceDcRate=0, _priceMarginRate=0, _priceCalcRows=[];
   window.renderPricePage = function(){
@@ -8711,6 +8713,7 @@ function reloadState() {
     var _ins=[]; for(var _k=0;_k<n;_k++){ _ins.push({vid:vid, vname:vn, spec:'', name:'', e:null, buy:null, small:null, pl:false, sell:null, disc:'', eta:'', qty:1, manual:true}); }
     _qCart.splice.apply(_qCart, [idx, 0].concat(_ins));
     _qCartSave(); renderQCart();
+    try{ _qgPaint(); }catch(e){}   // 재렌더로 지워진 선택 표시 복원 (삽입된 새 행들이 선택 상태 유지)
     setTimeout(function(){ var rows=document.querySelectorAll('#qCart tbody tr'); var tr=rows[idx]; if(tr){ var inp=tr.querySelector('input[data-mf="spec"]'); if(inp){ inp.focus(); inp.scrollIntoView({block:'center'}); } } },40);
   };
   window._qInsCnt=function(){ var el=document.getElementById('qCartInsCnt'); var v=parseInt(el?el.value:1,10); return (isNaN(v)||v<1)?1:Math.min(500,v); };
@@ -9010,7 +9013,10 @@ function reloadState() {
     _qCartSave(); renderQCart(); _qgPaint();
   }
   function _qgSelRows(){ if(!_qgSel||!_qgSel.set.size) return []; var rs={}; _qgSel.set.forEach(function(k){ rs[+k.split(',')[0]]=1; }); return Object.keys(rs).map(Number).sort(function(a,b){return a-b;}); }
-  window._qgDeleteRows=function(){ if(!_guardW()) return; var rows=_qgSelRows(); if(!rows.length) return; _qPushUndo(); rows.sort(function(a,b){return b-a;}); rows.forEach(function(r){ if(r>=0&&r<_qCart.length) _qCart.splice(r,1); }); _qgReset(); _qCartSave(); renderQCart(); };
+  window._qgDeleteRows=function(){ if(!_guardW()) return; var rows=_qgSelRows(); if(!rows.length) return; _qPushUndo(); rows.sort(function(a,b){return b-a;}); rows.forEach(function(r){ if(r>=0&&r<_qCart.length) _qCart.splice(r,1); });
+    // 엑셀식: 삭제 후에도 같은 위치의 밴드를 계속 선택 표시 (표 끝을 넘는 부분은 잘라냄)
+    if(_qgSel){ var _keep=new Set(); _qgSel.set.forEach(function(k){ if(+k.split(',')[0] < _qCart.length) _keep.add(k); }); if(_keep.size){ _qgSel.set=_keep; } else { _qgSel=null; } }
+    _qCartSave(); renderQCart(); try{ _qgPaint(); }catch(e){} };
   document.addEventListener('mousedown', function(ev){
     if(ev.button!==0) return;   // 좌클릭만 선택 처리(우클릭은 컨텍스트 메뉴가 선택을 유지)
     var inp = ev.target&&ev.target.closest ? ev.target.closest('#qCart table.qcart-tbl tbody input.qc-in') : null;
