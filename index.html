@@ -269,6 +269,7 @@
     #pageClients .inv-toolbar .qic { width:26px !important; min-width:26px; height:26px; border-radius:6px !important; flex:0 0 auto; padding:0; }
     #pageClients .inv-toolbar .qic svg { width:15px; height:15px; }
     #pageClients .clx-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px 12px; }
+    #clxForm .clx-f:disabled { background:#f3f4f6; cursor:not-allowed; }
     @media (max-width: 768px){ #pageClients .clx-grid { grid-template-columns:1fr; } }
     /* 프로젝트 툴바 — 매입처/재고 툴바와 동일한 결 */
     #pageProject .inv-toolbar { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin: calc(var(--mpy)*-1) calc(var(--mpx)*-1) 14px; min-height:var(--snh,36px); padding:4px var(--mpx); background:#fff; border:0; border-bottom:1px solid #e5e5e5; box-shadow:0 2px 6px rgba(15,23,42,.06); box-sizing:border-box; }
@@ -2382,6 +2383,7 @@
       <span class="qic-div" style="width:1px;align-self:stretch;background:#d3dae4;margin:2px 4px"></span>
       <input type="file" id="clxUploadFile" accept=".xlsx,.xls" onchange="clxUploadFileChange(event)" style="display:none">
       <button class="qic" id="btnClxUpload" onclick="openClxExcelGuide()" data-tip="엑셀 업로드" aria-label="엑셀 업로드" style="border-color:#16a34a;color:#16a34a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></button>
+      <button class="qic" id="btnClxDownload" onclick="confirmClxExcelDownload()" data-tip="엑셀 다운로드" aria-label="엑셀 다운로드" style="border-color:#1B3A6B;color:#1B3A6B"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"/><path d="M7.5 11.5 12 16l4.5-4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></button>
     </div>
     <div id="clxList" style="display:flex;flex-direction:column;gap:8px"></div>
   </div>
@@ -8786,9 +8788,9 @@ function reloadState() {
     _qAddManualRowNow();
   };
   function _qSpecCol(){ var g=_qcGrid(); if(!g.length) return 1; var row=g[0]; for(var i=0;i<row.length;i++){ if(row[i].getAttribute && row[i].getAttribute('data-mf')==='spec') return i; } return 1; }
-  function _qAddManualRowNow(){
-    // 마지막 줄이 이미 빈 줄이면 새로 추가하지 않고 그 줄로 포커스
-    var _lc=_qCart.length?_qCart[_qCart.length-1]:null;
+  function _qAddManualRowNow(force){
+    // 마지막 줄이 이미 빈 줄이면 새로 추가하지 않고 그 줄로 포커스 (force면 무조건 추가)
+    var _lc=(!force && _qCart.length)?_qCart[_qCart.length-1]:null;
     if(_lc && !String(_lc.spec||'').trim() && !String(_lc.name||'').trim() && _lc.e==null && _lc.buy==null && _lc.sell==null){
       _qcWant={r:_qCart.length-1,c:_qSpecCol(),at:Date.now()};
       renderQCart();
@@ -9251,6 +9253,17 @@ function reloadState() {
     if(k==='Enter'){                       // 엔터 → 바로 아래 칸
       ev.preventDefault();
       if(_qcMove(el,1,0)){ _qEnterArmed=null; return; }
+      // 마지막 줄이 완전히 빈 줄이면 엔터 한 번마다 새 줄 추가 (2026-08-14 사용자 요청)
+      try{
+        var _tr8=el.closest('tr');
+        var _trs8=_tr8?_tr8.parentNode.children:null;
+        var _li8=_trs8?Array.prototype.indexOf.call(_trs8,_tr8):-1;
+        var _it8=(_li8>=0 && _li8===_qCart.length-1)?_qCart[_li8]:null;
+        var _domEmpty8=_tr8?Array.prototype.every.call(_tr8.querySelectorAll('input.qc-in'), function(x){ return !String(x.value||'').trim() || x.getAttribute('data-mf')==='qty'; }):false;
+        if(_it8 && _domEmpty8 && !String(_it8.spec||'').trim() && !String(_it8.name||'').trim() && _it8.e==null && _it8.buy==null && _it8.sell==null){
+          _qEnterArmed=null; _qAddManualRowNow(true); return;
+        }
+      }catch(_qe8){}
       // 마지막 줄에서는 엔터 한 번으로 새 줄을 만들지 않는다 (여기서 견적이 끝날 수 있으므로)
       var pp=_qcPos(el); var key=pp?(pp.r+':'+pp.c):null;
       if(key && _qEnterArmed===key){ _qEnterArmed=null; _qAddManualRowNow(); }   // 두 번째 엔터 → 새 줄
@@ -13331,12 +13344,24 @@ function reloadState() {
       +'<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:2px solid #1B3A6B"><span style="font-size:15px;font-weight:700;color:#1B3A6B">품목 수정</span><button class="btn" onclick="document.getElementById(\'invEditOverlay\').style.display=\'none\'" style="padding:4px 10px">닫기</button></div>'
       +'<div style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">'
       +'<div><label class="form-label">품목</label>'+nameField+'</div>'
+      +'<div><label class="form-label">지점</label><div id="invEditRegionBtns" style="display:flex;gap:8px"><button type="button" data-region="서울" onclick="setInvEditRegion(\'서울\')" style="flex:1;padding:9px;border:1.5px solid #e5e5e5;border-radius:8px;background:#fff;font-weight:600;cursor:pointer;font-family:inherit">서울</button><button type="button" data-region="화성" onclick="setInvEditRegion(\'화성\')" style="flex:1;padding:9px;border:1.5px solid #e5e5e5;border-radius:8px;background:#fff;font-weight:600;cursor:pointer;font-family:inherit">화성</button></div></div>'
       +'<div><label class="form-label">수량</label><input id="invEditQty" type="number" min="0" value="'+(Number(item.qty)||0)+'" style="'+INP+'"></div>'
       +normalField
       +'<div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn" onclick="document.getElementById(\'invEditOverlay\').style.display=\'none\'">닫기</button><button class="btn btn-primary" onclick="saveInvEdit()">저장</button></div>'
       +'</div></div>';
     ov.style.display='flex';
+    window._invEditRegion = item.region || sel.region || '서울';
+    setInvEditRegion(window._invEditRegion);
     setTimeout(function(){ var el=document.getElementById('invEditQty'); if(el) el.focus(); }, 60);
+  };
+  window.setInvEditRegion = function(r){
+    window._invEditRegion = r;
+    document.querySelectorAll('#invEditRegionBtns button').forEach(function(b){
+      var on = b.dataset.region === r;
+      b.style.background = on ? '#1B3A6B' : '#fff';
+      b.style.color = on ? '#fff' : '#444';
+      b.style.borderColor = on ? '#1B3A6B' : '#e5e5e5';
+    });
   };
   window.saveInvEdit = function(){ if(!_guardW()) return;
     if(!_invItemSel) return;
@@ -13349,22 +13374,23 @@ function reloadState() {
     if(!newName){ showInfoModal('알림', '품목을 입력하세요.'); return; }
     if(_invNameExists(newName, sel.id, sel.name)){ showInfoModal('알림', '이미 등록되어 있는 품목입니다.'); return; }
     var newNormal=Number((document.getElementById('invEditNormal')||{}).value)||0;
+    var newRegion = window._invEditRegion || sel.region || '서울';
     if(sel.custom){
       var it=invCustom.find(function(x){ return x.id===sel.id; });
-      if(it){ it.name=newName; it.qty=newQty; if(newNormal>0){ it.normal=newNormal; it.supply=Math.round(newNormal/2); } it.total=it.qty*(Number(it.supply)||0); }
-      sel.name=newName;
+      if(it){ it.name=newName; it.qty=newQty; it.region=newRegion; if(newNormal>0){ it.normal=newNormal; it.supply=Math.round(newNormal/2); } it.total=it.qty*(Number(it.supply)||0); }
+      sel.name=newName; sel.region=newRegion;
     } else {
       var base = INVENTORY_DATA.find(function(x){ return x.name===sel.name; }) || {};
       var baseNormal = Number(base.normal)||0;
-      if(newName === sel.name && (newNormal===0 || newNormal===baseNormal)){
+      if(newName === sel.name && (newNormal===0 || newNormal===baseNormal) && newRegion === (sel.region||'서울')){
         invAdjust[sel.name]=newQty;
       } else {
         var nrm = newNormal>0 ? newNormal : baseNormal;
         var newId = 'inv_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-        invCustom.push({ id:newId, custom:true, region:(sel.region||'서울'), name:newName, qty:newQty, normal:nrm, supply:Math.round(nrm/2), total:newQty*Math.round(nrm/2) });
+        invCustom.push({ id:newId, custom:true, region:newRegion, name:newName, qty:newQty, normal:nrm, supply:Math.round(nrm/2), total:newQty*Math.round(nrm/2) });
         if(invHidden.indexOf(sel.name) < 0) invHidden.push(sel.name);
         delete invAdjust[sel.name];
-        sel.name=newName; sel.custom=true; sel.id=newId;
+        sel.name=newName; sel.custom=true; sel.id=newId; sel.region=newRegion;
       }
     }
     var delta = newQty - oldQty;
@@ -15912,8 +15938,8 @@ function reloadState() {
       +       '<button type="button" onclick="clxAddrSearch()" style="flex-shrink:0;padding:0 10px;height:30px;box-sizing:border-box;display:inline-flex;align-items:center;border-radius:0;background:#fff;color:#1B3A6B;border:1px solid #1B3A6B;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">주소 검색</button>'
       +     '</div>'
       +   '</div>'
-      +   _clxFld('addr','주소 (도로명)',inf.addr,1)
-      +   _clxFld('addr2','상세주소',inf.addr2,1)
+      +   _clxFld('addr','주소 (도로명)',inf.addr,1,'oninput="clxAddrInput(this)"')
+      +   _clxFld('addr2','상세주소',inf.addr2,1,(String(inf.addr||'').trim()?'':'disabled title="주소(도로명)를 먼저 입력해주세요"'))
       +   '<div id="clxPostWrap" style="grid-column:1/-1;display:none;height:468px;border:1px solid #c8d2de;position:relative"></div>'
       +   _clxFld('uptae','업태',inf.uptae,1) + _clxFld('jongmok','종목',inf.jongmok,1) + '<div></div>'
       +   _clxFld('tel','대표전화',inf.tel,1,'oninput="clxPhoneInput(this)" onchange="clxPhoneBlur(this)"') + _clxFld('fax','FAX',inf.fax,1,'oninput="clxPhoneInput(this)" onchange="clxPhoneBlur(this)"') + _clxFld('taxEmail','세금계산서 메일주소',inf.taxEmail,1,'oninput="clxEmailCheck(this)" onblur="clxEmailCheck(this)"')
@@ -16013,6 +16039,7 @@ function reloadState() {
             var z=f.querySelector('.clx-f[data-k="zip"]'), a=f.querySelector('.clx-f[data-k="addr"]'), a2=f.querySelector('.clx-f[data-k="addr2"]');
             if(z) z.value=data.zonecode||'';
             if(a) a.value=data.roadAddress||data.jibunAddress||'';
+            if(a){ try{ clxAddrInput(a); }catch(_e){} }
             wrap.style.display='none'; wrap.innerHTML='';
             if(a2){ try{ a2.focus(); }catch(_e){} }
           },
@@ -16063,6 +16090,14 @@ function reloadState() {
     el.style.background = ok ? '' : '#fff5f5';
     el.title = ok ? '' : '이메일 형식이 올바르지 않습니다 (예: name@company.co.kr)';
   };
+  // 주소(도로명)가 비어 있으면 상세주소 잠금 (r77)
+  window.clxAddrInput = function(el){
+    var f=el.closest('#clxForm'); if(!f) return;
+    var a2=f.querySelector('.clx-f[data-k="addr2"]'); if(!a2) return;
+    var has=!!String(el.value||'').trim();
+    a2.disabled=!has;
+    a2.title=has?'':'주소(도로명)를 먼저 입력해주세요';
+  };
   // 사업자번호 하이픈 자동 삽입 (XXX-XX-XXXXX)
   function _clxFmtBiz(v){
     var s=String(v||'');
@@ -16110,7 +16145,7 @@ function reloadState() {
       if(o.dept||o.rank||o.name||o.phone||o.phone2||o.email) contacts.push(o);
     });
     contacts.forEach(function(o){ if(o.phone) o.phone=_clxFmtPhone(o.phone); if(o.phone2) o.phone2=_clxFmtPhone(o.phone2); if(o.email) o.email=o.email.toLowerCase(); });
-    clientInfo[nm] = { zip:get('zip'), addr:get('addr'), addr2:get('addr2'), ceo:get('ceo'), uptae:get('uptae'), jongmok:get('jongmok'), taxEmail:get('taxEmail').toLowerCase(),
+    clientInfo[nm] = { zip:get('zip'), addr:get('addr'), addr2:(get('addr')?get('addr2'):''), ceo:get('ceo'), uptae:get('uptae'), jongmok:get('jongmok'), taxEmail:get('taxEmail').toLowerCase(),
                        tel:_clxFmtPhone(get('tel')), fax:_clxFmtPhone(get('fax')), bank:get('bank'), account:get('account'), holder:get('holder'),
                        memo:get('memo'), contacts:contacts };
     _clxPersist();
@@ -16288,6 +16323,46 @@ function reloadState() {
       reader.readAsArrayBuffer(file);
     });
   }
+  // ─── 업체 관리 엑셀 다운로드 (업로드 양식과 동일 헤더 → 재업로드 호환) ───
+  window.confirmClxExcelDownload = function(){
+    showConfirmModal('엑셀 다운로드','업체 목록 전체(상세정보·담당자 포함)를 엑셀 파일로 다운로드할까요?', function(){ exportClxExcel(); }, '다운로드', '#1B3A6B');
+  };
+  window.exportClxExcel = async function(){
+    try{
+      try{ ensureClientList(); }catch(_e){}
+      var list=allClients().slice().sort(function(a,b){ return String(a[0]).localeCompare(String(b[0]),'ko'); });
+      if(!list.length){ showInfoModal('알림','등록된 업체가 없습니다.'); return; }
+      await _ensureXlsxLib();
+      var aoa=[['업체명','사업자번호','대표자','우편번호','주소','상세주소','업태','종목','대표전화','FAX','세금계산서 메일주소','거래은행','계좌번호','예금주','메모','부서','직급','담당자명','연락처1','연락처2','이메일']];
+      list.forEach(function(c){
+        var nm=c[0], bz=c[1]||'', inf=_clxInfo(nm);
+        var cts=(inf.contacts&&inf.contacts.length)?inf.contacts:[{}];
+        cts.forEach(function(ct,i){
+          if(i===0){
+            aoa.push([nm,bz,inf.ceo||'',inf.zip||'',inf.addr||'',inf.addr2||'',inf.uptae||'',inf.jongmok||'',inf.tel||'',inf.fax||'',inf.taxEmail||'',inf.bank||'',inf.account||'',inf.holder||'',inf.memo||'',ct.dept||'',ct.rank||'',ct.name||'',ct.phone||'',ct.phone2||'',ct.email||'']);
+          }else{
+            aoa.push([nm,bz,'','','','','','','','','','','','','',ct.dept||'',ct.rank||'',ct.name||'',ct.phone||'',ct.phone2||'',ct.email||'']);
+          }
+        });
+      });
+      var ws=XLSX.utils.aoa_to_sheet(aoa);
+      ws['!cols']=[{wch:22},{wch:14},{wch:9},{wch:8},{wch:32},{wch:14},{wch:10},{wch:12},{wch:14},{wch:14},{wch:24},{wch:10},{wch:16},{wch:9},{wch:24},{wch:9},{wch:9},{wch:10},{wch:14},{wch:14},{wch:24}];
+      var thin={style:'thin',color:{rgb:'808080'}};
+      var border={top:thin,bottom:thin,left:thin,right:thin};
+      var hStyle={font:{name:'맑은 고딕',sz:9,bold:true},alignment:{horizontal:'center',vertical:'center',wrapText:true},fill:{patternType:'solid',fgColor:{rgb:'FFFF00'}},border:border};
+      var ctr={font:{name:'맑은 고딕',sz:9},alignment:{horizontal:'center',vertical:'center',wrapText:true},border:border};
+      var lft={font:{name:'맑은 고딕',sz:9},alignment:{horizontal:'left',vertical:'center',wrapText:true},border:border};
+      var R=aoa.length, NC=21;
+      for(var r=0;r<R;r++){ for(var c=0;c<NC;c++){
+        var ref=XLSX.utils.encode_cell({r:r,c:c}); var cl=ws[ref]; if(!cl) continue;
+        var leftCol=(c===0||c===4||c===5||c===10||c===14||c===20);
+        cl.s = (r===0) ? hStyle : (leftCol ? lft : ctr);
+      }}
+      var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'업체목록');
+      var d=new Date(); var ds=d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
+      XLSX.writeFile(wb,'업체목록_'+ds+'.xlsx');
+    }catch(e){ showInfoModal('알림','엑셀 내보내기 실패: '+e.message); }
+  };
   function _vacUnlimited(id){ var m=members.find(function(x){return x.id===id;}); return !!(m && m.name==='김재성'); }
   window.openVacationModal = function(targetId) {
     _vacTarget = targetId || myMemberId;
