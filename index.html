@@ -2379,6 +2379,9 @@
       <span id="clxCount" style="font-size:11px;color:#9ca3af;white-space:nowrap;margin-left:6px"></span>
       <span style="flex:1"></span>
       <button class="qic" id="btnClxAdd" onclick="clxOpenNew()" data-tip="업체 등록" aria-label="업체 등록" style="border-color:#1B3A6B;color:#1B3A6B"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+      <span class="qic-div" style="width:1px;align-self:stretch;background:#d3dae4;margin:2px 4px"></span>
+      <input type="file" id="clxUploadFile" accept=".xlsx,.xls" onchange="clxUploadFileChange(event)" style="display:none">
+      <button class="qic" id="btnClxUpload" onclick="openClxExcelGuide()" data-tip="엑셀 업로드" aria-label="엑셀 업로드" style="border-color:#16a34a;color:#16a34a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></button>
     </div>
     <div id="clxList" style="display:flex;flex-direction:column;gap:8px"></div>
   </div>
@@ -16048,6 +16051,8 @@ function reloadState() {
   // 이메일 형식 검증 — 비어 있으면 통과, 값이 있으면 name@domain.tld 형태만 허용
   function _clxValidEmail(v){ v=String(v||'').trim(); if(!v) return true; return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v); }
   window.clxEmailCheck = function(el){
+    var _lo=el.value.toLowerCase();
+    if(_lo!==el.value){ var _p=el.selectionStart; el.value=_lo; try{ el.setSelectionRange(_p,_p); }catch(_e){} }
     var ok=_clxValidEmail(el.value);
     el.style.borderColor = ok ? '#c8d2de' : '#dc2626';
     el.style.background = ok ? '' : '#fff5f5';
@@ -16099,8 +16104,8 @@ function reloadState() {
       Array.prototype.forEach.call(row.querySelectorAll('.clx-cf'), function(el){ o[el.getAttribute('data-k')]=(el.value||'').trim(); });
       if(o.dept||o.rank||o.name||o.phone||o.phone2||o.email) contacts.push(o);
     });
-    contacts.forEach(function(o){ if(o.phone) o.phone=_clxFmtPhone(o.phone); if(o.phone2) o.phone2=_clxFmtPhone(o.phone2); });
-    clientInfo[nm] = { zip:get('zip'), addr:get('addr'), addr2:get('addr2'), ceo:get('ceo'), uptae:get('uptae'), jongmok:get('jongmok'), taxEmail:get('taxEmail'),
+    contacts.forEach(function(o){ if(o.phone) o.phone=_clxFmtPhone(o.phone); if(o.phone2) o.phone2=_clxFmtPhone(o.phone2); if(o.email) o.email=o.email.toLowerCase(); });
+    clientInfo[nm] = { zip:get('zip'), addr:get('addr'), addr2:get('addr2'), ceo:get('ceo'), uptae:get('uptae'), jongmok:get('jongmok'), taxEmail:get('taxEmail').toLowerCase(),
                        tel:_clxFmtPhone(get('tel')), fax:_clxFmtPhone(get('fax')), bank:get('bank'), account:get('account'), holder:get('holder'),
                        memo:get('memo'), contacts:contacts };
     _clxPersist();
@@ -16120,6 +16125,164 @@ function reloadState() {
       _clxRender();
     }, '삭제', '#dc2626');
   };
+  // ─── 업체 관리 엑셀 대량 업로드 (헤더명 자동 매칭, 사업자번호 필수) ───
+  function _clxNormH(h){ return String(h||'').replace(/\(.*?\)/g,'').replace(/[\s·._\-]/g,'').toLowerCase(); }
+  var _CLX_HMAP = {
+    '업체명':'name','회사명':'name','거래처명':'name','상호':'name','상호명':'name',
+    '사업자번호':'bizNo','사업자등록번호':'bizNo',
+    '대표자':'ceo','대표자명':'ceo','대표':'ceo',
+    '우편번호':'zip',
+    '주소':'addr','도로명주소':'addr',
+    '상세주소':'addr2',
+    '업태':'uptae','종목':'jongmok',
+    '세금계산서메일주소':'taxEmail','세금계산서메일':'taxEmail','세금계산서이메일':'taxEmail','계산서메일':'taxEmail','세금계산서email':'taxEmail',
+    '대표전화':'tel','전화':'tel','전화번호':'tel','tel':'tel',
+    'fax':'fax','팩스':'fax','팩스번호':'fax',
+    '거래은행':'bank','은행':'bank','은행명':'bank',
+    '계좌번호':'account','계좌':'account',
+    '예금주':'holder',
+    '메모':'memo','비고':'memo',
+    '부서':'c_dept','담당자부서':'c_dept',
+    '직급':'c_rank','담당자직급':'c_rank',
+    '담당자명':'c_name','담당자':'c_name','담당자이름':'c_name',
+    '연락처1':'c_phone','연락처':'c_phone','담당자연락처':'c_phone','휴대폰':'c_phone','휴대전화':'c_phone','핸드폰':'c_phone',
+    '연락처2':'c_phone2',
+    '이메일':'c_email','담당자이메일':'c_email','email':'c_email','메일':'c_email'
+  };
+  window.clxUploadFileChange = function(e){
+    var f = e.target.files && e.target.files[0];
+    window._clxPendingFile = f || null;
+    var nm = document.getElementById('clxUpFileName');
+    if(nm){ nm.textContent = f ? f.name : '선택된 파일 없음'; nm.style.color = f ? '#14305c' : '#9ca3af'; }
+    e.target.value='';
+  };
+  window.openClxExcelGuide = function(){
+    var ov = document.getElementById('clxExcelGuideOverlay');
+    if(!ov){
+      ov=document.createElement('div'); ov.id='clxExcelGuideOverlay';
+      ov.style.cssText='position:fixed;inset:0;z-index:100002;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px';
+      document.body.appendChild(ov);
+      ov.addEventListener('click',function(e){ if(e.target===ov) ov.style.display='none'; });
+    }
+    function _row(h,req,d){ return '<tr style="border-bottom:1px solid #eef2f7"><td style="padding:7px 10px;font-weight:700;white-space:nowrap">'+h+(req?' <span style="color:#dc2626">*</span>':'')+'</td><td style="padding:7px 10px">'+d+'</td></tr>'; }
+    ov.innerHTML='<div style="width:100%;max-width:580px;background:#fff;border-radius:0;overflow:hidden;box-shadow:0 14px 44px rgba(27,58,107,.22);max-height:86vh;display:flex;flex-direction:column;border:1px solid #c8d2de">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:2px solid #1B3A6B"><span style="font-size:16px;font-weight:700;color:#1B3A6B">업체 엑셀 대량 업로드</span></div>'
+      +'<div style="padding:18px 20px;overflow:auto;font-size:13px;color:#374151;line-height:1.7">'
+      +'<p style="margin:0 0 10px">첫 행에 아래 <b>헤더(제목)</b>를 적으면 열 순서와 상관없이 자동으로 인식합니다. <b>사업자번호</b>로 기존 업체를 찾아 정보를 채우고, 없는 업체는 새로 등록합니다.</p>'
+      +'<table style="width:100%;border-collapse:collapse;margin:8px 0 12px;font-size:12px">'
+        +'<thead><tr style="background:#1B3A6B;color:#fff;text-align:left"><th style="padding:7px 10px">헤더</th><th style="padding:7px 10px">설명</th></tr></thead>'
+        +'<tbody>'
+        +_row('사업자번호',true,'매칭 기준 (필수) &middot; 예: 123-45-67890')
+        +_row('업체명',false,'신규 업체는 필수, 기존 업체는 생략 가능')
+        +_row('대표자 / 우편번호 / 주소 / 상세주소',false,'선택')
+        +_row('업태 / 종목',false,'선택')
+        +_row('대표전화 / FAX / 세금계산서 메일주소',false,'선택')
+        +_row('거래은행 / 계좌번호 / 예금주 / 메모',false,'선택')
+        +_row('부서 / 직급 / 담당자명 / 연락처1 / 연락처2 / 이메일',false,'담당자 정보 (선택)')
+        +'</tbody></table>'
+      +'<p style="margin:0;color:#6b7280;font-size:12px;line-height:1.7">&middot; 빈 칸은 기존 값을 그대로 두고, 값이 있는 칸만 덮어씁니다.<br>&middot; 같은 사업자번호 행이 여러 개면 담당자가 추가로 등록됩니다.<br>&middot; 전화번호 열은 앞자리 0이 사라지지 않게 <b>텍스트 서식</b>을 권장합니다.</p>'
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:8px;padding:14px 20px;border-top:1px solid #e5e5e5"><button class="btn" id="clxUpTmpl">양식 다운로드</button><span id="clxUpFileName" style="margin:0 auto 0 4px;font-size:12px;color:#9ca3af;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:170px">선택된 파일 없음</span><button class="btn" id="clxUpClose">닫기</button><button class="btn" id="clxUpPick">파일 선택</button><button class="btn btn-primary" id="clxUpDo">업로드</button></div>'
+      +'</div>';
+    ov.querySelector('#clxUpClose').onclick=function(){ ov.style.display='none'; };
+    ov.querySelector('#clxUpPick').onclick=function(){ var i=document.getElementById('clxUploadFile'); if(i) i.click(); };
+    ov.querySelector('#clxUpTmpl').onclick=function(){ _clxDownloadTemplate(); };
+    ov.querySelector('#clxUpDo').onclick=function(){
+      var f=window._clxPendingFile;
+      if(!f){ showInfoModal('파일 선택','엑셀 파일을 선택하세요.'); return; }
+      ov.style.display='none'; window._clxPendingFile=null;
+      _clxImportXlsx(f);
+    };
+    window._clxPendingFile=null;
+    ov.style.display='flex';
+  };
+  function _clxWithXlsx(fn){
+    if(typeof XLSX!=='undefined'){ fn(); return; }
+    var s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload=fn;
+    s.onerror=function(){ showInfoModal('알림','엑셀 라이브러리 로드 실패 (네트워크 확인)'); };
+    document.head.appendChild(s);
+  }
+  function _clxDownloadTemplate(){
+    _clxWithXlsx(function(){
+      var ws=XLSX.utils.aoa_to_sheet([['업체명','사업자번호','대표자','우편번호','주소','상세주소','업태','종목','대표전화','FAX','세금계산서 메일주소','거래은행','계좌번호','예금주','메모','부서','직급','담당자명','연락처1','연락처2','이메일']]);
+      ws['!cols']=[{wch:20},{wch:14},{wch:9},{wch:9},{wch:30},{wch:14},{wch:10},{wch:12},{wch:14},{wch:14},{wch:22},{wch:10},{wch:16},{wch:9},{wch:16},{wch:9},{wch:9},{wch:10},{wch:14},{wch:14},{wch:22}];
+      var wb=XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, '업체목록');
+      XLSX.writeFile(wb, '업체등록_양식.xlsx');
+    });
+  }
+  function _clxImportXlsx(file){
+    _clxWithXlsx(function(){
+      var reader=new FileReader();
+      reader.onload=function(e){
+        try{
+          var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+          var ws=wb.Sheets[wb.SheetNames[0]];
+          var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false});
+          // 헤더 행 탐색 (앞 5행 중 사업자번호 열이 있는 행)
+          var hIdx=-1, col={};
+          for(var i=0;i<Math.min(rows.length,5);i++){
+            var m={};
+            (rows[i]||[]).forEach(function(cell,ci){ var k=_CLX_HMAP[_clxNormH(cell)]; if(k && m[k]===undefined) m[k]=ci; });
+            if(m.bizNo!==undefined){ hIdx=i; col=m; break; }
+          }
+          if(hIdx<0){ showInfoModal('업로드 실패','헤더에서 "사업자번호" 열을 찾지 못했습니다.\n첫 행에 헤더를 적어주세요. (양식 다운로드 참고)'); return; }
+          try{ ensureClientList(); }catch(_e){}
+          var bizMap={}, nameSet={};
+          allClients().forEach(function(c){ var d=String(c[1]||'').replace(/\D/g,''); if(d && bizMap[d]===undefined) bizMap[d]=c[0]; nameSet[c[0]]=true; });
+          var createdSet={}, updatedSet={}, skipNoBiz=0, skipNoName=0;
+          function val(r,k){ return col[k]===undefined?'':String(r[col[k]]||'').trim(); }
+          for(var ri=hIdx+1; ri<rows.length; ri++){
+            var r=rows[ri]||[];
+            var any=false; for(var ck in col){ if(String(r[col[ck]]||'').trim()){ any=true; break; } }
+            if(!any) continue;
+            var bd=val(r,'bizNo').replace(/\D/g,'');
+            if(!bd){ skipNoBiz++; continue; }
+            var bz=_clxFmtBiz(bd);
+            var exName=val(r,'name');
+            var target=bizMap[bd] || (exName && nameSet[exName] ? exName : '');
+            var isNew=false;
+            if(!target){
+              if(!exName){ skipNoName++; continue; }
+              target=exName; isNew=true;
+              clientList.push([target,bz]);
+              nameSet[target]=true;
+            } else {
+              for(var li=0;li<clientList.length;li++){ if(clientList[li][0]===target && !String(clientList[li][1]||'').replace(/\D/g,'')){ clientList[li]=[target,bz]; break; } }
+            }
+            bizMap[bd]=target;
+            var inf=clientInfo[target]||{};
+            ['zip','addr','addr2','ceo','uptae','jongmok','taxEmail','bank','account','holder','memo'].forEach(function(fk){ var v=val(r,fk); if(v) inf[fk]=(fk==='taxEmail'?v.toLowerCase():v); });
+            var tv=val(r,'tel'); if(tv) inf.tel=_clxFmtPhone(tv);
+            var fv=val(r,'fax'); if(fv) inf.fax=_clxFmtPhone(fv);
+            var ct={dept:val(r,'c_dept'),rank:val(r,'c_rank'),name:val(r,'c_name'),phone:val(r,'c_phone'),phone2:val(r,'c_phone2'),email:val(r,'c_email').toLowerCase()};
+            if(ct.dept||ct.rank||ct.name||ct.phone||ct.phone2||ct.email){
+              if(ct.phone) ct.phone=_clxFmtPhone(ct.phone);
+              if(ct.phone2) ct.phone2=_clxFmtPhone(ct.phone2);
+              if(!Array.isArray(inf.contacts)) inf.contacts=[];
+              var dup=inf.contacts.some(function(x){ return (x.name||'')===(ct.name||'') && (x.phone||'')===(ct.phone||'') && (x.email||'')===(ct.email||''); });
+              if(!dup) inf.contacts.push(ct);
+            }
+            clientInfo[target]=inf;
+            if(isNew) createdSet[target]=true; else updatedSet[target]=true;
+          }
+          for(var cn in createdSet){ if(updatedSet[cn]) delete updatedSet[cn]; }
+          var nc=Object.keys(createdSet).length, nu=Object.keys(updatedSet).length;
+          if(!nc && !nu && !skipNoBiz && !skipNoName){ showInfoModal('업로드 결과','가져올 데이터가 없습니다. 헤더와 내용을 확인해주세요.'); return; }
+          _clxPersist();
+          _clxExp=null; _clxShown=200;
+          renderClientsPage();
+          var msg='신규 등록: '+nc+'개 업체\n정보 업데이트: '+nu+'개 업체';
+          if(skipNoBiz) msg+='\n건너뜀(사업자번호 없음): '+skipNoBiz+'행';
+          if(skipNoName) msg+='\n건너뜀(신규인데 업체명 없음): '+skipNoName+'행';
+          showInfoModal('업로드 완료', msg);
+        }catch(err){ showInfoModal('업로드 실패','엑셀 파일을 읽는 중 오류가 발생했습니다.\n'+(err&&err.message?err.message:err)); }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  }
   function _vacUnlimited(id){ var m=members.find(function(x){return x.id===id;}); return !!(m && m.name==='김재성'); }
   window.openVacationModal = function(targetId) {
     _vacTarget = targetId || myMemberId;
