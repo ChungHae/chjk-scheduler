@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r58 2026-08-13 -->
+<!-- test build r65 2026-08-13 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -1405,7 +1405,7 @@
     @media (max-width:700px){  .main { --mpx:10px; --mpy:10px; } }
     /* 견적 화면에서는 .main 의 가로 스크롤 컨테이너를 풀어야 sticky 가 화면 기준으로 동작한다
        (견적 표들은 각자 overflow-x:auto 를 갖고 있어 가로 스크롤은 그대로 된다) */
-    .main.main-estimate, .main:has(#pageEstimate.active) { overflow-x: visible !important; }
+    .main.main-estimate, .main:has(#pageEstimate.active), .main:has(#pageClients.active) { overflow-x: visible !important; }
     #pageEstimate .q-toolbar {
       position: sticky; top: var(--tfh, 140px); z-index: 60;   /* 고정 헤더(.top-frozen) 높이만큼 내려서 붙인다 */
       margin: calc(var(--mpy) * -1) calc(var(--mpx) * -1) 12px;
@@ -2611,6 +2611,10 @@
       <button id="btnVacAdmin" onclick="openVacAdmin()" style="display:none;padding:4px 12px;border-radius:8px;border:1.5px solid #1B3A6B;background:#fff;color:#1B3A6B;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit" onmouseover="this.style.background='#eef4fb'" onmouseout="this.style.background='#fff'">연차 현황</button>
       <button id="btnVacationApply" onclick="openVacationModal()" style="display:none;padding:4px 12px;border-radius:8px;border:1.5px solid #1B3A6B;background:#1B3A6B;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:background 0.12s,border-color 0.12s" onmouseover="this.style.background='#14305c'" onmouseout="this.style.background='#1B3A6B'">연차 등록</button>
       <button id="btnEntryAdd" onclick="openEntryToday()" style="display:none;padding:4px 12px;border-radius:8px;border:1.5px solid #1B3A6B;background:#1B3A6B;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:background 0.12s,border-color 0.12s" onmouseover="this.style.background='#14305c'" onmouseout="this.style.background='#1B3A6B'">일정 등록</button>
+      <span id="psShowToggles" style="display:inline-flex;align-items:center;gap:10px;padding:0 4px">
+        <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:#374151;cursor:pointer;white-space:nowrap"><input type="checkbox" id="psShowBcast" checked onchange="psToggleShow()" style="width:14px;height:14px;accent-color:#1B3A6B;cursor:pointer">공지</label>
+        <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:#374151;cursor:pointer;white-space:nowrap"><input type="checkbox" id="psShowVac" checked onchange="psToggleShow()" style="width:14px;height:14px;accent-color:#1B3A6B;cursor:pointer">연차</label>
+      </span>
       <button id="btnClientMgr" onclick="openClientManager()" style="display:none;padding:4px 12px;border-radius:8px;border:1.5px solid #1B3A6B;background:#fff;color:#1B3A6B;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit" onmouseover="this.style.background='#eef4fb'" onmouseout="this.style.background='#fff'">업체 관리</button>
       <button id="btnAssignSuggest" onclick="toggleAssignSuggestPanel()" style="display:none;padding:4px 12px;border-radius:8px;border:1.5px solid #aac4e6;background:#eaf1fb;color:#14305c;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">업무 제안 현황<span id="assignSuggestCount" style="margin-left:7px"></span></button>
       <!-- 달력 년월 네비 (절대 중앙) -->
@@ -15297,7 +15301,7 @@ function reloadState() {
     const pageMap = { weekly:'pageWeekly', biz:'pageBiz', project:'pageProject', clients:'pageClients', assign:'pageAssign', personal:'pagePersonal', finance:'pageFinance', ar:'pageAr', inventory:'pageInventory', purchase:'pagePurchase', files:'pageFiles', estimate:'pageEstimate', armatch:'pageArmatch', links:'pageLinks', cardsales:'pageCardSales' };
     document.getElementById(pageMap[page] || 'pageWeekly').classList.add('active');
     // 견적 화면에서만 .main 의 가로 스크롤을 풀어 툴바 sticky 가 화면 기준으로 붙게 한다
-    var _mn=document.querySelector('.main'); if(_mn) _mn.classList.toggle('main-estimate', page==='estimate');
+    var _mn=document.querySelector('.main'); if(_mn) _mn.classList.toggle('main-estimate', page==='estimate' || page==='clients');
     _syncTopFrozenH();   // 서브탭 노출 여부에 따라 고정 헤더 높이가 바뀐다
     if (page === 'armatch'){ if(typeof loadMisuSummary==='function') loadMisuSummary(); }
     if (page === 'biz'){
@@ -15308,7 +15312,7 @@ function reloadState() {
     }
     if (page === 'assign')    renderAssignPage();
     if (page === 'project'){ _projMode={view:'list',id:null}; _projExpId=null; _projLogEditId=null; _projTitleEdit=false; _projDraft=null; _projDirty=false; _projSearchQ=''; var _ps8=document.getElementById('projSearch'); if(_ps8) _ps8.value=''; _projFilterMember = myMemberId || 'all'; var _pm8=document.getElementById('projMemberFilter'); if(_pm8){ try{ _pm8.blur(); }catch(_e8){} } renderProjectPage(); }
-    if (page === 'clients'){ _clxExp=null; _clxQ=''; var _cx8=document.getElementById('clxSearch'); if(_cx8) _cx8.value=''; renderClientsPage(); }
+    if (page === 'clients'){ _clxExp=null; _clxQ=''; _clxShown=200; var _cx8=document.getElementById('clxSearch'); if(_cx8) _cx8.value=''; renderClientsPage(); }
     if (page === 'weekly') {
       _wkMobSel = null;   // 탭 진입 시 항상 오늘부터 (모바일 하루 이동 상태 초기화)
       weekStart = getMonday(new Date());
@@ -16054,6 +16058,17 @@ function reloadState() {
   // clientList([업체명,사업자번호])는 기존 그대로, 상세는 clientInfo[업체명]에 저장.
   var _clxExp = null;   // 펼친 업체명 ('' = 신규 등록 폼, null = 모두 접힘)
   var _clxQ = '';
+  var _clxShown = 200;   // 무한 스크롤: 처음 200개, 바닥 근처에서 200개씩 추가
+  window.addEventListener('scroll', function(){
+    var pg=document.getElementById('pageClients');
+    if(!pg || !pg.classList.contains('active')) return;
+    if(_clxExp!==null) return;                             // 펼침/편집 중에는 추가 로드 정지
+    if(!document.getElementById('clxMoreNote')) return;    // 더 불러올 항목이 없으면 정지
+    var de=document.documentElement;
+    if(de.scrollHeight - de.scrollTop - de.clientHeight > 400) return;
+    _clxShown += 200;
+    _clxRender();
+  }, {passive:true});
   function _clxInfo(nm){ return (clientInfo && clientInfo[nm]) || {}; }
   function _clxPersist(){
     save('sched_client_list', clientList);
@@ -16061,7 +16076,7 @@ function reloadState() {
     localStorage.setItem('sched_local_ts', Date.now().toString());
     try{ debouncedFbSave(); }catch(_e){}
   }
-  window.clxSearchInput = function(v){ _clxQ = String(v||'').trim().toLowerCase(); _clxRender(); };
+  window.clxSearchInput = function(v){ _clxQ = String(v||'').trim().toLowerCase(); _clxShown = 200; _clxRender(); };
   window.renderClientsPage = function(){
     if(_clxExp!==null) return;   // 열람/편집 중에는 동기화 갱신으로 화면을 덮지 않는다
     var ae=document.activeElement;
@@ -16148,10 +16163,11 @@ function reloadState() {
       if(qd && String(c[1]||'').replace(/\D/g,'').indexOf(qd)>=0) return true;
       return false;
     });
+    var _total=list.length;
     var _capNote='';
-    if(list.length>300){
-      _capNote='<div style="text-align:center;padding:8px;color:#9ca3af;font-size:11.5px">상위 300개만 표시 중 (전체 '+list.length+'개) · 검색으로 찾아주세요</div>';
-      list=list.slice(0,300);
+    if(_total>_clxShown){
+      _capNote='<div id="clxMoreNote" style="text-align:center;padding:10px;color:#9ca3af;font-size:11.5px">전체 '+_total+'개 중 '+_clxShown+'개 표시 &middot; 아래로 스크롤하면 더 불러옵니다</div>';
+      list=list.slice(0,_clxShown);
       if(_clxExp && _clxExp!=='' && !list.some(function(c){ return c[0]===_clxExp; })){
         var _exRow=all.filter(function(c){ return c[0]===_clxExp; });
         list=_exRow.concat(list);   // 펼친 업체는 표시 제한과 무관하게 맨 위에 노출
@@ -16159,57 +16175,44 @@ function reloadState() {
     }
     var html='';
     if(_clxExp===''){
-      html += '<div style="background:#fff;border:1px solid #d8e1ec;border-left:3px solid #1B3A6B">'
+      html += '<div style="background:#fff;border:1px solid #d8e1ec;border-left:3px solid #1B3A6B;margin-bottom:8px">'
         + '<div style="padding:11px 16px;display:flex;align-items:center;gap:8px;background:#f4f8fe"><span style="font-size:14px;font-weight:700;color:#14305c">신규 업체 등록</span></div>'
         + _clxFormHtml('', ['','']) + '</div>';
     }
-    if(!list.length && _clxExp!==''){
+    if(!list.length){
       html += '<div style="text-align:center;padding:40px 16px;color:#b6bec9;font-size:13px">'+(all.length?'조건에 맞는 업체가 없습니다.':'등록된 업체가 없습니다. 우측 상단의 &#65291; 버튼으로 등록해보세요.')+'</div>';
+      box.innerHTML=html; return;
     }
-    html += list.map(function(c){
-      var nm=c[0], bz=c[1]||'', inf=_clxInfo(nm);
-      var exp=_clxExp===nm;
-      var dim=_clxExp!==null && !exp;
-      var c0=(inf.contacts&&inf.contacts[0])||{};
-      var side=[bz, inf.tel, (c0.name?('담당 '+c0.name):'')].filter(Boolean).join(' &middot; ');
-      var head='<div data-nm="'+esc(nm)+'" onclick="clxToggle(this.dataset.nm)" style="padding:11px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;'+(exp?'background:#f4f8fe':'')+'"'+(exp?'':' onmouseover="this.style.background=\'#f7fafd\'" onmouseout="this.style.background=\'#fff\'"')+'>'
-        + '<span style="flex-shrink:0;width:0;height:0;border-left:5px solid #8b97a5;border-top:4px solid transparent;border-bottom:4px solid transparent;'+(exp?'transform:rotate(90deg);':'')+'"></span>'
-        + '<span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:700;color:#14305c">'+esc(nm)+'</span>'
-        + '<span style="flex:1"></span>'
-        + '<span style="flex-shrink:0;font-size:12px;color:#8b97a5">'+side+'</span>'
-        + '</div>';
-      return '<div style="background:#fff;border:1px solid #d8e1ec;border-left:3px solid '+(exp?'#1B3A6B':'#c3cfde')+(dim?';opacity:.18;transition:opacity .12s':'')+'"'+(dim?' onmouseover="this.style.opacity=\'.85\'" onmouseout="this.style.opacity=\'.18\'"':'')+'>'
-        + head + (exp?_clxFormHtml(nm, c):'') + '</div>';
-    }).join('');
-    box.innerHTML=html+_capNote;
+    var TH='padding:9px 10px;background:#fafafa;color:#888;font-weight:500;font-size:12px;text-align:center;position:sticky;top:var(--tfh, 140px);z-index:2;border-bottom:2px solid #d3dce6;border-right:1px solid #e3e9f0;white-space:nowrap';
+    var TD='padding:8px 10px;border-bottom:1px solid #eef2f7;border-right:1px solid #eef2f7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle';
+    html += '<div style="background:#fff;border:1px solid #d6deea;border-left:none;border-right:none;margin:0 calc(var(--mpx, 24px)*-1)">'
+      + '<table style="width:100%;border-collapse:separate;border-spacing:0;min-width:980px;table-layout:fixed;font-size:12.5px">'
+      + '<colgroup><col style="width:220px"><col style="width:120px"><col style="width:90px"><col><col style="width:130px"><col style="width:130px"></colgroup>'
+      + '<thead><tr>'
+      +   '<th style="'+TH+'">업체명</th><th style="'+TH+'">사업자번호</th><th style="'+TH+'">대표자</th><th style="'+TH+'">주소</th><th style="'+TH+'">대표전화</th><th style="'+TH+'">FAX</th>'
+      + '</tr></thead><tbody>'
+      + list.map(function(c){
+          var nm=c[0], bz=c[1]||'', inf=_clxInfo(nm);
+          var exp=_clxExp===nm;
+          var dim=_clxExp!==null && !exp;   // 다른 업체가 펼쳐져 있으면 나머지는 흐리게
+          var addr=[inf.addr||'', inf.addr2||''].filter(Boolean).join(' ');
+          var tr='<tr data-nm="'+esc(nm)+'" onclick="clxToggle(this.dataset.nm)" style="cursor:pointer;'+(exp?'background:#f4f8fe;':'')+(dim?'opacity:.18;transition:opacity .12s;':'')+'"'
+            + (dim?' onmouseover="this.style.opacity=\'.85\'" onmouseout="this.style.opacity=\'.18\'"':(exp?'':' onmouseover="this.style.background=\'#f7fafd\'" onmouseout="this.style.background=\'\'"'))+'>'
+            + '<td style="'+TD+';font-weight:700;color:#14305c" title="'+esc(nm)+'">'+esc(nm)+'</td>'
+            + '<td style="'+TD+';color:#6b7280;text-align:center">'+esc(bz)+'</td>'
+            + '<td style="'+TD+';text-align:center">'+esc(inf.ceo||'')+'</td>'
+            + '<td style="'+TD+'" title="'+esc(addr)+'">'+esc(addr)+'</td>'
+            + '<td style="'+TD+'">'+esc(inf.tel||'')+'</td>'
+            + '<td style="'+TD+'">'+esc(inf.fax||'')+'</td>'
+            + '</tr>';
+          if(exp){
+            tr += '<tr><td colspan="6" style="padding:0;border-bottom:2px solid #1B3A6B;background:#fff">'+_clxFormHtml(nm, c)+'</td></tr>';
+          }
+          return tr;
+        }).join('')
+      + '</tbody></table></div>' + _capNote;
+    box.innerHTML=html;
   }
-  // 카카오(다음) 우편번호 검색 — 무료·키 불필요. 폼 안 레이어에 임베드해 각진 디자인 유지.
-  window.clxAddrSearch = function(){
-    var wrap=document.getElementById('clxPostWrap'); if(!wrap) return;
-    if(wrap.style.display==='block'){ wrap.style.display='none'; wrap.innerHTML=''; return; }
-    function run(){
-      wrap.innerHTML=''; wrap.style.display='block';
-      try{
-        new daum.Postcode({
-          oncomplete: function(data){
-            var f=document.getElementById('clxForm'); if(!f) return;
-            var z=f.querySelector('.clx-f[data-k="zip"]'), a=f.querySelector('.clx-f[data-k="addr"]'), a2=f.querySelector('.clx-f[data-k="addr2"]');
-            if(z) z.value=data.zonecode||'';
-            if(a) a.value=data.roadAddress||data.jibunAddress||'';
-            wrap.style.display='none'; wrap.innerHTML='';
-            if(a2){ try{ a2.focus(); }catch(_e){} }
-          },
-          width:'100%', height:'100%'
-        }).embed(wrap);
-      }catch(_e){ wrap.style.display='none'; showInfoModal('주소 검색','주소 검색 화면을 여는 데 실패했습니다. 다시 시도해주세요.'); }
-    }
-    if(window.daum && window.daum.Postcode){ run(); return; }
-    var sc=document.createElement('script');
-    sc.src='https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
-    sc.onload=run;
-    sc.onerror=function(){ showInfoModal('주소 검색','주소 검색 스크립트를 불러오지 못했습니다. 인터넷 연결을 확인해주세요.'); };
-    document.head.appendChild(sc);
-  };
   // 전화번호 하이픈 자동 삽입 — 숫자만 입력해도, 하이픈을 섞어 입력해도 표준 형태로 정리
   function _clxFmtPhone(v){
     var s=String(v||'');
@@ -16992,8 +16995,21 @@ function reloadState() {
     return out;
   }
 
+  // 개인일정 공지/연차 표시 여부 (이 브라우저에만 저장되는 개인 설정)
+  function _psShowBcast(){ try{ return localStorage.getItem('ps_show_bcast')!=='0'; }catch(_e){ return true; } }
+  function _psShowVac(){ try{ return localStorage.getItem('ps_show_vac')!=='0'; }catch(_e){ return true; } }
+  window.psToggleShow = function(){
+    var b=document.getElementById('psShowBcast'), v=document.getElementById('psShowVac');
+    try{
+      if(b) localStorage.setItem('ps_show_bcast', b.checked?'1':'0');
+      if(v) localStorage.setItem('ps_show_vac', v.checked?'1':'0');
+    }catch(_e){}
+    renderPersonalPage();
+  };
   function renderPersonalPage() {
     updateTodayWidget();
+    var _sb=document.getElementById('psShowBcast'); if(_sb) _sb.checked=_psShowBcast();
+    var _sv=document.getElementById('psShowVac'); if(_sv) _sv.checked=_psShowVac();
 
     // 휴가 신청 버튼 + 잔여 연차 노출 제어
     const hasProfile = !!(myMemberId && members.find(x=>x.id===myMemberId));
@@ -17175,8 +17191,8 @@ function reloadState() {
 
       // ── 내용 줄 예산: 공지·연차·반차·할일·배정 전부 합쳐 5주 달력=5줄, 6주 달력=4줄 ──
       const _lines = [];
-      bcastBarsHtml(dStr).forEach(h => _lines.push(h));
-      vacBarsHtml(dStr, dow).forEach(h => _lines.push(h));
+      if (_psShowBcast()) bcastBarsHtml(dStr).forEach(h => _lines.push(h));
+      if (_psShowVac()) vacBarsHtml(dStr, dow).forEach(h => _lines.push(h));
       // 할일 / 일정 항목
       dayPsched.forEach(s => {
         const cc = CAT_COLOR[s.category] || '#9ca3af';
