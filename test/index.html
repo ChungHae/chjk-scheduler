@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r71 2026-08-14 -->
+<!-- test build r72 2026-08-14 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -4518,7 +4518,7 @@
         sched_leave2026: _leaveVer,
         sched_clients_added: customClients,
         sched_client_list: clientList,
-        sched_client_info: clientInfo,
+        sched_client_info: _cliEncMap(clientInfo),
         _updatedAt: ts,
       });
       _fbLastUpdatedAt = ts;
@@ -4795,7 +4795,7 @@ function reloadState() {
     quoteVendors     = load('sched_quote_index') ?? [];
     clientList       = load('sched_client_list') ?? [];
     projectsList     = load('sched_projects') ?? [];
-    clientInfo       = load('sched_client_info') ?? {};
+    clientInfo       = _cliDecMap(load('sched_client_info') ?? {});
     personalSchedules= load('sched_personal')    ?? [];
     schedCategories  = load('sched_categories')  ?? schedCategories;
     weeklyIssues     = load('sched_issues')      ?? [];
@@ -4826,7 +4826,12 @@ function reloadState() {
   const CLIENT_ALIAS = { '엘에스엠트론(주)':['LS엠트론','LS'], '한국에스엠씨공압(주)':['SMC'], '솔브레인엘티케이 주식회사':['솔브레인LTK'], '주식회사 성원에너텍':['성원에너테크','유일에너테크'], '(주)이에스엘':['ESL'], '제이씨텍(주)':['제이시텍'], '(주)누리팩':['누리팩'] };
   let customClients = load('sched_clients_added') ?? [];
   let clientList = load('sched_client_list') ?? [];
-  let clientInfo = load('sched_client_info') ?? {};
+  // Firebase 키 금지문자(. # $ / [ ]) 인코딩 — 업체명이 키인 clientInfo 동기화용 (r72)
+  function _cliEnc(k){ return String(k).replace(/[%.#$\/\[\]]/g, function(c){ return '%'+c.charCodeAt(0).toString(16).toUpperCase(); }); }
+  function _cliDec(k){ return String(k).replace(/%(25|2E|23|24|2F|5B|5D)/g, function(_m,h){ return String.fromCharCode(parseInt(h,16)); }); }
+  function _cliEncMap(m){ var o={}; for(var k in m){ o[_cliEnc(k)]=m[k]; } return o; }
+  function _cliDecMap(m){ var o={}; for(var k in m){ o[_cliDec(k)]=m[k]; } return o; }
+  let clientInfo = _cliDecMap(load('sched_client_info') ?? {});
   // 업체 상세 { 업체명: {addr,ceo,uptae,jongmok,taxEmail,tel,fax,bank,account,holder,memo,contacts:[{dept,rank,name,phone,phone2,email}]} }
   function allClients(){ return (clientList && clientList.length) ? clientList : CLIENT_DATA.concat(customClients); }
   function ensureClientList(){
