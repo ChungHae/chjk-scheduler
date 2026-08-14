@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r66 2026-08-14 -->
+<!-- test build r67 2026-08-14 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -4824,7 +4824,7 @@ function reloadState() {
   let customClients = load('sched_clients_added') ?? [];
   let clientList = load('sched_client_list') ?? [];
   let clientInfo = load('sched_client_info') ?? {};
-  // 업체 상세 { 업체명: {addr,ceo,uptae,jongmok,taxEmail,tel,fax,bank,account,holder,memo,contacts:[{dept,rank,name,phone}]} }
+  // 업체 상세 { 업체명: {addr,ceo,uptae,jongmok,taxEmail,tel,fax,bank,account,holder,memo,contacts:[{dept,rank,name,phone,phone2,email}]} }
   function allClients(){ return (clientList && clientList.length) ? clientList : CLIENT_DATA.concat(customClients); }
   function ensureClientList(){
     if(!clientList || !clientList.length){
@@ -16105,7 +16105,7 @@ function reloadState() {
     c=c||{};
     function f(k,ph,v,extra){ return '<input type="text" class="clx-cf" data-k="'+k+'" '+(extra||'')+' value="'+esc(v||'')+'" placeholder="'+ph+'" style="flex:1;min-width:0;height:30px;box-sizing:border-box;padding:0 8px;border:1px solid #c8d2de;border-radius:0;font-size:12.5px;color:#374151;font-family:inherit;outline:none" onfocus="this.style.borderColor=\'#1B3A6B\'" onblur="this.style.borderColor=\'#c8d2de\'">'; }
     return '<div class="clx-crow" style="display:flex;gap:8px;align-items:center">'
-      + f('dept','부서',c.dept) + f('rank','직급',c.rank) + f('name','담당자명',c.name) + f('phone','연락처',c.phone,'oninput="clxPhoneInput(this)" onchange="clxPhoneBlur(this)"') + f('email','이메일',c.email,'oninput="clxEmailCheck(this)" onblur="clxEmailCheck(this)"')
+      + f('dept','부서',c.dept) + f('rank','직급',c.rank) + f('name','담당자명',c.name) + f('phone','연락처1',c.phone,'oninput="clxPhoneInput(this)" onchange="clxPhoneBlur(this)"') + f('phone2','연락처2',c.phone2,'oninput="clxPhoneInput(this)" onchange="clxPhoneBlur(this)"') + f('email','이메일',c.email,'oninput="clxEmailCheck(this)" onblur="clxEmailCheck(this)"')
       + '<button type="button" onclick="clxDelContact(this)" title="담당자 삭제" style="flex-shrink:0;border:none;background:none;cursor:pointer;padding:2px 3px;color:#dc2626;display:inline-flex;align-items:center" onmouseover="this.style.color=\'#b91c1c\'" onmouseout="this.style.color=\'#dc2626\'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;display:block"><path d="M4 6.5h16"/><path d="M9.5 6.5V4.6a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.9"/><path d="M6.5 6.5 7.4 19a2 2 0 0 0 2 1.9h5.2a2 2 0 0 0 2-1.9l.9-12.5"/><path d="M10.5 10.5v6M13.5 10.5v6"/></svg></button>'
       + '</div>';
   }
@@ -16202,8 +16202,8 @@ function reloadState() {
             + '<td style="'+TD+';color:#6b7280;text-align:center">'+esc(bz)+'</td>'
             + '<td style="'+TD+';text-align:center">'+esc(inf.ceo||'')+'</td>'
             + '<td style="'+TD+'" title="'+esc(addr)+'">'+esc(addr)+'</td>'
-            + '<td style="'+TD+'">'+esc(inf.tel||'')+'</td>'
-            + '<td style="'+TD+'">'+esc(inf.fax||'')+'</td>'
+            + '<td style="'+TD+';text-align:center">'+esc(inf.tel||'')+'</td>'
+            + '<td style="'+TD+';text-align:center">'+esc(inf.fax||'')+'</td>'
             + '</tr>';
           if(exp){
             tr += '<tr><td colspan="6" style="padding:0;border-bottom:2px solid #1B3A6B;background:#fff">'+_clxFormHtml(nm, c)+'</td></tr>';
@@ -16322,9 +16322,9 @@ function reloadState() {
     Array.prototype.forEach.call(box.querySelectorAll('.clx-crow'), function(row){
       var o={};
       Array.prototype.forEach.call(row.querySelectorAll('.clx-cf'), function(el){ o[el.getAttribute('data-k')]=(el.value||'').trim(); });
-      if(o.dept||o.rank||o.name||o.phone||o.email) contacts.push(o);
+      if(o.dept||o.rank||o.name||o.phone||o.phone2||o.email) contacts.push(o);
     });
-    contacts.forEach(function(o){ if(o.phone) o.phone=_clxFmtPhone(o.phone); });
+    contacts.forEach(function(o){ if(o.phone) o.phone=_clxFmtPhone(o.phone); if(o.phone2) o.phone2=_clxFmtPhone(o.phone2); });
     clientInfo[nm] = { zip:get('zip'), addr:get('addr'), addr2:get('addr2'), ceo:get('ceo'), uptae:get('uptae'), jongmok:get('jongmok'), taxEmail:get('taxEmail'),
                        tel:_clxFmtPhone(get('tel')), fax:_clxFmtPhone(get('fax')), bank:get('bank'), account:get('account'), holder:get('holder'),
                        memo:get('memo'), contacts:contacts };
