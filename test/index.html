@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r65 2026-08-13 -->
+<!-- test build r66 2026-08-14 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -16213,6 +16213,37 @@ function reloadState() {
       + '</tbody></table></div>' + _capNote;
     box.innerHTML=html;
   }
+  // 카카오(다음) 우편번호 검색 — 무료·키 불필요. 폼 안 레이어에 임베드해 각진 디자인 유지.
+  window.clxAddrSearch = function(){
+    var wrap=document.getElementById('clxPostWrap'); if(!wrap) return;
+    if(location.protocol==='file:' && !window.__clxFileWarned){
+      window.__clxFileWarned=true;
+      showInfoModal('주소 검색','로컬 파일로 연 화면에서는 주소를 선택해도 적용되지 않습니다.\n주소 검색은 배포된 테스트/본 페이지에서 사용해주세요.');
+    }
+    if(wrap.style.display==='block'){ wrap.style.display='none'; wrap.innerHTML=''; return; }
+    function run(){
+      wrap.innerHTML=''; wrap.style.display='block';
+      try{
+        new daum.Postcode({
+          oncomplete: function(data){
+            var f=document.getElementById('clxForm'); if(!f) return;
+            var z=f.querySelector('.clx-f[data-k="zip"]'), a=f.querySelector('.clx-f[data-k="addr"]'), a2=f.querySelector('.clx-f[data-k="addr2"]');
+            if(z) z.value=data.zonecode||'';
+            if(a) a.value=data.roadAddress||data.jibunAddress||'';
+            wrap.style.display='none'; wrap.innerHTML='';
+            if(a2){ try{ a2.focus(); }catch(_e){} }
+          },
+          width:'100%', height:'100%'
+        }).embed(wrap);
+      }catch(_e){ wrap.style.display='none'; showInfoModal('주소 검색','주소 검색 화면을 여는 데 실패했습니다. 다시 시도해주세요.'); }
+    }
+    if(window.daum && window.daum.Postcode){ run(); return; }
+    var sc=document.createElement('script');
+    sc.src='https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+    sc.onload=run;
+    sc.onerror=function(){ showInfoModal('주소 검색','주소 검색 스크립트를 불러오지 못했습니다. 인터넷 연결을 확인해주세요.'); };
+    document.head.appendChild(sc);
+  };
   // 전화번호 하이픈 자동 삽입 — 숫자만 입력해도, 하이픈을 섞어 입력해도 표준 형태로 정리
   function _clxFmtPhone(v){
     var s=String(v||'');
