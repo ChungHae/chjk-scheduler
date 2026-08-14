@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r49 2026-08-12 -->
+<!-- test build r58 2026-08-13 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -258,6 +258,19 @@
     #pageProject *:not(.avatar):not([style*="border-radius:50%"]) { border-radius: 0 !important; }
     #pageProject .inv-toolbar .qic { width:26px !important; min-width:26px; height:26px; border-radius:6px !important; flex:0 0 auto; padding:0; }
     #pageProject .inv-toolbar .qic svg { width:15px; height:15px; }
+    /* ── 업체 관리: 각진 + 매입처식 툴바 ── */
+    #pageClients *:not(.avatar):not([style*="border-radius:50%"]) { border-radius: 0 !important; }
+    #pageClients .inv-toolbar { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin: calc(var(--mpy)*-1) calc(var(--mpx)*-1) 14px; min-height:var(--snh,36px); padding:4px var(--mpx); background:#fff; border:0; border-bottom:1px solid #e5e5e5; box-shadow:0 2px 6px rgba(15,23,42,.06); box-sizing:border-box; }
+    #pageClients .inv-flat-label { font-size:12.5px; font-weight:700; color:#14305c; white-space:nowrap; flex-shrink:0; }
+    #pageClients .q-flat { box-sizing:border-box; height:26px; padding:4px 6px; margin:0; border:none !important; border-radius:0 !important; background:transparent; outline:none; font-size:13px; font-family:inherit; color:#14305c; }
+    #pageClients input.q-flat { width:260px; max-width:100%; }
+    #pageClients .q-flat:hover { background:rgba(27,58,107,.045); }
+    #pageClients .q-flat:focus { background:#f2f4f7; }
+    #pageClients .q-flat::placeholder { color:#aab4c2; }
+    #pageClients .inv-toolbar .qic { width:26px !important; min-width:26px; height:26px; border-radius:6px !important; flex:0 0 auto; padding:0; }
+    #pageClients .inv-toolbar .qic svg { width:15px; height:15px; }
+    #pageClients .clx-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px 12px; }
+    @media (max-width: 768px){ #pageClients .clx-grid { grid-template-columns:1fr; } }
     /* 프로젝트 툴바 — 매입처/재고 툴바와 동일한 결 */
     #pageProject .inv-toolbar { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin: calc(var(--mpy)*-1) calc(var(--mpx)*-1) 14px; min-height:var(--snh,36px); padding:4px var(--mpx); background:#fff; border:0; border-bottom:1px solid #e5e5e5; box-shadow:0 2px 6px rgba(15,23,42,.06); box-sizing:border-box; }
     #pageProject .inv-flat-label { font-size:12.5px; font-weight:700; color:#14305c; white-space:nowrap; flex-shrink:0; }
@@ -2451,6 +2464,7 @@
   <button class="sub-tab" data-page="weekly"><span class="lbl-full">팀원 일정</span><span class="lbl-short">팀원 일정</span></button>
   <button class="sub-tab" data-page="biz" style="display:none">업체별 일정</button><!-- 2026-08-11 사용자 요청으로 숨김 (완전 삭제 대신 — 필요 시 display 복원) -->
   <button class="sub-tab" data-page="project">프로젝트</button>
+  <button class="sub-tab" data-page="clients">업체 관리</button>
 </nav>
 <nav class="sub-nav" id="fileGroupTabs" style="display:none">
   <button class="file-grp-tab active" data-grp="충해전기" onclick="setFileGroup('충해전기')">충해전기</button>
@@ -2533,6 +2547,18 @@
     <div id="projFormView" style="display:none"></div>
     <div id="projDetailView" style="display:none;max-width:1020px;margin:0 auto"></div>
   </section>
+
+  <!-- ─── 업체 관리 페이지 ─────────────────────────────── -->
+  <div id="pageClients" class="page-section">
+    <div class="q-toolbar inv-toolbar">
+      <span class="inv-flat-label">업체 관리</span>
+      <input type="text" id="clxSearch" class="q-flat" placeholder="업체명/사업자번호 검색…" autocomplete="off" oninput="clxSearchInput(this.value)">
+      <span id="clxCount" style="font-size:11px;color:#9ca3af;white-space:nowrap;margin-left:6px"></span>
+      <span style="flex:1"></span>
+      <button class="qic" id="btnClxAdd" onclick="clxOpenNew()" data-tip="업체 등록" aria-label="업체 등록" style="border-color:#1B3A6B;color:#1B3A6B"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div>
+    <div id="clxList" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
 
   <div id="pageBiz" class="page-section">
     <div class="biz-filter-bar">
@@ -3847,6 +3873,7 @@
     save('sched_comments', schedComments);
     save('sched_assign_comments', assignComments);
     save('sched_projects', projectsList);
+    save('sched_client_info', clientInfo);
     localStorage.setItem('sched_local_ts', Date.now().toString()); // 로컬 변경 시각 기록
     debouncedFbSave();
   }
@@ -4484,6 +4511,7 @@
         sched_leave2026: _leaveVer,
         sched_clients_added: customClients,
         sched_client_list: clientList,
+        sched_client_info: clientInfo,
         _updatedAt: ts,
       });
       _fbLastUpdatedAt = ts;
@@ -4509,6 +4537,7 @@
       else if(_id==='pageFinance' && typeof renderFinancePage==='function') renderFinancePage();
       else if(_id==='pageAssign' && typeof renderAssignPage==='function') renderAssignPage();
       else if(_id==='pageProject' && typeof renderProjectPage==='function') renderProjectPage();
+      else if(_id==='pageClients' && typeof renderClientsPage==='function') renderClientsPage();
       // 견적/가격 페이지는 작성 중 방해 방지를 위해 자동 재렌더 제외
     }catch(e){}
     // 열려있는 배정 일정 모달의 댓글 스레드도 실시간 갱신 (입력 중이면 건너뜀)
@@ -4535,7 +4564,7 @@
       const d = await _syncGet();
       if (!d || (d._updatedAt || 0) <= _fbLastUpdatedAt) return;
       _fbLastUpdatedAt = d._updatedAt || 0;
-      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects'];
+      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info'];
       KEYS.forEach(k => { if (d[k] !== undefined) save(k, d[k]); });
       // ── 바로가기(sched_links) 보호 ──
       // 키가 없을 때: sched_links_ts가 있으면 신버전 클라이언트의 정상 저장(목록이 비어서
@@ -4638,7 +4667,7 @@
       const d = await _syncGet();
       const fbTs    = (d && d._updatedAt) || 0;
       const localTs = parseInt(localStorage.getItem('sched_local_ts') || '0');
-      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects'];
+      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info'];
 
       // ── 올바른 팀원 ID 목록 (하드코딩) ──────────────────────
       const _VALID_MEMBER_IDS = defaultMembers().map(m => m.id);
@@ -4759,6 +4788,7 @@ function reloadState() {
     quoteVendors     = load('sched_quote_index') ?? [];
     clientList       = load('sched_client_list') ?? [];
     projectsList     = load('sched_projects') ?? [];
+    clientInfo       = load('sched_client_info') ?? {};
     personalSchedules= load('sched_personal')    ?? [];
     schedCategories  = load('sched_categories')  ?? schedCategories;
     weeklyIssues     = load('sched_issues')      ?? [];
@@ -4789,6 +4819,8 @@ function reloadState() {
   const CLIENT_ALIAS = { '엘에스엠트론(주)':['LS엠트론','LS'], '한국에스엠씨공압(주)':['SMC'], '솔브레인엘티케이 주식회사':['솔브레인LTK'], '주식회사 성원에너텍':['성원에너테크','유일에너테크'], '(주)이에스엘':['ESL'], '제이씨텍(주)':['제이시텍'], '(주)누리팩':['누리팩'] };
   let customClients = load('sched_clients_added') ?? [];
   let clientList = load('sched_client_list') ?? [];
+  let clientInfo = load('sched_client_info') ?? {};
+  // 업체 상세 { 업체명: {addr,ceo,uptae,jongmok,taxEmail,tel,fax,bank,account,holder,memo,contacts:[{dept,rank,name,phone}]} }
   function allClients(){ return (clientList && clientList.length) ? clientList : CLIENT_DATA.concat(customClients); }
   function ensureClientList(){
     if(!clientList || !clientList.length){
@@ -4853,6 +4885,7 @@ function reloadState() {
       clientList = clientList.filter(function(x){ return x[0]!==name; });
       customClients = customClients.filter(function(x){ return x[0]!==name; });
       save('sched_clients_added', customClients);
+      if(clientInfo[name]){ delete clientInfo[name]; save('sched_client_info', clientInfo); }
       _saveClients();
       if(typeof _refreshClientMgr==='function') _refreshClientMgr();
       if(input){ try{ _acShow(input); }catch(_){} }
@@ -4892,6 +4925,7 @@ function reloadState() {
         if(!found) clientList.push([nm,bz]);
         for(var j=0;j<customClients.length;j++){ if(customClients[j][0]===editOrig){ customClients[j]=[nm,bz]; } }
         save('sched_clients_added', customClients);
+        if(nm!==editOrig && clientInfo[editOrig]){ clientInfo[nm]=clientInfo[editOrig]; delete clientInfo[editOrig]; save('sched_client_info', clientInfo); }
       } else {
         var existsName=allClients().some(function(it){ return it[0]===nm; });
         if(existsName){ showInfoModal('알림', '이미 등록된 업체명입니다.'); return; }
@@ -5845,6 +5879,7 @@ function reloadState() {
       customClients=customClients.filter(function(c){ return c[0]!==v.name; });
       try{ ensureClientList(); }catch(e){}
       save('sched_client_list', clientList); save('sched_clients_added', customClients);
+      if(clientInfo[v.name]){ delete clientInfo[v.name]; save('sched_client_info', clientInfo); }
       if(_qCurId===id){ _qCurId=''; _qRows=[]; var inp=document.getElementById('qVendorSearch'); if(inp) inp.value=''; }
       saveAll(); if(typeof doFbSave==='function') doFbSave(); renderEstimatePage();
     }, '삭제', '#dc2626');
@@ -8290,7 +8325,7 @@ function reloadState() {
 
           // 복사한 상태를 화면에 즉시 반영 (_pollSync 와 동일한 적용 경로 + sched_links 포함)
           _lmStatus('화면 반영 중…','#9ca3af');
-          var KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects'];
+          var KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info'];
           KEYS.forEach(function(k){ if(prod[k]!==undefined) save(k, prod[k]); });
           _fbLastUpdatedAt = prod._updatedAt || 0;
           _qBlobCacheClear(); try{ _qInvalidateAllIdx(); }catch(e){}
@@ -10317,7 +10352,7 @@ function reloadState() {
       sched_files: filesList, sched_quote_index: quoteVendors, sched_quote_saved: quoteSaved,
       sched_price_makers: priceMakers, sched_issues: weeklyIssues,
       sched_leave2026: _leaveVer, sched_clients_added: customClients, sched_client_list: clientList,
-      sched_projects: projectsList
+      sched_projects: projectsList, sched_client_info: clientInfo
     };
   }
   document.getElementById('btnExport').addEventListener('click', async () => {
@@ -15244,7 +15279,7 @@ function reloadState() {
     if(!page) return;   // 실제 페이지가 없는 바로가기 버튼 등의 오작동 방지
     // 견적 작성 중 다른 카테고리로 이동 → 저장 여부 확인 (저장 안 하면 비움)
     try{ if(typeof _qLeaveGuard==='function' && _qLeaveGuard(page)) return; }catch(_e){}
-    var _SCHED=['personal','weekly','biz','project'];
+    var _SCHED=['personal','weekly','biz','project','clients'];
     var _ETC=['links'];
     var _ACCT=['armatch','cardsales'];
     document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
@@ -15259,7 +15294,7 @@ function reloadState() {
     var _acctnav=document.getElementById('acctSubNav'); if(_acctnav) _acctnav.style.display = _ACCT.indexOf(page)>=0 ? 'flex' : 'none';
     document.querySelectorAll('.sub-tab').forEach(t => t.classList.toggle('active', t.dataset.page === page));
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-    const pageMap = { weekly:'pageWeekly', biz:'pageBiz', project:'pageProject', assign:'pageAssign', personal:'pagePersonal', finance:'pageFinance', ar:'pageAr', inventory:'pageInventory', purchase:'pagePurchase', files:'pageFiles', estimate:'pageEstimate', armatch:'pageArmatch', links:'pageLinks', cardsales:'pageCardSales' };
+    const pageMap = { weekly:'pageWeekly', biz:'pageBiz', project:'pageProject', clients:'pageClients', assign:'pageAssign', personal:'pagePersonal', finance:'pageFinance', ar:'pageAr', inventory:'pageInventory', purchase:'pagePurchase', files:'pageFiles', estimate:'pageEstimate', armatch:'pageArmatch', links:'pageLinks', cardsales:'pageCardSales' };
     document.getElementById(pageMap[page] || 'pageWeekly').classList.add('active');
     // 견적 화면에서만 .main 의 가로 스크롤을 풀어 툴바 sticky 가 화면 기준으로 붙게 한다
     var _mn=document.querySelector('.main'); if(_mn) _mn.classList.toggle('main-estimate', page==='estimate');
@@ -15273,6 +15308,7 @@ function reloadState() {
     }
     if (page === 'assign')    renderAssignPage();
     if (page === 'project'){ _projMode={view:'list',id:null}; _projExpId=null; _projLogEditId=null; _projTitleEdit=false; _projDraft=null; _projDirty=false; _projSearchQ=''; var _ps8=document.getElementById('projSearch'); if(_ps8) _ps8.value=''; _projFilterMember = myMemberId || 'all'; var _pm8=document.getElementById('projMemberFilter'); if(_pm8){ try{ _pm8.blur(); }catch(_e8){} } renderProjectPage(); }
+    if (page === 'clients'){ _clxExp=null; _clxQ=''; var _cx8=document.getElementById('clxSearch'); if(_cx8) _cx8.value=''; renderClientsPage(); }
     if (page === 'weekly') {
       _wkMobSel = null;   // 탭 진입 시 항상 오늘부터 (모바일 하루 이동 상태 초기화)
       weekStart = getMonday(new Date());
@@ -16014,6 +16050,267 @@ function reloadState() {
       _projForceRender();
     }, '삭제', '#dc2626');
   };
+  // ─── 업체 관리 카테고리 (목록 + 펼침 편집) ──────────────────
+  // clientList([업체명,사업자번호])는 기존 그대로, 상세는 clientInfo[업체명]에 저장.
+  var _clxExp = null;   // 펼친 업체명 ('' = 신규 등록 폼, null = 모두 접힘)
+  var _clxQ = '';
+  function _clxInfo(nm){ return (clientInfo && clientInfo[nm]) || {}; }
+  function _clxPersist(){
+    save('sched_client_list', clientList);
+    save('sched_client_info', clientInfo);
+    localStorage.setItem('sched_local_ts', Date.now().toString());
+    try{ debouncedFbSave(); }catch(_e){}
+  }
+  window.clxSearchInput = function(v){ _clxQ = String(v||'').trim().toLowerCase(); _clxRender(); };
+  window.renderClientsPage = function(){
+    if(_clxExp!==null) return;   // 열람/편집 중에는 동기화 갱신으로 화면을 덮지 않는다
+    var ae=document.activeElement;
+    if(ae && ae.id==='clxSearch') return;
+    _clxRender();
+  };
+  window.clxOpenNew = function(){
+    _clxExp=''; _clxRender();
+    setTimeout(function(){ var f=document.querySelector('#clxForm .clx-f[data-k="name"]'); if(f){ try{ f.focus(); }catch(_e){} } }, 60);
+  };
+  window.clxCancel = function(){ _clxExp=null; _clxRender(); };
+  window.clxToggle = function(nm){
+    _clxExp = (_clxExp===nm) ? null : nm;
+    _clxRender();
+  };
+  window.clxAddContact = function(){
+    var box=document.getElementById('clxContacts'); if(!box) return;
+    var d=document.createElement('div'); d.innerHTML=_clxContactRow({});
+    var row=d.firstChild; box.appendChild(row);
+    try{ row.querySelector('.clx-cf').focus(); }catch(_e){}
+  };
+  window.clxDelContact = function(btn){
+    var row=btn.closest('.clx-crow'); if(row) row.remove();
+  };
+  function _clxContactRow(c){
+    c=c||{};
+    function f(k,ph,v,extra){ return '<input type="text" class="clx-cf" data-k="'+k+'" '+(extra||'')+' value="'+esc(v||'')+'" placeholder="'+ph+'" style="flex:1;min-width:0;height:30px;box-sizing:border-box;padding:0 8px;border:1px solid #c8d2de;border-radius:0;font-size:12.5px;color:#374151;font-family:inherit;outline:none" onfocus="this.style.borderColor=\'#1B3A6B\'" onblur="this.style.borderColor=\'#c8d2de\'">'; }
+    return '<div class="clx-crow" style="display:flex;gap:8px;align-items:center">'
+      + f('dept','부서',c.dept) + f('rank','직급',c.rank) + f('name','담당자명',c.name) + f('phone','연락처',c.phone,'oninput="clxPhoneInput(this)" onchange="clxPhoneBlur(this)"') + f('email','이메일',c.email,'oninput="clxEmailCheck(this)" onblur="clxEmailCheck(this)"')
+      + '<button type="button" onclick="clxDelContact(this)" title="담당자 삭제" style="flex-shrink:0;border:none;background:none;cursor:pointer;padding:2px 3px;color:#dc2626;display:inline-flex;align-items:center" onmouseover="this.style.color=\'#b91c1c\'" onmouseout="this.style.color=\'#dc2626\'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;display:block"><path d="M4 6.5h16"/><path d="M9.5 6.5V4.6a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.9"/><path d="M6.5 6.5 7.4 19a2 2 0 0 0 2 1.9h5.2a2 2 0 0 0 2-1.9l.9-12.5"/><path d="M10.5 10.5v6M13.5 10.5v6"/></svg></button>'
+      + '</div>';
+  }
+  function _clxFld(k, label, val, span, extra){
+    return '<div style="grid-column:span '+(span||1)+';display:flex;flex-direction:column;gap:3px;min-width:0">'
+      + '<span style="font-size:11px;font-weight:700;color:#5b7ba6">'+label+'</span>'
+      + '<input type="text" class="clx-f" data-k="'+k+'" '+(extra||'')+' value="'+esc(val||'')+'" style="width:100%;height:30px;box-sizing:border-box;padding:0 8px;border:1px solid #c8d2de;border-radius:0;font-size:12.5px;color:#374151;font-family:inherit;outline:none" onfocus="this.style.borderColor=\'#1B3A6B\'" onblur="this.style.borderColor=\'#c8d2de\'">'
+      + '</div>';
+  }
+  function _clxFormHtml(orig, pair){
+    var bz=(pair&&pair[1])||'';
+    var inf=orig?_clxInfo(orig):{};
+    var contacts=(inf.contacts&&inf.contacts.length)?inf.contacts:[{}];
+    return '<div id="clxForm" data-orig="'+esc(orig)+'" onclick="event.stopPropagation()" style="border-top:1px solid #e3eaf2;background:#fff;cursor:default;padding:14px 16px">'
+      + '<div class="clx-grid">'
+      +   _clxFld('name','업체명 *',orig,1) + _clxFld('bizNo','사업자번호',bz,1,'oninput="clxBizInput(this)" onchange="clxBizBlur(this)"') + _clxFld('ceo','대표자',inf.ceo,1)
+      +   '<div style="grid-column:span 1;display:flex;flex-direction:column;gap:3px;min-width:0">'
+      +     '<span style="font-size:11px;font-weight:700;color:#5b7ba6">우편번호</span>'
+      +     '<div style="display:flex;gap:6px">'
+      +       '<input type="text" class="clx-f" data-k="zip" value="'+esc(inf.zip||'')+'" style="flex:1;min-width:0;height:30px;box-sizing:border-box;padding:0 8px;border:1px solid #c8d2de;border-radius:0;font-size:12.5px;color:#374151;font-family:inherit;outline:none">'
+      +       '<button type="button" onclick="clxAddrSearch()" style="flex-shrink:0;padding:0 10px;height:30px;box-sizing:border-box;display:inline-flex;align-items:center;border-radius:0;background:#fff;color:#1B3A6B;border:1px solid #1B3A6B;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">주소 검색</button>'
+      +     '</div>'
+      +   '</div>'
+      +   _clxFld('addr','주소 (도로명)',inf.addr,1)
+      +   _clxFld('addr2','상세주소',inf.addr2,1)
+      +   '<div id="clxPostWrap" style="grid-column:1/-1;display:none;height:430px;border:1px solid #c8d2de;position:relative"></div>'
+      +   _clxFld('uptae','업태',inf.uptae,1) + _clxFld('jongmok','종목',inf.jongmok,1) + '<div></div>'
+      +   _clxFld('tel','대표전화',inf.tel,1,'oninput="clxPhoneInput(this)" onchange="clxPhoneBlur(this)"') + _clxFld('fax','FAX',inf.fax,1,'oninput="clxPhoneInput(this)" onchange="clxPhoneBlur(this)"') + _clxFld('taxEmail','세금계산서 메일주소',inf.taxEmail,1,'oninput="clxEmailCheck(this)" onblur="clxEmailCheck(this)"')
+      +   _clxFld('bank','거래은행',inf.bank,1) + _clxFld('account','계좌번호',inf.account,1) + _clxFld('holder','예금주',inf.holder,1)
+      + '</div>'
+      + '<div style="margin-top:12px">'
+      +   '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:12px;font-weight:700;color:#1a1a1a">담당자</span>'
+      +     '<button type="button" onclick="clxAddContact()" style="'+_PJ_SBTN+'">&#65291; 추가</button></div>'
+      +   '<div id="clxContacts" style="display:flex;flex-direction:column;gap:6px">'+contacts.map(_clxContactRow).join('')+'</div>'
+      + '</div>'
+      + '<div style="margin-top:12px;display:flex;flex-direction:column;gap:3px"><span style="font-size:11px;font-weight:700;color:#5b7ba6">메모</span>'
+      +   '<textarea class="clx-f" data-k="memo" style="width:100%;min-height:64px;box-sizing:border-box;padding:7px 10px;border:1px solid #c8d2de;border-radius:0;font-size:12.5px;color:#374151;line-height:1.6;font-family:inherit;resize:vertical;outline:none" onfocus="this.style.borderColor=\'#1B3A6B\'" onblur="this.style.borderColor=\'#c8d2de\'">'+esc(inf.memo||'')+'</textarea></div>'
+      + '<div style="display:flex;align-items:center;gap:10px;margin-top:12px">'
+      +   (orig ? ('<button type="button" onclick="clxDelete(this.closest(\'#clxForm\').dataset.orig)" style="'+_PJ_BTN+';background:#fff;color:#dc2626;border:1px solid #dc2626">업체 삭제</button>') : '')
+      +   '<span style="flex:1"></span>'
+      +   '<button type="button" onclick="clxCancel()" style="'+_PJ_BTN+';background:#fff;color:#444;border:1px solid #c8d2de">닫기</button>'
+      +   '<button type="button" onclick="clxSave(this.closest(\'#clxForm\').dataset.orig)" style="'+_PJ_BTN+';background:#1a1a1a;color:#fff;border:1px solid #1a1a1a">저장</button>'
+      + '</div></div>';
+  }
+  function _clxRender(){
+    var box=document.getElementById('clxList'); if(!box) return;
+    try{ ensureClientList(); }catch(_e){}
+    var all=allClients().slice().sort(function(a,b){ return String(a[0]).localeCompare(String(b[0])); });
+    var cnt=document.getElementById('clxCount'); if(cnt) cnt.textContent = all.length + '개 업체';
+    var q=_clxQ, qd=q.replace(/\D/g,'');
+    var list=all.filter(function(c){
+      if(_clxExp!==null && _clxExp!=='' && c[0]===_clxExp) return true;   // 펼친 업체는 항상 표시
+      if(!q) return true;
+      if(String(c[0]).toLowerCase().indexOf(q)>=0) return true;
+      if(qd && String(c[1]||'').replace(/\D/g,'').indexOf(qd)>=0) return true;
+      return false;
+    });
+    var _capNote='';
+    if(list.length>300){
+      _capNote='<div style="text-align:center;padding:8px;color:#9ca3af;font-size:11.5px">상위 300개만 표시 중 (전체 '+list.length+'개) · 검색으로 찾아주세요</div>';
+      list=list.slice(0,300);
+      if(_clxExp && _clxExp!=='' && !list.some(function(c){ return c[0]===_clxExp; })){
+        var _exRow=all.filter(function(c){ return c[0]===_clxExp; });
+        list=_exRow.concat(list);   // 펼친 업체는 표시 제한과 무관하게 맨 위에 노출
+      }
+    }
+    var html='';
+    if(_clxExp===''){
+      html += '<div style="background:#fff;border:1px solid #d8e1ec;border-left:3px solid #1B3A6B">'
+        + '<div style="padding:11px 16px;display:flex;align-items:center;gap:8px;background:#f4f8fe"><span style="font-size:14px;font-weight:700;color:#14305c">신규 업체 등록</span></div>'
+        + _clxFormHtml('', ['','']) + '</div>';
+    }
+    if(!list.length && _clxExp!==''){
+      html += '<div style="text-align:center;padding:40px 16px;color:#b6bec9;font-size:13px">'+(all.length?'조건에 맞는 업체가 없습니다.':'등록된 업체가 없습니다. 우측 상단의 &#65291; 버튼으로 등록해보세요.')+'</div>';
+    }
+    html += list.map(function(c){
+      var nm=c[0], bz=c[1]||'', inf=_clxInfo(nm);
+      var exp=_clxExp===nm;
+      var dim=_clxExp!==null && !exp;
+      var c0=(inf.contacts&&inf.contacts[0])||{};
+      var side=[bz, inf.tel, (c0.name?('담당 '+c0.name):'')].filter(Boolean).join(' &middot; ');
+      var head='<div data-nm="'+esc(nm)+'" onclick="clxToggle(this.dataset.nm)" style="padding:11px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;'+(exp?'background:#f4f8fe':'')+'"'+(exp?'':' onmouseover="this.style.background=\'#f7fafd\'" onmouseout="this.style.background=\'#fff\'"')+'>'
+        + '<span style="flex-shrink:0;width:0;height:0;border-left:5px solid #8b97a5;border-top:4px solid transparent;border-bottom:4px solid transparent;'+(exp?'transform:rotate(90deg);':'')+'"></span>'
+        + '<span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:700;color:#14305c">'+esc(nm)+'</span>'
+        + '<span style="flex:1"></span>'
+        + '<span style="flex-shrink:0;font-size:12px;color:#8b97a5">'+side+'</span>'
+        + '</div>';
+      return '<div style="background:#fff;border:1px solid #d8e1ec;border-left:3px solid '+(exp?'#1B3A6B':'#c3cfde')+(dim?';opacity:.18;transition:opacity .12s':'')+'"'+(dim?' onmouseover="this.style.opacity=\'.85\'" onmouseout="this.style.opacity=\'.18\'"':'')+'>'
+        + head + (exp?_clxFormHtml(nm, c):'') + '</div>';
+    }).join('');
+    box.innerHTML=html+_capNote;
+  }
+  // 카카오(다음) 우편번호 검색 — 무료·키 불필요. 폼 안 레이어에 임베드해 각진 디자인 유지.
+  window.clxAddrSearch = function(){
+    var wrap=document.getElementById('clxPostWrap'); if(!wrap) return;
+    if(wrap.style.display==='block'){ wrap.style.display='none'; wrap.innerHTML=''; return; }
+    function run(){
+      wrap.innerHTML=''; wrap.style.display='block';
+      try{
+        new daum.Postcode({
+          oncomplete: function(data){
+            var f=document.getElementById('clxForm'); if(!f) return;
+            var z=f.querySelector('.clx-f[data-k="zip"]'), a=f.querySelector('.clx-f[data-k="addr"]'), a2=f.querySelector('.clx-f[data-k="addr2"]');
+            if(z) z.value=data.zonecode||'';
+            if(a) a.value=data.roadAddress||data.jibunAddress||'';
+            wrap.style.display='none'; wrap.innerHTML='';
+            if(a2){ try{ a2.focus(); }catch(_e){} }
+          },
+          width:'100%', height:'100%'
+        }).embed(wrap);
+      }catch(_e){ wrap.style.display='none'; showInfoModal('주소 검색','주소 검색 화면을 여는 데 실패했습니다. 다시 시도해주세요.'); }
+    }
+    if(window.daum && window.daum.Postcode){ run(); return; }
+    var sc=document.createElement('script');
+    sc.src='https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+    sc.onload=run;
+    sc.onerror=function(){ showInfoModal('주소 검색','주소 검색 스크립트를 불러오지 못했습니다. 인터넷 연결을 확인해주세요.'); };
+    document.head.appendChild(sc);
+  };
+  // 전화번호 하이픈 자동 삽입 — 숫자만 입력해도, 하이픈을 섞어 입력해도 표준 형태로 정리
+  function _clxFmtPhone(v){
+    var s=String(v||'');
+    var d=s.replace(/\D/g,'');
+    if(!d) return s.trim()===''?'':s;
+    if(/[^\d\s-]/.test(s)) return s;                        // 내선 등 특수 표기는 건드리지 않음
+    if(d.length===8 && d.charAt(0)!=='0') return d.slice(0,4)+'-'+d.slice(4);   // 1588-XXXX형
+    var a;
+    if(d.indexOf('02')===0) a=2;                       // 서울 지역번호
+    else if(/^0(30|50)\d/.test(d)) a=4;               // 인터넷팩스 0303 · 안심번호 050X (4자리 식별번호)
+    else a=3;                                          // 지역번호·휴대폰·070 인터넷전화 등
+    if(d.length<=a) return d;
+    if(d.length<=a+4) return d.slice(0,a)+'-'+d.slice(a);
+    var mid=d.slice(a, d.length-4);
+    if(mid.length>4) return s;                                // 12자리 초과 등 규격 밖 → 입력 그대로
+    return d.slice(0,a)+'-'+mid+'-'+d.slice(-4);
+  }
+  window.clxPhoneInput = function(el){
+    if(el.selectionStart!==el.value.length) return;           // 중간 편집 중엔 커서 보호
+    var f=_clxFmtPhone(el.value);
+    if(f!==el.value) el.value=f;
+  };
+  window.clxPhoneBlur = function(el){
+    var f=_clxFmtPhone(el.value);
+    if(f!==el.value) el.value=f;
+  };
+  // 이메일 형식 검증 — 비어 있으면 통과, 값이 있으면 name@domain.tld 형태만 허용
+  function _clxValidEmail(v){ v=String(v||'').trim(); if(!v) return true; return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v); }
+  window.clxEmailCheck = function(el){
+    var ok=_clxValidEmail(el.value);
+    el.style.borderColor = ok ? '#c8d2de' : '#dc2626';
+    el.style.background = ok ? '' : '#fff5f5';
+    el.title = ok ? '' : '이메일 형식이 올바르지 않습니다 (예: name@company.co.kr)';
+  };
+  // 사업자번호 하이픈 자동 삽입 (XXX-XX-XXXXX)
+  function _clxFmtBiz(v){
+    var s=String(v||'');
+    var d=s.replace(/\D/g,'');
+    if(!d) return s.trim()===''?'':s;
+    if(/[^\d\s-]/.test(s)) return s;
+    if(d.length<=3) return d;
+    if(d.length<=5) return d.slice(0,3)+'-'+d.slice(3);
+    if(d.length<=10) return d.slice(0,3)+'-'+d.slice(3,5)+'-'+d.slice(5);
+    return s;   // 10자리 초과는 입력 그대로
+  }
+  window.clxBizInput = function(el){ if(el.selectionStart!==el.value.length) return; var f=_clxFmtBiz(el.value); if(f!==el.value) el.value=f; };
+  window.clxBizBlur = function(el){ var f=_clxFmtBiz(el.value); if(f!==el.value) el.value=f; };
+  window.clxSave = function(orig){
+    orig = orig || '';
+    var box=document.getElementById('clxForm'); if(!box) return;
+    function get(k){ var el=box.querySelector('.clx-f[data-k="'+k+'"]'); return el?(el.value||'').trim():''; }
+    var nm=get('name');
+    if(!nm){ showInfoModal('업체 관리','업체명을 입력해주세요.'); return; }
+    if((!orig || nm!==orig) && allClients().some(function(c){ return c[0]===nm; })){ showInfoModal('업체 관리','이미 등록된 업체명입니다: '+esc(nm)); return; }
+    var bz=_clxFmtBiz(get('bizNo'));
+    var dupName=_findClientByBiz(bz, orig||null);
+    if(bz && dupName && dupName!==nm){ showInfoModal('업체 관리','사업자번호 '+esc(bz)+' 은(는) 이미 "'+esc(dupName)+'" 으로 등록되어 있습니다.'); return; }
+    var _badEm=null;
+    if(!_clxValidEmail(get('taxEmail'))) _badEm=get('taxEmail');
+    Array.prototype.forEach.call(box.querySelectorAll('.clx-crow .clx-cf[data-k="email"]'), function(el){
+      if(_badEm===null && !_clxValidEmail(el.value)) _badEm=(el.value||'').trim();
+    });
+    if(_badEm!==null){ showInfoModal('업체 관리','이메일 형식이 올바르지 않습니다: '+esc(_badEm)+'\n예: name@company.co.kr'); return; }
+    try{ ensureClientList(); }catch(_e){}
+    if(!orig){
+      clientList.push([nm,bz]);
+    } else {
+      var found=false;
+      for(var i=0;i<clientList.length;i++){ if(clientList[i][0]===orig){ clientList[i]=[nm,bz]; found=true; break; } }
+      if(!found) clientList.push([nm,bz]);
+      for(var j=0;j<customClients.length;j++){ if(customClients[j][0]===orig){ customClients[j]=[nm,bz]; } }
+      save('sched_clients_added', customClients);
+      if(nm!==orig && clientInfo[orig]){ clientInfo[nm]=clientInfo[orig]; delete clientInfo[orig]; }
+    }
+    var contacts=[];
+    Array.prototype.forEach.call(box.querySelectorAll('.clx-crow'), function(row){
+      var o={};
+      Array.prototype.forEach.call(row.querySelectorAll('.clx-cf'), function(el){ o[el.getAttribute('data-k')]=(el.value||'').trim(); });
+      if(o.dept||o.rank||o.name||o.phone||o.email) contacts.push(o);
+    });
+    contacts.forEach(function(o){ if(o.phone) o.phone=_clxFmtPhone(o.phone); });
+    clientInfo[nm] = { zip:get('zip'), addr:get('addr'), addr2:get('addr2'), ceo:get('ceo'), uptae:get('uptae'), jongmok:get('jongmok'), taxEmail:get('taxEmail'),
+                       tel:_clxFmtPhone(get('tel')), fax:_clxFmtPhone(get('fax')), bank:get('bank'), account:get('account'), holder:get('holder'),
+                       memo:get('memo'), contacts:contacts };
+    _clxPersist();
+    _clxExp=nm;
+    _clxRender();
+  };
+  window.clxDelete = function(nm){
+    if(!nm) return;
+    showConfirmModal('업체 삭제', esc(nm)+' 업체를 목록에서 삭제할까요?\n상세정보도 함께 삭제되며, 일정·견적의 거래처 목록에서도 빠집니다.', function(){
+      try{ ensureClientList(); }catch(_e){}
+      clientList = clientList.filter(function(c){ return c[0]!==nm; });
+      customClients = customClients.filter(function(c){ return c[0]!==nm; });
+      save('sched_clients_added', customClients);
+      delete clientInfo[nm];
+      _clxPersist();
+      _clxExp=null;
+      _clxRender();
+    }, '삭제', '#dc2626');
+  };
   function _vacUnlimited(id){ var m=members.find(function(x){return x.id===id;}); return !!(m && m.name==='김재성'); }
   window.openVacationModal = function(targetId) {
     _vacTarget = targetId || myMemberId;
@@ -16709,7 +17006,7 @@ function reloadState() {
     const entryBtn = document.getElementById('btnEntryAdd');
     if (entryBtn) entryBtn.style.display = hasProfile ? '' : 'none';
     const cmBtn = document.getElementById('btnClientMgr');
-    if (cmBtn) cmBtn.style.display = (hasProfile || _isAdmin()) ? '' : 'none';
+    if (cmBtn) cmBtn.style.display = 'none';   // 2026-08-13 업체 관리는 일정 > 업체 관리 탭으로 이동
     const vacAdminBtn = document.getElementById('btnVacAdmin');
     if (vacAdminBtn){ vacAdminBtn.style.display = 'none'; }   // 버튼 제거 → 잔여 연차 배지 클릭으로 연차 현황 열기
     const remainBadge = document.getElementById('vacRemainBadge');
