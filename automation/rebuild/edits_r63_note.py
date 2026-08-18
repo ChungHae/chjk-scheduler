@@ -1,0 +1,2 @@
+# r63 추가 배선: .main:has(#pageClients.active) overflow-x visible + switchPage main-estimate 토글에 clients 포함
+R63_EXTRA=[('.main.main-estimate, .main:has(#pageEstimate.active) { overflow-x: visible !important; }','.main.main-estimate, .main:has(#pageEstimate.active), .main:has(#pageClients.active) { overflow-x: visible !important; }'),("var _mn=document.querySelector('.main'); if(_mn) _mn.classList.toggle('main-estimate', page==='estimate');","var _mn=document.querySelector('.main'); if(_mn) _mn.classList.toggle('main-estimate', page==='estimate' || page==='clients');")]
