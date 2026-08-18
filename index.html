@@ -2319,7 +2319,7 @@
   </div>
   <!-- 주간 일정 페이지 -->
   <div id="pageWeekly" class="page-section">
-  <div class="wk-top-panels" style="display:flex;gap:12px;align-items:stretch;flex-wrap:wrap;margin-bottom:12px">
+  <div class="wk-top-panels" style="display:none;gap:12px;align-items:stretch;flex-wrap:wrap;margin-bottom:12px">
   <div id="teamPanelGoalBox" class="team-panel" style="flex:1;min-width:280px;margin:0;min-height:130px;display:flex;flex-direction:column">
     <div class="team-panel-head">
       <span class="team-panel-title">충해전기(주) 목표</span>
@@ -15575,6 +15575,27 @@ function reloadState() {
   }
   // 펼친 프로젝트 상세 패널 HTML
   function _projPanelHtml(p, mine){
+    var _det=p.detail, _detHtml='';
+    var _hasDet=!!(_det && ((_det.vendors&&_det.vendors.length)||_det.parent||_det.equip||_det.note));
+    if(_pjDEditFor===p.id && mine){
+      _detHtml='<div style="margin:10px 14px 2px;padding:12px;background:#fbfcfe;border:1px solid #d8e1ec">'
+        + '<div style="display:flex;align-items:center;margin-bottom:9px"><span style="font-size:12px;font-weight:700;color:#1a1a1a">세부 정보 수정</span><span style="flex:1"></span>'
+        + '<button type="button" onclick="projDetailEditCancel()" style="'+_PJ_SBTN+'">취소</button>'
+        + '<button type="button" data-pid="'+p.id+'" onclick="projDetailEditSave(this.dataset.pid)" style="'+_PJ_SBTN+';background:#1a1a1a;border-color:#1a1a1a;color:#fff;margin-left:6px">저장</button></div>'
+        + '<div id="projDetailBody2"></div></div>';
+    } else if(_hasDet){
+      var _R=function(k,v){ return v?('<div style="display:flex;gap:10px;font-size:12.5px;line-height:1.7"><span style="flex-shrink:0;width:44px;font-weight:700;color:#5b7ba6">'+k+'</span><span style="color:#374151;min-width:0">'+v+'</span></div>'):''; };
+      var _vh=(_det.vendors||[]).map(function(v){
+        var _cc=(v.contacts||[]).map(function(c){ return esc(c.name)+(c.rank?' '+esc(c.rank):'')+(c.phone?' ('+esc(c.phone)+')':''); }).join(', ');
+        return '<b style="color:#14305c">'+esc(v.name)+'</b>'+(_cc?' &mdash; '+_cc:'');
+      }).join('<br>');
+      _detHtml='<div style="margin:10px 14px 2px;padding:10px 12px;background:#f8fafc;border:1px solid #e3e9f0;display:flex;flex-direction:column;gap:3px;position:relative">'
+        + (mine?('<button type="button" data-pid="'+p.id+'" onclick="projDetailEditStart(this.dataset.pid)" title="세부 정보 수정" style="position:absolute;top:7px;right:7px;border:none;background:none;cursor:pointer;padding:2px 3px;color:#5b7ba6;display:inline-flex;align-items:center" onmouseover="this.style.color=\'#1B3A6B\'" onmouseout="this.style.color=\'#5b7ba6\'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;display:block"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>'):'')
+        + _R('업체명', _vh) + _R('모기업', esc(_det.parent||'')) + _R('장비명', esc(_det.equip||'')) + _R('내용', esc(_det.note||'').replace(/\n/g,'<br>'))
+        + '</div>';
+    } else if(mine){
+      _detHtml='<div style="margin:10px 14px 2px"><button type="button" data-pid="'+p.id+'" onclick="projDetailEditStart(this.dataset.pid)" style="'+_PJ_SBTN+'">&#65291; 세부 정보 추가</button></div>';
+    }
     var logs = _projLogsView(_projDraft.logs);
     var rows = logs.length ? logs.map(function(lg, li){
       if(mine && _projLogEditId===lg.id){
@@ -15614,6 +15635,7 @@ function reloadState() {
       +   '<button onclick="addProjectLog()" style="'+_PJ_BTN+';background:#1a1a1a;color:#fff;border:1px solid #1a1a1a">기록 추가</button>'
       + '</div></div>') : '';
     return '<div style="border-top:1px solid #e3eaf2;background:#fff;cursor:default">'
+      + _detHtml
       + '<div style="padding:2px 14px 8px">'+rows+'</div>'
       + addForm
       + (mine ? ('<div style="display:flex;align-items:center;gap:10px;padding:10px 14px 14px;border-top:1px solid #eef2f7">'
@@ -15646,7 +15668,9 @@ function reloadState() {
       box.innerHTML = '<div style="text-align:center;padding:40px 16px;color:#b6bec9;font-size:13px">조건에 맞는 프로젝트가 없습니다.</div>';
       return;
     }
-    box.innerHTML = list.map(function(p){
+    var TH='padding:9px 10px;background:#fafafa;color:#888;font-weight:500;font-size:12px;text-align:center;border-bottom:2px solid #d3dce6;border-right:1px solid #e3e9f0;white-space:nowrap';
+    var TD='padding:10px;border-bottom:1px solid #eef2f7;border-right:1px solid #eef2f7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle';
+    var rowsHtml = list.map(function(p){
       var mine = myMemberId && p.memberId===myMemberId;
       var exp = _projExpId===p.id;
       // 펼친 프로젝트의 초안 준비 (깨끗한 상태면 최신 데이터로 동기화)
@@ -15656,36 +15680,51 @@ function reloadState() {
       }
       var titlePart;
       if(exp && mine && _projTitleEdit){
-        titlePart = '<input id="projTitleInline" type="text" maxlength="120" value="'+esc(_projDraft.title||'')+'" onclick="event.stopPropagation()" onkeydown="if(event.key===\'Enter\')projTitleSave()" style="flex:1;min-width:0;height:26px;box-sizing:border-box;padding:0 8px;border:1px solid #1B3A6B;border-radius:0;font-size:13px;font-weight:700;color:#14305c;font-family:inherit;outline:none">'
+        titlePart = '<div style="display:flex;align-items:center;gap:6px;min-width:0">'
+          + '<input id="projTitleInline" type="text" maxlength="120" value="'+esc(_projDraft.title||'')+'" onclick="event.stopPropagation()" onkeydown="if(event.key===\'Enter\')projTitleSave()" style="flex:1;min-width:0;height:26px;box-sizing:border-box;padding:0 8px;border:1px solid #1B3A6B;border-radius:0;font-size:13px;font-weight:700;color:#14305c;font-family:inherit;outline:none">'
           + '<button onclick="event.stopPropagation();projTitleSave()" style="'+_PJ_SBTN+';background:#1a1a1a;border-color:#1a1a1a;color:#fff;flex-shrink:0">확인</button>'
-          + '<button onclick="event.stopPropagation();projTitleCancel()" style="'+_PJ_SBTN+';flex-shrink:0">취소</button>';
+          + '<button onclick="event.stopPropagation();projTitleCancel()" style="'+_PJ_SBTN+';flex-shrink:0">취소</button>'
+          + '</div>';
       } else {
-        titlePart = '<span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:700;color:#14305c">'+esc(exp?(_projDraft.title||'(제목 없음)'):(p.title||'(제목 없음)'))+'</span>'
+        titlePart = '<div style="display:flex;align-items:center;gap:6px;min-width:0">'
+          + '<span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(exp?(_projDraft.title||'(제목 없음)'):(p.title||'(제목 없음)'))+'</span>'
           + ((exp && mine)?'<button onclick="event.stopPropagation();projTitleEditStart()" title="제목 수정" style="flex-shrink:0;border:none;background:none;cursor:pointer;padding:0 3px;color:#5b7ba6;display:inline-flex;align-items:center" onmouseover="this.style.color=\'#1B3A6B\'" onmouseout="this.style.color=\'#5b7ba6\'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;display:block"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>':'')
-          + '<span style="flex:1"></span>';
+          + '</div>';
       }
-      var header = '<div onclick="openProjectView(\''+p.id+'\')" style="padding:11px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;'+(exp?'background:#f4f8fe':'')+'" '+(exp?'':('onmouseover="this.style.background=\'#f7fafd\'" onmouseout="this.style.background=\'#fff\'"'))+'>'
-        + '<span style="flex-shrink:0;width:0;height:0;border-left:5px solid #8b97a5;border-top:4px solid transparent;border-bottom:4px solid transparent;'+(exp?'transform:rotate(90deg);':'')+'"></span>'
-        + titlePart
-        + '<span style="flex-shrink:0;font-size:12px;color:#8b97a5">'+esc(_projAuthor(p))+' &middot; '+_projFmtD(p.createdAt)+'</span>'
-        + '</div>';
+      var logs=_projLogs(p);
+      var lastD=''; logs.forEach(function(l){ if(l.date && String(l.date)>lastD) lastD=String(l.date); });
       var dim = _projExpId && !exp;   // 다른 프로젝트가 펼쳐져 있으면 나머지는 흐리게
-      return '<div style="background:#fff;border:1px solid #d8e1ec;border-left:3px solid '+(exp?'#1B3A6B':(mine?'#1B3A6B':'#c3cfde'))+(dim?';opacity:.18;transition:opacity .12s':'')+'"'+(dim?' onmouseover="this.style.opacity=\'.85\'" onmouseout="this.style.opacity=\'.18\'"':'')+'>'
-        + header
-        + (exp ? _projPanelHtml(p, mine) : '')
-        + '</div>';
+      var tr='<tr onclick="openProjectView(\''+p.id+'\')" style="cursor:pointer;'+(exp?'background:#f4f8fe;':'')+(dim?'opacity:.18;transition:opacity .12s;':'')+'"'
+        + (dim?' onmouseover="this.style.opacity=\'.85\'" onmouseout="this.style.opacity=\'.18\'"':(exp?'':' onmouseover="this.style.background=\'#f7fafd\'" onmouseout="this.style.background=\'\'"'))+'>'
+        + '<td style="'+TD+';font-weight:700;color:#14305c;box-shadow:inset 3px 0 0 '+(mine?'#1B3A6B':'transparent')+'">'+titlePart+'</td>'
+        + '<td style="'+TD+';text-align:center">'+esc(_projAuthor(p))+'</td>'
+        + '<td style="'+TD+';text-align:center;color:#6b7280">'+_projFmtD(p.createdAt)+'</td>'
+        + '<td style="'+TD+';text-align:center;color:#6b7280">'+(lastD||'-')+'</td>'
+        + '<td style="'+TD+';text-align:center;color:#6b7280">'+logs.length+'</td>'
+        + '</tr>';
+      if(exp){
+        tr += '<tr><td colspan="5" style="padding:0;border-bottom:2px solid #1B3A6B;background:#fff;white-space:normal">'+_projPanelHtml(p, mine)+'</td></tr>';
+      }
+      return tr;
     }).join('');
+    box.innerHTML = '<div style="background:#fff;border:1px solid #d6deea;border-left:none;border-right:none;margin:0 calc(var(--mpx, 24px)*-1)">'
+      + '<table style="width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:12.5px">'
+      + '<colgroup><col style="width:33.36%"><col style="width:16.66%"><col style="width:16.66%"><col style="width:16.66%"><col style="width:16.66%"></colgroup>'
+      + '<thead><tr>'
+      +   '<th style="'+TH+'">프로젝트명</th><th style="'+TH+'">등록자</th><th style="'+TH+'">등록일</th><th style="'+TH+'">최근 기록</th><th style="'+TH+'">기록 수</th>'
+      + '</tr></thead><tbody>'+rowsHtml+'</tbody></table></div>';
   }
   function _projFormRowHtml(){
-    return '<div class="projFormRow" style="display:flex;gap:8px;align-items:flex-start">'
-      + '<input type="date" class="pfr-date" value="'+dk(new Date())+'" style="'+_PJ_DATE+'">'
-      + '<textarea class="pfr-text" placeholder="진행한 내용을 적어주세요. (비워두면 이 줄은 저장되지 않습니다)" style="'+_PJ_TA+';min-height:80px" onfocus="this.style.borderColor=\'#1B3A6B\'" onblur="this.style.borderColor=\'#c8d2de\'"></textarea>'
-      + '<button type="button" onclick="projFormDelRow(this)" title="줄 삭제" style="flex-shrink:0;border:none;background:none;cursor:pointer;padding:2px 3px;color:#dc2626;display:inline-flex;align-items:center;margin-top:5px" onmouseover="this.style.color=\'#b91c1c\'" onmouseout="this.style.color=\'#dc2626\'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;display:block"><path d="M4 6.5h16"/><path d="M9.5 6.5V4.6a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.9"/><path d="M6.5 6.5 7.4 19a2 2 0 0 0 2 1.9h5.2a2 2 0 0 0 2-1.9l.9-12.5"/><path d="M10.5 10.5v6M13.5 10.5v6"/></svg></button>'
-      + '</div>';
+    var TD='padding:0;border-bottom:1px solid #eef2f7;border-right:1px solid #eef2f7;vertical-align:top';
+    return '<tr class="projFormRow">'
+      + '<td style="'+TD+'"><input type="date" class="pfr-date" value="'+dk(new Date())+'" style="width:100%;min-height:46px;box-sizing:border-box;border:none;outline:none;padding:0 10px;font-size:12.5px;font-family:inherit;color:#374151;background:transparent" onfocus="this.closest(\'td\').style.background=\'#f4f8fe\'" onblur="this.closest(\'td\').style.background=\'\'"></td>'
+      + '<td style="'+TD+'"><textarea class="pfr-text" placeholder="진행한 내용을 적어주세요. (비워두면 이 줄은 저장되지 않습니다)" style="display:block;width:100%;min-height:46px;box-sizing:border-box;border:none;outline:none;resize:vertical;padding:13px 12px;font-size:12.5px;line-height:1.6;font-family:inherit;color:#374151;background:transparent" onfocus="this.closest(\'td\').style.background=\'#f4f8fe\'" onblur="this.closest(\'td\').style.background=\'\'"></textarea></td>'
+      + '<td style="'+TD+';text-align:center;vertical-align:middle"><button type="button" onclick="projFormDelRow(this)" title="줄 삭제" style="border:none;background:none;cursor:pointer;padding:2px 3px;color:#dc2626;display:inline-flex;align-items:center" onmouseover="this.style.color=\'#b91c1c\'" onmouseout="this.style.color=\'#dc2626\'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;display:block"><path d="M4 6.5h16"/><path d="M9.5 6.5V4.6a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.9"/><path d="M6.5 6.5 7.4 19a2 2 0 0 0 2 1.9h5.2a2 2 0 0 0 2-1.9l.9-12.5"/><path d="M10.5 10.5v6M13.5 10.5v6"/></svg></button></td>'
+      + '</tr>';
   }
   window.projFormAddRow = function(){
     var box=document.getElementById('projFormRows'); if(!box) return;
-    var d=document.createElement('div'); d.innerHTML=_projFormRowHtml();
+    var d=document.createElement('tbody'); d.innerHTML=_projFormRowHtml();
     var row=d.firstChild; box.appendChild(row);
     try{ row.querySelector('.pfr-text').focus(); }catch(_e){}
   };
@@ -15698,25 +15737,163 @@ function reloadState() {
     }
     row.remove();
   };
+  // ─── 프로젝트 세부 정보 (선택 입력) ───
+  var _pjD = null;
+  var _pjDTargetId = 'projDetailBody';   // 폼/펼침수정 어느 쪽에 그릴지
+  var _pjDEditFor = null;                // 펼침 화면에서 세부 정보 수정 중인 프로젝트 id
+  function _pjDReset(){ _pjD = { open:false, vendors:[], parent:'', equip:'', note:'' }; }
+  function _pjDFmtContact(c){
+    var s=String((c&&c.name)||'').trim();
+    var rk=String((c&&c.rank)||'').trim();
+    if(rk) s+=(s?' ':'')+rk;
+    var ph=String((c&&c.phone)||'').trim()||String((c&&c.phone2)||'').trim();
+    if(ph) s+=(s?' ':'')+'('+ph+')';
+    return s||'(이름 없음)';
+  }
+  window.projDetailToggle = function(){
+    _pjDTargetId='projDetailBody';
+    if(!_pjD) _pjDReset();
+    _pjD.open=!_pjD.open;
+    var w=document.getElementById('projDetailWrap'); if(!w) return;
+    w.style.display=_pjD.open?'':'none';
+    var b=document.getElementById('btnProjDetail');
+    if(b){ b.style.background=_pjD.open?'#1B3A6B':'#fff'; b.style.color=_pjD.open?'#fff':'#1B3A6B'; }
+    if(_pjD.open){ _pjDRender(); setTimeout(function(){ var i=document.getElementById('pjdVendorInput'); if(i) try{ i.focus(); }catch(_e){} },40); }
+  };
+  window.pjdParentInput=function(el){ if(_pjD) _pjD.parent=el.value; };
+  window.pjdEquipInput=function(el){ if(_pjD) _pjD.equip=el.value; };
+  window.pjdNoteInput=function(el){ if(_pjD) _pjD.note=el.value; };
+  window.pjdVendorSearch=function(el){
+    var box=document.getElementById('pjdVendorSug'); if(!box) return;
+    var q=String(el.value||'').trim().toLowerCase();
+    if(!q){ box.style.display='none'; box.innerHTML=''; return; }
+    try{ ensureClientList(); }catch(_e){}
+    var hit=allClients().filter(function(c){ return String(c[0]).toLowerCase().indexOf(q)>=0 && !_pjD.vendors.some(function(v){ return v.name===c[0]; }); }).slice(0,30);
+    if(!hit.length){ box.style.display='none'; box.innerHTML=''; return; }
+    box.innerHTML=hit.map(function(c){ return '<div onmousedown="pjdVendorAdd(this.dataset.nm)" data-nm="'+esc(c[0])+'" style="padding:7px 10px;cursor:pointer;font-size:12.5px;color:#374151;border-bottom:1px solid #f1f5f9" onmouseover="this.style.background=\'#f4f8fe\'" onmouseout="this.style.background=\'\'">'+esc(c[0])+'</div>'; }).join('');
+    box.style.display='block';
+  };
+  window.pjdVendorBlur=function(){ setTimeout(function(){ var b=document.getElementById('pjdVendorSug'); if(b) b.style.display='none'; },150); };
+  window.pjdVendorAdd=function(nm){
+    if(!_pjD) _pjDReset();
+    if(!nm || _pjD.vendors.some(function(v){ return v.name===nm; })) return;
+    _pjD.vendors.push({ name:nm, sel:[] });
+    _pjDRender();
+    setTimeout(function(){ var i=document.getElementById('pjdVendorInput'); if(i){ i.value=''; try{ i.focus(); }catch(_e){} } },20);
+  };
+  window.pjdVendorDel=function(nm){
+    if(!_pjD) return;
+    _pjD.vendors=_pjD.vendors.filter(function(v){ return v.name!==nm; });
+    _pjDRender();
+  };
+  window.pjdContactToggle=function(nm, idx){
+    if(!_pjD) return;
+    var v=_pjD.vendors.find(function(x){ return x.name===nm; }); if(!v) return;
+    idx=Number(idx);
+    var p=v.sel.indexOf(idx);
+    if(p>=0) v.sel.splice(p,1); else v.sel.push(idx);
+    _pjDRender();
+  };
+  function _pjDDetSnapshot(){
+    if(!_pjD) return null;
+    var _dv=_pjD.vendors.map(function(v){
+      var _cs=(_clxInfo(v.name).contacts)||[];
+      return { name:v.name, contacts:v.sel.map(function(i){ var c=_cs[i]||{}; return { name:String(c.name||''), rank:String(c.rank||''), phone:String(c.phone||c.phone2||'') }; }).filter(function(c){ return c.name||c.phone; }) };
+    });
+    var _dp=String(_pjD.parent||'').trim(), _de=String(_pjD.equip||'').trim(), _dn=String(_pjD.note||'').trim();
+    return (_dv.length||_dp||_de||_dn) ? { vendors:_dv, parent:_dp, equip:_de, note:_dn } : null;
+  }
+  window.projDetailEditStart = function(pid){
+    var p=projectsList.find(function(x){ return x.id===pid; }); if(!p) return;
+    if(!(myMemberId && p.memberId===myMemberId)) return;
+    _pjDReset(); _pjD.open=true;
+    var det=p.detail||{};
+    _pjD.parent=det.parent||''; _pjD.equip=det.equip||''; _pjD.note=det.note||'';
+    (det.vendors||[]).forEach(function(v){
+      var cs=(_clxInfo(v.name).contacts)||[];
+      var sel=[];
+      (v.contacts||[]).forEach(function(sc){
+        for(var ci=0;ci<cs.length;ci++){
+          if(sel.indexOf(ci)>=0) continue;
+          var c=cs[ci];
+          if(String(c.name||'')===String(sc.name||'') && (String(c.phone||c.phone2||'')===String(sc.phone||'') || String(c.rank||'')===String(sc.rank||''))){ sel.push(ci); break; }
+        }
+      });
+      _pjD.vendors.push({ name:v.name, sel:sel });
+    });
+    _pjDEditFor=pid;
+    _pjDTargetId='projDetailBody2';
+    _projRenderList();
+    setTimeout(function(){ _pjDRender(); },30);
+  };
+  window.projDetailEditSave = function(pid){
+    var p=projectsList.find(function(x){ return x.id===pid; }); if(!p||!_pjD) return;
+    var det=_pjDDetSnapshot();
+    if(det) p.detail=det; else delete p.detail;
+    p.updatedAt=Date.now();
+    _projSave();
+    _pjDEditFor=null;
+    _projRenderList();
+  };
+  window.projDetailEditCancel = function(){ _pjDEditFor=null; _projRenderList(); };
+  function _pjDRender(){
+    var w=document.getElementById(_pjDTargetId); if(!w || !_pjD) return;
+    var IN='width:100%;box-sizing:border-box;height:30px;padding:0 8px;border:1px solid #c8d2de;border-radius:0;font-size:12.5px;color:#374151;font-family:inherit;outline:none;background:#fff';
+    var LB='font-size:11px;font-weight:700;color:#5b7ba6';
+    var chips=_pjD.vendors.map(function(v){
+      return '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 9px;background:#f4f8fe;border:1px solid #aac4e6;font-size:12px;color:#14305c;font-weight:600">'+esc(v.name)
+        + '<span data-nm="'+esc(v.name)+'" onclick="pjdVendorDel(this.dataset.nm)" title="선택 해제" style="cursor:pointer;color:#8b97a5;font-weight:700;line-height:1" onmouseover="this.style.color=\'#dc2626\'" onmouseout="this.style.color=\'#8b97a5\'">&#10005;</span></span>';
+    }).join('');
+    var conts=_pjD.vendors.map(function(v){
+      var inf=_clxInfo(v.name); var cs=(inf.contacts||[]);
+      var inner;
+      if(!cs.length){ inner='<span style="font-size:12px;color:#b6bec9">업체 관리에 등록된 담당자가 없습니다</span>'; }
+      else inner=cs.map(function(c,i){
+        var on=v.sel.indexOf(i)>=0;
+        return '<span data-nm="'+esc(v.name)+'" data-i="'+i+'" onclick="pjdContactToggle(this.dataset.nm, this.dataset.i)" style="display:inline-flex;align-items:center;padding:4px 10px;border:1px solid '+(on?'#1B3A6B':'#c8d2de')+';background:'+(on?'#1B3A6B':'#fff')+';color:'+(on?'#fff':'#374151')+';font-size:12px;cursor:pointer;user-select:none">'+esc(_pjDFmtContact(c))+'</span>';
+      }).join('');
+      return '<div style="display:flex;flex-direction:column;gap:5px"><span style="'+LB+'">담당자 &middot; '+esc(v.name)+'</span><div style="display:flex;flex-wrap:wrap;gap:6px">'+inner+'</div></div>';
+    }).join('');
+    w.innerHTML =
+      '<div style="display:flex;flex-direction:column;gap:11px">'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">'
+      +   '<div style="display:flex;flex-direction:column;gap:3px;position:relative"><span style="'+LB+'">업체명</span>'
+      +     '<input id="pjdVendorInput" placeholder="업체명 검색 후 선택 (여러 업체 가능)" autocomplete="off" oninput="pjdVendorSearch(this)" onfocus="pjdVendorSearch(this)" onblur="pjdVendorBlur()" style="'+IN+'" onfocusin="this.style.borderColor=\'#1B3A6B\'" onfocusout="this.style.borderColor=\'#c8d2de\'">'
+      +     '<div id="pjdVendorSug" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:60;background:#fff;border:1px solid #c8d2de;max-height:220px;overflow:auto;box-shadow:0 8px 22px rgba(15,23,42,.14)"></div>'
+      +   '</div>'
+      +   '<div style="display:flex;flex-direction:column;gap:3px"><span style="'+LB+'">모기업</span><input value="'+esc(_pjD.parent)+'" oninput="pjdParentInput(this)" style="'+IN+'" onfocus="this.style.borderColor=\'#1B3A6B\'" onblur="this.style.borderColor=\'#c8d2de\'"></div>'
+      +   '<div style="display:flex;flex-direction:column;gap:3px"><span style="'+LB+'">장비명</span><input value="'+esc(_pjD.equip)+'" oninput="pjdEquipInput(this)" style="'+IN+'" onfocus="this.style.borderColor=\'#1B3A6B\'" onblur="this.style.borderColor=\'#c8d2de\'"></div>'
+      + '</div>'
+      + (chips?('<div style="display:flex;flex-wrap:wrap;gap:6px">'+chips+'</div>'):'')
+      + conts
+      + '<div style="display:flex;flex-direction:column;gap:3px"><span style="'+LB+'">내용</span><textarea oninput="pjdNoteInput(this)" style="width:100%;min-height:168px;box-sizing:border-box;padding:7px 10px;border:1px solid #c8d2de;border-radius:0;font-size:12.5px;color:#374151;line-height:1.6;font-family:inherit;resize:vertical;outline:none;background:#fff" onfocus="this.style.borderColor=\'#1B3A6B\'" onblur="this.style.borderColor=\'#c8d2de\'">'+esc(_pjD.note)+'</textarea></div>'
+      + '</div>';
+  }
   function _projRenderForm(){
     var fv = document.getElementById('projFormView'); if(!fv) return;
-    fv.innerHTML = '<div style="background:#fff;border:1px solid #c8d2de">'
+    var TH='padding:9px 10px;background:#fafafa;color:#888;font-weight:500;font-size:12px;text-align:center;border-bottom:2px solid #d3dce6;border-right:1px solid #e3e9f0;white-space:nowrap';
+    fv.innerHTML = '<div style="background:#fff;border:1px solid #d6deea;border-left:none;border-right:none;margin:0 calc(var(--mpx, 24px)*-1)">'
       + '<div style="padding:9px 14px;border-bottom:1px solid #c8d2de;background:#f4f6f9;display:flex;align-items:center;gap:8px">'
       +   '<span style="width:3px;height:15px;background:#1a1a1a;flex-shrink:0"></span>'
       +   '<span style="font-size:13.5px;font-weight:700;color:#1a1a1a">프로젝트 등록</span>'
       + '</div>'
-      + '<div style="padding:14px;display:flex;flex-direction:column;gap:10px">'
-      +   '<input id="projTitleInput" type="text" placeholder="프로젝트 명" maxlength="120" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #c8d2de;border-radius:0;font-size:13.5px;font-weight:700;color:#14305c;font-family:inherit;outline:none" onfocus="this.style.borderColor=\'#1B3A6B\'" onblur="this.style.borderColor=\'#c8d2de\'">'
-      +   '<div id="projFormRows" style="display:flex;flex-direction:column;gap:8px">'
-      +     _projFormRowHtml()
-      +   '</div>'
+      + '<div style="padding:12px 14px;border-bottom:1px solid #e3e9f0;display:flex;gap:8px;align-items:center">'
+      +   '<button type="button" id="btnProjDetail" onclick="projDetailToggle()" style="'+_PJ_BTN+';background:#fff;color:#1B3A6B;border:1px solid #1B3A6B;flex-shrink:0">세부 정보</button>'
+      +   '<input id="projTitleInput" type="text" placeholder="프로젝트 명" maxlength="120" style="flex:1;min-width:0;height:28px;box-sizing:border-box;padding:0 10px;border:1px solid #c8d2de;border-radius:0;font-size:13px;font-weight:700;color:#14305c;font-family:inherit;outline:none" onfocus="this.style.borderColor=\'#1B3A6B\'" onblur="this.style.borderColor=\'#c8d2de\'">'
       + '</div>'
-      + '<div style="display:flex;align-items:center;gap:6px;padding:0 14px 14px">'
+      + '<div id="projDetailWrap" style="display:none;padding:12px 14px;border-bottom:1px solid #e3e9f0;background:#fbfcfe"><div id="projDetailBody"></div></div>'
+      + '<table style="width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:12.5px">'
+      + '<colgroup><col style="width:150px"><col><col style="width:54px"></colgroup>'
+      + '<thead><tr><th style="'+TH+'">날짜</th><th style="'+TH+'">내용</th><th style="'+TH+'"></th></tr></thead>'
+      + '<tbody id="projFormRows">'+_projFormRowHtml()+'</tbody>'
+      + '</table>'
+      + '<div style="display:flex;align-items:center;gap:6px;padding:12px 14px;border-top:1px solid #e3e9f0">'
       +   '<button type="button" onclick="projFormAddRow()" style="'+_PJ_BTN+';background:#fff;color:#1B3A6B;border:1px solid #1B3A6B">&#65291; 기록 줄 추가</button>'
       +   '<span style="flex:1"></span>'
       +   '<button type="button" onclick="cancelProjectForm()" style="'+_PJ_BTN+';background:#fff;color:#444;border:1px solid #c8d2de">취소</button>'
       +   '<button type="button" onclick="saveProjectEdit()" style="'+_PJ_BTN+';background:#1a1a1a;color:#fff;border:1px solid #1a1a1a">저장</button>'
       + '</div></div>';
+    _pjDReset();
     setTimeout(function(){ var i=document.getElementById('projTitleInput'); if(i) try{ i.focus(); }catch(_e){} }, 60);
   }
   window.projBackToList = function(){ _projGo('list', null); };
@@ -15771,6 +15948,10 @@ function reloadState() {
       logs.push({ id:'lg'+now+'_'+ri+'_'+Math.floor(Math.random()*10000), date:dt, text:tx, ts:now+ri, done:false });
     }
     var np = { id:'prj'+now+'_'+Math.floor(Math.random()*10000), memberId:myMemberId, authorName:(me?me.name:''), title:t, logs:logs, createdAt:now, updatedAt:now };
+    if(_pjD){
+      var _npDet=_pjDDetSnapshot();
+      if(_npDet) np.detail=_npDet;
+    }
     projectsList.push(np);
     _projSave();
     _projGo('list', null);
