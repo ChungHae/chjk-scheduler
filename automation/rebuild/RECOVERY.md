@@ -16,7 +16,8 @@ Claude 클라우드 작업공간은 세션이 쉬는 동안 예전 스냅샷으�
 - r77: live a62e33a6 / test b0bf625f (배포됨)
 - r83: live e22fb633 / test f5c48325 (2026-08-18 배포, 현재 배포본)
 - r97: live 95ce02e6 / test 3e01e5f4
-- r98: live e82bc173 / test ded12fb7 (2026-08-19 작업본, PC test 파일 = r98, 미배포)
+- r98: live e82bc173 / test ded12fb7
+- r99: live 92a73def / test 1afd85c1 (2026-08-19 작업본, PC test 파일 = r99, 미배포)
 
 ## 주의
 - edits_r62 는 _clxRender~전화포맷터 구간 슬라이스 치환이라 그 사이에 있던
