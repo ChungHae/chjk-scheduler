@@ -27,7 +27,8 @@ Claude 클라우드 작업공간은 세션이 쉬는 동안 예전 스냅샷으�
 - r106: live 041617f1 / test a233ec1e
   ※ r106 = 일정 등록 기능 숨김 1단계. TEST 확인 후 완전 삭제(2단계) 예정.
 - r107: live eed7d41f / test f892eb7f
-- r108: live d1c46bd4 / test 4996c022 (2026-08-20 작업본, PC test 파일 = r108, 미배포)
+- r108: live d1c46bd4 / test 4996c022
+- r109: live 4900cfc0 / test dd280329 (2026-08-20 작업본, PC test 파일 = r109, 미배포)
 
 ## 주의
 - edits_r62 는 _clxRender~전화포맷터 구간 슬라이스 치환이라 그 사이에 있던
