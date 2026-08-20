@@ -35,7 +35,15 @@ Claude 클라우드 작업공간은 세션이 쉬는 동안 예전 스냅샷으�
 - r113: live 5740329b / test d994b68b
 - r114: live 12776761 / test 9409c4e3
 - r115: live 6eac5a3b / test dbe1d176
-- r116: live 18819c2e / test 7a07884c (2026-08-20 작업본, PC test 파일 = r116, 미배포)
+- r116: live 18819c2e / test 7a07884c (전체 백업: automation/rebuild/backup_r116/)
+- r117: live 676658ef / test 907bd19d (일정 삭제 1단계: 팀원 일정·업무 배정·팀 목표/이슈)
+- r118: live 9a1109d6 / test a900452f (일정 삭제 2단계: 등록 모달·개인 목록·메모/미완료)
+- r119: live a96318e7 / test 6a258fa4 (일정 삭제 3단계: 업체별 일정·분류 설정·달력 잔재)
+  (2026-08-20 작업본, PC test 파일 = r119, 미배포)
+  ※ r117~r119 는 마커 기반 슬라이스 삭제 모듈 — r116 이후 순서대로 적용.
+    복구 지름길: backup_r116/ 파일 복사 후 117→118→119 재생.
+    데이터 선언·동기화 키(assignments/comments/categories/issues/team_goal 등)는
+    데이터 보호·구버전 호환 위해 코드에 유지됨.
 
 ## 주의
 - edits_r62 는 _clxRender~전화포맷터 구간 슬라이스 치환이라 그 사이에 있던
