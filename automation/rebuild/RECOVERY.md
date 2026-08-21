@@ -45,7 +45,8 @@ Claude 클라우드 작업공간은 세션이 쉬는 동안 예전 스냅샷으�
 - r122: live b3ad590e / test 4ee1a3f1 (매입매출 탭 골격)
 - r123: live 4f2cec1d / test d97c65ff (누적본 이관 + _fx 블롭 분리 저장)
 - r124: live 7c573131 / test db221743 (미수 현황 원장 화면)
-- r125: live b89b332c / test fc67dec3 (2026-08-21 작업본, PC test 파일 = r125, 미배포 — 매입·매출 집계 화면)
+- r125: live b89b332c / test fc67dec3 (매입·매출 집계 화면)
+- r126: live 0bc35768 / test b8d0bbbe (2026-08-21 작업본, PC test 파일 = r126, 미배포 — 업로드 파서: 홈택스/은행6종/어음3종 + 미배정 입금 패널)
   ※ r117~r119 는 마커 기반 슬라이스 삭제 모듈 — r116 이후 순서대로 적용.
     복구 지름길: backup_r116/ 파일 복사 후 117→118→119 재생.
     데이터 선언·동기화 키(assignments/comments/categories/issues/team_goal 등)는
