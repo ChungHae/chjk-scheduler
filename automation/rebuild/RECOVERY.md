@@ -41,7 +41,8 @@ Claude 클라우드 작업공간은 세션이 쉬는 동안 예전 스냅샷으�
 - r119: live a96318e7 / test 6a258fa4 (일정 삭제 3단계: 업체별 일정·분류 설정·달력 잔재)
   (미배포)
 - r120: live 6eca11a7 / test f0382e16 (프로젝트 숨김 기능)
-- r121: live 879fe9e8 / test b314aa2f (2026-08-21 배포, 현재 배포본 · PC test 파일 = r121)
+- r121: live 879fe9e8 / test b314aa2f (2026-08-21 배포, 현재 배포본)
+- r122: live b3ad590e / test 4ee1a3f1 (2026-08-21 작업본, PC test 파일 = r122, 미배포 — 매입매출 탭 골격)
   ※ r117~r119 는 마커 기반 슬라이스 삭제 모듈 — r116 이후 순서대로 적용.
     복구 지름길: backup_r116/ 파일 복사 후 117→118→119 재생.
     데이터 선언·동기화 키(assignments/comments/categories/issues/team_goal 등)는
