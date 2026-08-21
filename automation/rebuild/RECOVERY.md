@@ -60,3 +60,7 @@ Claude 클라우드 작업공간은 세션이 쉬는 동안 예전 스냅샷으�
 GitHub 웹 업로드(Whale): upload/main (live), upload/main/test (test)
 → 커밋 후 Pages 반영 ~90초 → github.io 에서 fetch 로 서빙 바이트 검증.
 GitHub 커넥터는 읽기 전용(쓰기 403, Anthropic 측 알려진 제한).
+
+## 인수인계
+- 전체 프로젝트 인수인계 문서: HANDOVER.md (환경·규칙·이력·매입매출 신규 시스템 스펙 전부).
+  새 세션은 HANDOVER.md 를 먼저 읽을 것.
