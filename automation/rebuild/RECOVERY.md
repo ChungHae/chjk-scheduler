@@ -48,7 +48,8 @@ Claude 클라우드 작업공간은 세션이 쉬는 동안 예전 스냅샷으�
 - r125: live b89b332c / test fc67dec3 (매입·매출 집계 화면)
 - r126: live 0bc35768 / test b8d0bbbe (업로드 파서: 홈택스/은행6종/어음3종 + 미배정 입금 패널)
 - r127: live d06379e6 / test e0af815f (원장/미수현황/집계 엑셀 + 기초이월 병합 수정)
-- r128: live 718f1b9c / test 91435a15 (2026-08-21 작업본, PC test 파일 = r128, 미배포 — 매입매출 디자인 통일: 소카테고리 sub-nav 스트립(file-grp-tab)·표준 inv-toolbar·qic 엑셀 아이콘 + 원장 차변/대변 2열)
+- r128: live 718f1b9c / test 91435a15 (디자인 통일: sub-nav 스트립·inv-toolbar·qic + 원장 차변/대변)
+- r129: live 2a8c392b / test 8e540813 (2026-08-22 작업본, PC test 파일 = r129, 미배포 — 사업장 '전체' 필터(기본값)+배지, 표 전체폭(max-width 제거), 원장 기간조회+전기이월, 채권 연령분석(칩+열+엑셀), 어음 만기 관리(파서 due 저장+받을어음 패널))
   ※ r117~r119 는 마커 기반 슬라이스 삭제 모듈 — r116 이후 순서대로 적용.
     복구 지름길: backup_r116/ 파일 복사 후 117→118→119 재생.
     데이터 선언·동기화 키(assignments/comments/categories/issues/team_goal 등)는
