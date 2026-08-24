@@ -54,7 +54,8 @@ Claude 클라우드 작업공간은 세션이 쉬는 동안 예전 스냅샷으�
 - r131: live 2d0e5580 / test 61876369 (초기화 '별칭만 유지' + 규칙 편집 UI + 원장 엑셀 키 수정)
 - r132: live f19b29f9 / test c8268819 (미배정 선택창 앱 공통 드롭다운)
 - r133: live 8ebea432 / test de2ad23d (미배정 매칭 업체목록 기준 + 별칭표 관리)
-- r134: live bd6f4371 / test 9593245b (2026-08-24 작업본, PC test 파일 = r134, 미배포 — 동기화 KEYS에 규칙 5종(sched_fx_alias/openings/adjusts/terms/excluded) 추가(연결·폴링 반영 버그 수정), 정식→테스트 복사 시 규칙 로컬 리셋(test 전용), 별칭 전체 삭제 버튼)
+- r134: live bd6f4371 / test 9593245b (규칙 5종 동기화 KEYS 버그픽스 + 복사 시 규칙 리셋 + 별칭 전체 삭제)
+- r135: live a19c2311 / test 84f8c6e6 (2026-08-24 작업본, PC test 파일 = r135, 미배포 — 미배정 드롭다운 '계산서에만 있는 거래처' 섹션(사업자번호 dedup) + 원클릭 업체 등록·배정, 동일 사업자번호 기등록 시 중복 등록 없이 기존 업체로 배정)
   ※ r117~r119 는 마커 기반 슬라이스 삭제 모듈 — r116 이후 순서대로 적용.
     복구 지름길: backup_r116/ 파일 복사 후 117→118→119 재생.
     데이터 선언·동기화 키(assignments/comments/categories/issues/team_goal 등)는
