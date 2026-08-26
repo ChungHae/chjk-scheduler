@@ -3603,6 +3603,9 @@
   // 방식으로 바꿀 필요가 있음.
   let _csCache = null;
   let _csMetaCache = null;
+  // r167: 수집 '완료' 안내는 하루 한 번만 잠깐 보여준다(사용자 요청).
+  const _CS_OK_SEEN_KEY = 'sched_cs_ok_banner_day';   // 값 = 'YYYY-M-D'
+  let _csOkHideTimer = null;
   let _csMonth;        // {y, m(1-12)} - 처음엔 undefined, 데이터 로드 후 자동 결정
   let _csSelectedDate; // 'YYYYMMDD' | null - 처음엔 undefined
 
@@ -3810,13 +3813,37 @@
           if(d&&!isNaN(d.getTime())&&d>=_t0) _ok.push(_CS_BRANCH_LABEL[b]);
           else _bad.push(_CS_BRANCH_LABEL[b]);
         });
-        stEl.style.display='';
+        var _csDayKey=_t0.getFullYear()+'-'+(_t0.getMonth()+1)+'-'+_t0.getDate();
+        if(_csOkHideTimer){ clearTimeout(_csOkHideTimer); _csOkHideTimer=null; }
         if(_bad.length){
+          // 문제 안내는 계속 떠 있어야 한다(사라지지 않음).
+          stEl.dataset.csok='0';
+          stEl.style.display=''; stEl.style.opacity=''; stEl.style.transition='';
           stEl.style.background='#fef2f2'; stEl.style.border='1.5px solid #fca5a5'; stEl.style.color='#b91c1c';
           stEl.innerHTML='&#9888;&#65039; 오늘 카드매출 자료가 아직 수집되지 않았습니다: <b>'+_bad.join(', ')+'</b> &mdash; GitHub Actions(카드매출 동기화) 실행 결과를 확인해주세요.';
+          // 수집이 정상화되면 완료 안내를 한 번 다시 보여주기 위해 '봤음' 기록을 지운다
+          try{ save(_CS_OK_SEEN_KEY, ''); }catch(e){}
         } else {
-          stEl.style.background='#f0fdf4'; stEl.style.border='1.5px solid #86efac'; stEl.style.color='#15803d';
-          stEl.innerHTML='&#10004; 오늘 카드매출 자료 수집 완료 ('+_ok.join(' · ')+')';
+          // r167: 완료 안내는 그날 처음 한 번만, 6초 동안만.
+          var _csSeen=''; try{ _csSeen=load(_CS_OK_SEEN_KEY)||''; }catch(e){}
+          if(_csSeen===_csDayKey){ stEl.style.display='none'; stEl.dataset.csok='0'; }
+          else{
+            stEl.dataset.csok='1';
+            stEl.style.display=''; stEl.style.opacity=''; stEl.style.transition='';
+            stEl.style.background='#f0fdf4'; stEl.style.border='1.5px solid #86efac'; stEl.style.color='#15803d';
+            stEl.innerHTML='&#10004; 오늘 카드매출 자료 수집 완료 ('+_ok.join(' · ')+')';
+            try{ save(_CS_OK_SEEN_KEY, _csDayKey); }catch(e){}
+            _csOkHideTimer=setTimeout(function(){
+              _csOkHideTimer=null;
+              var el=document.getElementById('csSyncStatus');
+              if(!el || el.dataset.csok!=='1') return;   // 그 사이 빨강으로 바뀌었으면 건드리지 않는다
+              el.style.transition='opacity .45s'; el.style.opacity='0';
+              setTimeout(function(){
+                if(el.dataset.csok!=='1') return;
+                el.style.display='none'; el.style.opacity=''; el.style.transition='';
+              }, 480);
+            }, 6000);
+          }
         }
       }
     }
