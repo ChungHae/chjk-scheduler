@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r165 2026-08-26 -->
+<!-- test build r166 2026-08-26 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -16045,7 +16045,12 @@ function reloadState() {
     var n=Number(String(v).replace(/[,\s원]/g,''));
     return isFinite(n)?n:null;
   }
-  window.fxSwitchTab = function(t){ _fxTab = t; _fxArPage=1; renderFxPage(); };
+  // r166: '자료 업로드' 탭은 마스터 관리자(chjk) 계정만 사용 (사용자 지시)
+  function _fxUpAllowed(){ try{ return !!_vacIsMaster(); }catch(e){ return false; } }
+  window.fxSwitchTab = function(t){
+    if(t==='up' && !_fxUpAllowed()){ showInfoModal('권한','자료 업로드는 마스터 관리자(chjk) 계정만 사용할 수 있습니다.'); return; }
+    _fxTab = t; _fxArPage=1; renderFxPage();
+  };
   function _fxFmt(n){ return (Number(n)||0).toLocaleString(); }
   var _fxRegion='all', _fxQ='', _fxStatusF='all', _fxExp=null, _fxLdFrom='', _fxLdTo='', _fxNotesOpen=false, _fxAdjForm=false, _fxExclOpen=false, _fxArPage=1, _fxArPageSize=20;
   window.fxSetRegion = function(b){ _fxRegion=b; _fxExp=null; _fxSumYear=null; _fxArPage=1; renderFxPage(); };
@@ -16742,7 +16747,9 @@ function reloadState() {
   function renderFxPage(){
     var tb = document.getElementById('fxToolbar'), body = document.getElementById('fxBody');
     if(!tb || !body) return;
+    if(_fxTab==='up' && !_fxUpAllowed()) _fxTab='ar';   // r166: 업로드 탭은 마스터 전용
     var nv=document.getElementById('fxSubNav');
+    if(nv){ var _ub=nv.querySelector('[data-fxtab="up"]'); if(_ub) _ub.style.display = _fxUpAllowed() ? '' : 'none'; }
     if(nv) nv.querySelectorAll('.file-grp-tab').forEach(function(b){ b.classList.toggle('active', b.dataset.fxtab===_fxTab); });
     var metaSpan='<span id="fxMeta" style="font-size:11px;color:#9ca3af;white-space:nowrap"></span>';
     var _empty = function(msg){ return '<div style="text-align:center;padding:56px 20px;color:#b6bec9;font-size:13px;line-height:1.9">'+msg+'</div>'; };
