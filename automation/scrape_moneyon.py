@@ -320,9 +320,11 @@ async def main():
             raw_records = parse_excel(xlsx_path)
             records = [_to_record(r) for r in raw_records]
             print(f"머니온: {fr_str}~{to_str} 기간 {len(records)}건 조회됨")
-            if records:
-                write_transactions("seoul", records)
-                print("Firebase 기록 완료 (branch=seoul)")
+            # (2026-08-26) 0건이어도 기록한다 - write_transactions 는 거래가 없으면
+            # 데이터는 건드리지 않고 _meta(lastSyncedAt)만 갱신한다. 이게 없으면
+            # 거래가 없는 날 앱이 "오늘 자료가 아직 수집되지 않았습니다"를 띄운다.
+            write_transactions("seoul", records)
+            print(f"Firebase 기록 완료 (branch=seoul, {len(records)}건)")
         finally:
             await browser.close()
 

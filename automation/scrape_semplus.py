@@ -418,6 +418,8 @@ async def download_excel(page) -> str:
     만드는 데 20초 넘게 걸린 것으로 보인다(머니온도 같은 증상을 타임아웃
     60초로 늘려 해결). 타임아웃을 60초로 늘리고, 그래도 실패하면 버튼을
     다시 찾아 한 번 더 시도한다(클릭이 씹혔을 가능성 대비)."""
+    global _no_data_dialog
+    _no_data_dialog = False   # 로그인 단계의 대화상자가 섞이지 않게 여기서 초기화
     last_err = None
     for attempt in (1, 2):
         excel_btn = await _first_visible_anywhere(page, 'text=엑셀')
@@ -432,6 +434,12 @@ async def download_excel(page) -> str:
             return path
         except Exception as e:
             last_err = e
+            # "내역 없음" 안내가 떴다면 재시도해도 결과가 같다 - 0건으로 빠져나간다.
+            if _no_data_dialog:
+                raise NoRecordsFound(
+                    "조회 기간에 카드 거래 내역이 없습니다"
+                    " (사이트 안내: 다운로드 할 내역이 존재하지 않습니다)."
+                )
             if attempt == 1:
                 print(f"[경고] 엑셀 다운로드 1회차 실패({e}) - 5초 후 한 번 더 시도합니다.")
                 await page.wait_for_timeout(5000)
@@ -555,15 +563,42 @@ def _to_record(rec: dict) -> dict:
 DEBUG_SCREENSHOT_PATH = "semplus_login_debug.png"
 
 
+# (2026-08-26) 조회 기간에 카드 거래가 한 건도 없으면 SemPlus 는 엑셀을 주지 않고
+# "다운로드 할 내역이 존재하지 않습니다" 대화상자만 띄운다. 그러면 download 이벤트가
+# 영영 오지 않아 60초 타임아웃 -> 스크립트가 exit 1 로 죽고, GitHub Actions 는 빨간
+# 실패로, 앱은 "오늘 자료가 아직 수집되지 않았습니다" 경고로 표시했다.
+# 실제로는 "0건"이라는 정상 상태이므로 실패와 구분해서 처리한다.
+# ※ '세션정보가 없어...' 같은 다른 안내문이 섞여 들어오지 않도록 문구를 넉넉히가 아니라
+#    "내역/데이터/자료가 없다"는 뜻이 분명한 표현만 골라 둔다.
+_NO_DATA_DIALOG_HINTS = (
+    "내역이 존재하지 않",
+    "내역이 없",
+    "조회된 데이터가 없",
+    "데이터가 존재하지 않",
+    "자료가 없",
+)
+
+_no_data_dialog = False
+
+
+class NoRecordsFound(Exception):
+    """조회 결과가 0건이라 내려받을 엑셀이 아예 없는 상태(오류 아님)."""
+
+
 def _log_dialog(dialog):
     """(2026-08-05) 다운로드 이벤트가 아예 안 뜨는 실패가 있었는데, 사이트가
     alert 창(예: '조회된 데이터가 없습니다')을 띄우면 Playwright가 조용히
     닫아버려 로그에 아무것도 안 남는다 - 원인 파악을 위해 대화상자 내용을
     로그로 남기고 닫는다."""
+    global _no_data_dialog
+    msg = ""
     try:
-        print(f"[안내] 사이트 대화상자 감지: {dialog.message!r}")
+        msg = str(dialog.message or "")
+        print(f"[안내] 사이트 대화상자 감지: {msg!r}")
     except Exception:
         pass
+    if any(h in msg for h in _NO_DATA_DIALOG_HINTS):
+        _no_data_dialog = True
     try:
         asyncio.get_event_loop().create_task(dialog.dismiss())
     except Exception:
@@ -579,7 +614,15 @@ async def main():
             await login(page)
             await open_credit_transaction_list(page)
             await search_last_week(page)
-            xlsx_path = await download_excel(page)
+            try:
+                xlsx_path = await download_excel(page)
+            except NoRecordsFound as e:
+                # 0건은 오류가 아니다. 동기화 시각(_meta)만 남기고 정상 종료한다.
+                # 이 기록이 없으면 앱 카드매출 화면이 계속 빨간 경고를 띄운다.
+                print(f"[안내] {e} 0건으로 정상 처리합니다.")
+                write_transactions("hwaseong", [])
+                print("Firebase 기록 완료 (branch=hwaseong, 0건)")
+                return
             raw_records = parse_excel(xlsx_path)
             print(f"SemPlus: 엑셀에서 {len(raw_records)}행 파싱됨 (헤더 확인 필요 시 첫 행 출력 참고)")
             if raw_records:
@@ -604,9 +647,10 @@ async def main():
                 for r in missing_date:
                     r["date"] = today_str
 
-            if records:
-                write_transactions("hwaseong", records)
-                print("Firebase 기록 완료 (branch=hwaseong)")
+            # 0건이어도 기록한다 - write_transactions 는 거래가 없으면 데이터는
+            # 건드리지 않고 _meta(lastSyncedAt)만 갱신하므로 "오늘 수집됨" 판정이 선다.
+            write_transactions("hwaseong", records)
+            print(f"Firebase 기록 완료 (branch=hwaseong, {len(records)}건)")
         except Exception:
             # 실패 시점의 화면을 스크린샷으로 남겨 GitHub Actions 아티팩트로
             # 업로드한다 - 텍스트 오류 메시지만으로 원인을 못 좁힐 때, 이
