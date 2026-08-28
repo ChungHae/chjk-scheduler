@@ -3603,11 +3603,25 @@
   // 방식으로 바꿀 필요가 있음.
   let _csCache = null;
   let _csMetaCache = null;
+  let _csLoadedAt = 0;        // r168: 거래 자료를 마지막으로 읽은 시각(ms)
+  const _CS_STALE_MS = 10*60*1000;   // 10분 지나면 화면 진입 시 다시 읽는다
   // r167: 수집 '완료' 안내는 하루 한 번만 잠깐 보여준다(사용자 요청).
   const _CS_OK_SEEN_KEY = 'sched_cs_ok_banner_day';   // 값 = 'YYYY-M-D'
   let _csOkHideTimer = null;
   let _csMonth;        // {y, m(1-12)} - 처음엔 undefined, 데이터 로드 후 자동 결정
   let _csSelectedDate; // 'YYYYMMDD' | null - 처음엔 undefined
+
+  // r168: _meta(마지막 동기화 시각)만 가볍게 다시 읽는다.
+  //  거래 자료는 그대로 두고 판정 근거만 최신화하므로 화면 진입 때마다 불러도 부담이 없다.
+  async function _csLoadMeta(){
+    if(!_fbDbUrl) return;
+    var branches=['seoul','hwaseong'];
+    var metas = await Promise.all(branches.map(function(b){
+      return _fbFetch(`${_fbDbUrl}/teamdata_test_cardsales/_meta/${b}.json`).then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
+    }));
+    if(!_csMetaCache) _csMetaCache={};
+    branches.forEach(function(b,i){ if(metas[i]!==null || _csMetaCache[b]===undefined) _csMetaCache[b]=metas[i]; });
+  }
 
   async function _csLoadAllData(force){
     if(_csCache && !force) return;
@@ -3618,7 +3632,7 @@
     var metas = await Promise.all(branches.map(function(b){
       return _fbFetch(`${_fbDbUrl}/teamdata_test_cardsales/_meta/${b}.json`).then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
     }));
-    _csCache={}; _csMetaCache={};
+    _csCache={}; _csMetaCache={}; _csLoadedAt=Date.now();
     branches.forEach(function(b,i){
       var byDate={}, tree=results[i];
       if(tree && typeof tree==='object'){
@@ -3807,11 +3821,18 @@
       else{
         var _t0=new Date(_now.getFullYear(),_now.getMonth(),_now.getDate());
         var _bad=[], _ok=[];
+        // r168: 안 된 지점은 "마지막으로 언제 됐는지"를 같이 보여준다(원인 판단이 쉬워짐)
+        var _p2=function(n){ return (n<10?'0':'')+n; };
         ['seoul','hwaseong'].forEach(function(b){
           var mt=_csMetaCache[b];
           var d=(mt&&mt.lastSyncedAt)?new Date(mt.lastSyncedAt):null;
           if(d&&!isNaN(d.getTime())&&d>=_t0) _ok.push(_CS_BRANCH_LABEL[b]);
-          else _bad.push(_CS_BRANCH_LABEL[b]);
+          else{
+            var _when = (d&&!isNaN(d.getTime()))
+              ? (_p2(d.getMonth()+1)+'-'+_p2(d.getDate())+' '+_p2(d.getHours())+':'+_p2(d.getMinutes()))
+              : '기록 없음';
+            _bad.push(_CS_BRANCH_LABEL[b]+'(마지막 '+_when+')');
+          }
         });
         var _csDayKey=_t0.getFullYear()+'-'+(_t0.getMonth()+1)+'-'+_t0.getDate();
         if(_csOkHideTimer){ clearTimeout(_csOkHideTimer); _csOkHideTimer=null; }
@@ -3867,7 +3888,12 @@
     if(!tbody) return;
     if(!_fbDbUrl){ _misuNote('csSummaryGrid','로그인 후 표시됩니다.'); tbody.innerHTML='<tr><td colspan="10" style="padding:40px;text-align:center;color:#ccc">로그인 후 표시됩니다.</td></tr>'; return; }
     try{
-      await _csLoadAllData();
+      // r168: 자료가 오래됐으면 통째로 다시 읽고, 아니면 _meta 만 갱신한다.
+      //  (예전에는 페이지를 처음 연 순간 한 번만 읽어서, 탭을 켜 둔 채 아침 동기화가
+      //   끝나도 "오늘 미수집" 빨간 배너가 종일 남아 있었다)
+      var _stale = (!_csCache) || (Date.now() - _csLoadedAt > _CS_STALE_MS);
+      await _csLoadAllData(_stale);
+      if(!_stale) await _csLoadMeta();
       if(_csMonth===undefined){ _csPickInitialSelection(); }
       _csRenderAll();
     }catch(e){
