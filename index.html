@@ -17251,6 +17251,31 @@ function reloadState() {
   };
   // ── 미배정 입금 패널 (거래처 지정 → 별칭 학습 / 제외 → 복원 가능) ──
   var _fxUnList=[], _fxExList=[], _fxHeldList=[], _fxShowExcl=false, _fxHeldOpen=false;
+  // r169: 미배정·제외 목록 검색어 (목록이 300건에서 잘려 과거 건이 안 보이던 문제)
+  var _fxUnQ='', _fxUnQTimer=null;
+  var _FX_UN_CAP=300;
+  function _fxUnQMatch(e){
+    if(!_fxUnQ) return true;
+    var q=String(_fxUnQ).replace(/[,\s]/g,'').toLowerCase();
+    if(!q) return true;
+    var hay=(String(e.payer||'')+'|'+String(e.date||'')+'|'+String(e.bank||'')+'|'+String(e.amount||''))
+              .replace(/[,\s]/g,'').toLowerCase();
+    return hay.indexOf(q)>=0;
+  }
+  window.fxUnQInput = function(v){
+    if(_fxUnQTimer) clearTimeout(_fxUnQTimer);
+    _fxUnQTimer=setTimeout(function(){ _fxUnQTimer=null; _fxUnQ=String(v==null?'':v).trim(); _fxRenderUnasg(); }, 180);
+  };
+  window.fxUnQClear = function(){
+    if(_fxUnQTimer){ clearTimeout(_fxUnQTimer); _fxUnQTimer=null; }
+    _fxUnQ=''; _fxRenderUnasg();
+  };
+  function _fxUnCapNote(shown, total){
+    if(total<=shown) return '';
+    return '<div style="padding:7px 14px;background:#fffbeb;border-bottom:1px solid #f0d9b8;font-size:11.5px;color:#b45309">'
+      + '전체 '+_fxFmt(total)+'건 중 '+_fxFmt(shown)+'건만 표시됩니다 &mdash; 위 검색창에 입금자명·날짜·금액을 넣어 좁혀보세요.'
+      + '</div>';
+  }
   window.fxToggleExcl = function(){ _fxShowExcl=!_fxShowExcl; _fxRenderUnasg(); };
   // ── r133: 일정>업체 목록 기준 거래처 옵션 ──
   function _fxClientOpts(){
@@ -17565,14 +17590,21 @@ function reloadState() {
     _fxExList = fxDeposits.filter(function(e){ return e.excluded; });
     if(!_fxUnList.length && !_fxHeldList.length && !_fxExList.length && !Object.keys(fxAlias).length && !_fxAsgBatches().length && !_fxNoBizAssigned().length){ host.innerHTML=''; return; }
     _fxUnList.sort(function(a,b){ return a.date<b.date?1:a.date>b.date?-1:0; });
+    // r169: 검색 필터. 행 버튼이 _fxUnList[i]/_fxExList[i] 인덱스로 동작하므로 배열 자체를 거른다.
+    //  보류 목록은 [전체 다시 확인]이 목록 전체를 푸는 버튼이라 거르지 않는다.
+    var _unAll=_fxUnList.length, _exAll=_fxExList.length;
+    if(_fxUnQ){
+      _fxUnList=_fxUnList.filter(_fxUnQMatch);
+      _fxExList=_fxExList.filter(_fxUnQMatch);
+    }
     var TH='padding:8px 10px;background:#fafafa;color:#888;font-weight:500;font-size:11.5px;text-align:center;border-bottom:2px solid #d3dce6;white-space:nowrap';
     var TD='padding:7px 10px;border-bottom:1px solid #eef2f7;font-size:12px;white-space:nowrap;vertical-align:middle';
     var html='';
     html += _fxNoBizBarHtml();  // r155: 사업자번호 없이 배정된 입금 점검
     html += _fxAsgBarHtml();   // r154: 최근 거래처 배정 / 되돌리기
-    if(_fxUnList.length){
+    if(_unAll){
       fxUnDdHide();
-      var rows=_fxUnList.slice(0,300).map(function(e,i){
+      var rows=_fxUnList.slice(0,_FX_UN_CAP).map(function(e,i){
         return '<tr>'
           + '<td style="'+TD+';text-align:center;color:#6b7280">'+e.biz+'</td>'
           + '<td style="'+TD+';color:#6b7280">'+e.date+'</td>'
@@ -17587,22 +17619,29 @@ function reloadState() {
           + '</div></td></tr>';
       }).join('');
       html += '<div style="background:#fff;border:1px solid #d6deea">'
-        + '<div style="padding:10px 14px;border-bottom:1px solid #e3e9f0;font-size:12.5px;font-weight:700;color:#d97706;display:flex;align-items:center;gap:8px;flex-wrap:wrap">미배정 입금 '+_fxUnList.length+'건'
+        + '<div style="padding:10px 14px;border-bottom:1px solid #e3e9f0;font-size:12.5px;font-weight:700;color:#d97706;display:flex;align-items:center;gap:8px;flex-wrap:wrap">미배정 입금 '+_fxFmt(_unAll)+'건'
+        + (_fxUnQ?'<span style="font-weight:400;color:#b45309">(검색 '+_fxFmt(_fxUnList.length)+'건)</span>':'')
+        + '<input type="text" id="fxUnQ" class="q-flat" placeholder="입금자·날짜·금액 검색…" autocomplete="off" value="'+esc(_fxUnQ)+'" oninput="fxUnQInput(this.value)" style="width:190px;border:1px solid #d6deea !important;background:#fff;font-weight:400">'
+        + (_fxUnQ?'<button type="button" class="btn" onclick="fxUnQClear()" style="font-size:11px;padding:2px 10px;border:1px solid #d6deea;color:#6b7280;background:#fff;font-weight:400">검색 지우기</button>':'')
         + ' <span style="font-weight:400;color:#8a94a6">— 거래처를 지정하면 같은 입금자명은 다음부터 자동 배정됩니다. 회사 수금이 아니면 제외하세요.</span>'
         + '<span style="flex:1"></span>'
         + (_isAdmin()?'<button type="button" class="btn" onclick="fxReassignRun()" style="font-size:11px;padding:2px 10px;border:1px solid #1B3A6B;color:#14305c;background:#fff;font-weight:400" title="별칭·업체명·대표자명 규칙으로 미배정·보류 건을 다시 매칭">자동 배정 재실행</button>':'')
         + (_isAdmin()?'<button type="button" class="btn" onclick="fxAutoExclRun()" style="font-size:11px;padding:2px 10px;border:1px solid #dc2626;color:#dc2626;background:#fff;font-weight:400" title="입금자명이 카드·결제 정산 형식(카드 / 카드사명+숫자 / 결+숫자)인 건을 일괄 제외">카드·결제 자동 제외</button>':'')
         + '</div>'
-        + '<div style="max-height:420px;overflow:auto"><table style="width:100%;border-collapse:collapse">'
-        + '<thead><tr><th style="'+TH+'">사업장</th><th style="'+TH+'">입금일</th><th style="'+TH+'">은행</th><th style="'+TH+';text-align:left">입금자</th><th style="'+TH+';text-align:right">금액</th><th style="'+TH+';text-align:left">거래처 지정</th></tr></thead>'
-        + '<tbody>'+rows+'</tbody></table></div></div>';
+        + _fxUnCapNote(Math.min(_fxUnList.length,_FX_UN_CAP), _fxUnList.length)
+        + (_fxUnList.length
+            ? ('<div style="max-height:420px;overflow:auto"><table style="width:100%;border-collapse:collapse">'
+               + '<thead><tr><th style="'+TH+'">사업장</th><th style="'+TH+'">입금일</th><th style="'+TH+'">은행</th><th style="'+TH+';text-align:left">입금자</th><th style="'+TH+';text-align:right">금액</th><th style="'+TH+';text-align:left">거래처 지정</th></tr></thead>'
+               + '<tbody>'+rows+'</tbody></table></div>')
+            : '<div style="padding:28px;text-align:center;color:#b6bec9;font-size:12.5px">검색 결과가 없습니다.</div>')
+        + '</div>';
     }
     if(_fxHeldList.length){
       html += '<div style="margin-top:8px;font-size:11.5px;color:#b45309;font-weight:700">보류한 입금 '+_fxHeldList.length+'건 — 다음에 다시 확인 '
         + '<button type="button" class="btn" onclick="fxHeldToggle()" style="font-size:11px;padding:2px 10px;border:1px solid #d6deea;color:#6b7280;background:#fff;font-weight:400">'+(_fxHeldOpen?'접기':'보기')+'</button>'
         + ' <button type="button" class="btn" onclick="fxUnholdAll()" style="font-size:11px;padding:2px 10px;border:1px solid #b45309;color:#b45309;background:#fff;font-weight:400">전체 다시 확인</button></div>';
       if(_fxHeldOpen){
-        var hrows=_fxHeldList.slice(0,300).map(function(e,i){
+        var hrows=_fxHeldList.slice(0,_FX_UN_CAP).map(function(e,i){
           return '<tr>'
             + '<td style="'+TD+';text-align:center;color:#6b7280">'+e.biz+'</td>'
             + '<td style="'+TD+';color:#6b7280">'+e.date+'</td>'
@@ -17614,14 +17653,17 @@ function reloadState() {
             +   '<button type="button" class="btn" onclick="fxExcludeHeld('+i+')" style="font-size:11.5px;padding:3px 12px;border:1px solid #dc2626;color:#dc2626;background:#fff">제외</button>'
             + '</div></td></tr>';
         }).join('');
-        html += '<div style="margin-top:6px;background:#fff;border:1px solid #f0d9b8;max-height:300px;overflow:auto"><table style="width:100%;border-collapse:collapse"><tbody>'+hrows+'</tbody></table></div>';
+        html += '<div style="margin-top:6px;background:#fff;border:1px solid #f0d9b8">'
+          + _fxUnCapNote(Math.min(_fxHeldList.length,_FX_UN_CAP), _fxHeldList.length)
+          + '<div style="max-height:300px;overflow:auto"><table style="width:100%;border-collapse:collapse"><tbody>'+hrows+'</tbody></table></div></div>';
       }
     }
-    if(_fxExList.length){
-      html += '<div style="margin-top:8px;font-size:11.5px;color:#9ca3af">제외한 입금 '+_fxExList.length+'건 '
+    if(_exAll){
+      html += '<div style="margin-top:8px;font-size:11.5px;color:#9ca3af">제외한 입금 '+_fxFmt(_exAll)+'건 '
+        + (_fxUnQ?'<span style="color:#b45309">(검색 '+_fxFmt(_fxExList.length)+'건)</span> ':'')
         + '<button type="button" class="btn" onclick="fxToggleExcl()" style="font-size:11px;padding:2px 10px;border:1px solid #d6deea;color:#6b7280;background:#fff">'+(_fxShowExcl?'접기':'보기')+'</button></div>';
       if(_fxShowExcl){
-        var rows2=_fxExList.slice(0,300).map(function(e,i){
+        var rows2=_fxExList.slice(0,_FX_UN_CAP).map(function(e,i){
           return '<tr>'
             + '<td style="'+TD+';text-align:center;color:#9ca3af">'+e.biz+'</td>'
             + '<td style="'+TD+';color:#9ca3af">'+e.date+'</td>'
@@ -17630,7 +17672,12 @@ function reloadState() {
             + '<td style="'+TD+';text-align:right;color:#9ca3af">'+_fxFmt(e.amount)+'</td>'
             + '<td style="'+TD+'"><button type="button" class="btn" onclick="fxRestoreDep('+i+')" style="font-size:11.5px;padding:3px 12px;border:1px solid #5b7ba6;color:#5b7ba6;background:#fff">복원</button></td></tr>';
         }).join('');
-        html += '<div style="margin-top:6px;background:#fff;border:1px solid #e3e9f0;max-height:260px;overflow:auto"><table style="width:100%;border-collapse:collapse"><tbody>'+rows2+'</tbody></table></div>';
+        html += '<div style="margin-top:6px;background:#fff;border:1px solid #e3e9f0">'
+          + _fxUnCapNote(Math.min(_fxExList.length,_FX_UN_CAP), _fxExList.length)
+          + (_fxExList.length
+              ? '<div style="max-height:260px;overflow:auto"><table style="width:100%;border-collapse:collapse"><tbody>'+rows2+'</tbody></table></div>'
+              : '<div style="padding:20px;text-align:center;color:#b6bec9;font-size:12px">검색 결과가 없습니다.</div>')
+          + '</div>';
       }
     }
     var akeys=Object.keys(fxAlias).sort();
@@ -17661,6 +17708,13 @@ function reloadState() {
       }
     }
     host.innerHTML=html;
+    // r169: innerHTML 로 다시 그리면 포커스가 날아가므로 검색 중이면 되돌려 준다.
+    if(_fxUnQ){
+      var _qi=document.getElementById('fxUnQ');
+      if(_qi && document.activeElement!==_qi){
+        try{ _qi.focus(); _qi.setSelectionRange(_qi.value.length, _qi.value.length); }catch(_e){}
+      }
+    }
   }
   // ── r155: 사업자번호 판정 ──────────────────────────────
   //  계산서와 맞출 수 있으려면 사업자번호가 있어야 한다. 단 기초이월·조정은
