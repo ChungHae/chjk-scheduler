@@ -14,8 +14,24 @@ RECOVERY.md(복구 절차·해시 로그)와 함께 읽을 것.
 
 ## 2. 절대 규칙 (사용자 지정)
 1) 브라우저 자동화는 Naver Whale(claude-in-chrome)만 사용. 열린 탭 전체 닫기 금지.
+   ★ 쓸 브라우저 이름은 **"SJ'S NAVER WHALE"** — 이 프로젝트 작업은 전부 이 브라우저에서 한다.
+     계정에 크롬이 같이 붙어 있는 때가 있고 그쪽은 GitHub 이 728haven-oss 로 로그인돼 있어 업로드가 막힌다
+     ("Uploads are disabled" / 파일 input 0개). 2026-08-31 에 실제로 그 크롬을 잡고 작업해
+     "배포를 못 한다"고 잘못 보고한 적 있음 — 반복 금지.
+   ★ 주의: list_connected_browsers 목록에는 지정한 이름이 아니라 "Browser 1 / Browser 2" 처럼
+     일반 이름으로 나온다(2026-08-31 실측). deviceId 도 세션마다 다르다. 즉 목록만 보고는 못 고른다.
+   ★ 브라우저 확인 절차 — 업로드/커밋 전에 반드시:
+       ① 아무 GitHub 페이지에서 meta[name="user-login"] 값을 읽는다.
+       ② 'ChungHae' 면 맞는 브라우저다. '728haven-oss' 거나 upload 페이지에
+          "Uploads are disabled"/파일 input 0개가 보이면 잘못 잡은 것이다.
+       ③ 그러면 switch_browser 를 부른다(연결된 모든 확장에 확인창 -> 사용자가 Whale 에서 Connect).
+          연결되면 결과에 "SJ'S NAVER WHALE" 이라고 나온다. 그 뒤 ①을 다시 확인.
+     사용자에게 "GitHub 로그인이 바뀐 것 같다"고 말하기 전에 반드시 브라우저부터 바꿔볼 것.
+     (2026-08-31: 이 순서를 안 밟고 크롬을 잡은 채 "로그인이 728haven-oss라 배포를 못 한다"고
+      잘못 보고함. 실제로는 Whale 이 계속 ChungHae 로 로그인돼 있었다.)
 2) 자격증명 직접 입력·저장 금지. 이미 로그인된 세션만 사용 (Whale에 ChungHae GitHub 로그인됨).
    728haven-oss 계정이 로그인된 브라우저는 제외.
+   업로드 직전 meta[name="user-login"] 이 'ChungHae' 인지 확인(1번 절차로 브라우저를 맞춘 뒤에도 한 번 더).
 3) 커밋은 전부 GitHub 웹 업로드 흐름: github.com/ChungHae/chjk-scheduler/upload/main[/test|/automation/rebuild]
    → find "Choose your files file input" → file_upload → javascript_tool로 5~8초 대기 후
    #commit-summary-input 채우고 radio value==='direct' 확인 후 submit → 20초 후 fresh clone으로
