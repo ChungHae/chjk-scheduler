@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r170 2026-08-31 -->
+<!-- test build r171 2026-08-31 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -14669,10 +14669,11 @@ function reloadState() {
     if(_clxQTimer){ clearTimeout(_clxQTimer); _clxQTimer=null; }
     _clxQ = String(v||'').trim().toLowerCase(); _clxPage = 1; _clxRender();
   }
+  // r171: 이 입력칸은 정적 마크업이라 목록을 다시 그려도 교체되지 않는다.
+  //  따라서 조합 중에도 그냥 걸러도 안전하다(조합이 끊기지 않음).
   window.clxSearchInput = function(v, ev){
-    if(ev && ev.isComposing) return;   // 한글 조합 중에는 거르지 않는다
     if(_clxQTimer) clearTimeout(_clxQTimer);
-    _clxQTimer=setTimeout(function(){ _clxQTimer=null; _clxQApply(v); }, 180);
+    _clxQTimer=setTimeout(function(){ _clxQTimer=null; _clxQApply(v); }, 200);
   };
   window.clxSearchEnd = function(v){   // 조합 완료 / 엔터 — 즉시 반영
     _clxQApply(v);
@@ -17490,19 +17491,27 @@ function reloadState() {
               .replace(/[,\s]/g,'').toLowerCase();
     return hay.indexOf(q)>=0;
   }
-  // r170: 한글 조합 중에 패널을 다시 그리면 입력칸이 새 것으로 갈려 조합이 끊긴다
-  //  ('씬' -> 'ㅆㅣㄴ'). 조합이 끝난 뒤에만 거른다.
-  window.fxUnQInput = function(v, ev){
-    if(ev && ev.isComposing) return;   // 조합 중 — 아무것도 하지 않는다
+  // r171: 검색창은 다시 그리는 영역(#fxUnBody) 밖에 있으므로 입력 중에 교체되지 않는다.
+  //  그래서 조합(한글) 중에도 그냥 걸러도 안전하다 — 조합이 끊길 일이 없다.
+  function _fxUnQRun(){
+    _fxUnQTimer=null;
+    var el=document.getElementById('fxUnQ');
+    var v=el ? el.value : '';
+    var nq=String(v==null?'':v).trim();
+    if(nq===_fxUnQ) return;      // 값이 그대로면 굳이 다시 그리지 않는다
+    _fxUnQ=nq; _fxRenderUnasg();
+  }
+  window.fxUnQInput = function(){
     if(_fxUnQTimer) clearTimeout(_fxUnQTimer);
-    _fxUnQTimer=setTimeout(function(){ _fxUnQTimer=null; _fxUnQ=String(v==null?'':v).trim(); _fxRenderUnasg(); }, 180);
+    _fxUnQTimer=setTimeout(_fxUnQRun, 200);
   };
-  // 조합이 끝나는 순간(한 글자 완성)에 그 값으로 거른다
-  window.fxUnQEnd = function(v){
+  window.fxUnQEnd = function(){   // 조합 완료 — 곧바로 반영
     if(_fxUnQTimer) clearTimeout(_fxUnQTimer);
-    _fxUnQTimer=setTimeout(function(){ _fxUnQTimer=null; _fxUnQ=String(v==null?'':v).trim(); _fxRenderUnasg(); }, 180);
+    _fxUnQTimer=setTimeout(_fxUnQRun, 0);
   };
   window.fxUnQClear = function(){
+    var q=document.getElementById('fxUnQ');
+    if(q){ q.value=''; try{ q.focus(); }catch(_e){} }
     if(_fxUnQTimer){ clearTimeout(_fxUnQTimer); _fxUnQTimer=null; }
     _fxUnQ=''; _fxRenderUnasg();
   };
@@ -17818,13 +17827,40 @@ function reloadState() {
     fxUnDdHide();
     fxAssignDep(i);
   };
+  // r171: 검색창(#fxUnQBar)은 한 번만 만들고 본문(#fxUnBody)만 다시 그린다.
+  //  입력칸이 교체되지 않아야 한글 조합이 안 끊기고 커서도 안 사라진다.
+  function _fxUnShell(host){
+    var bar=host.querySelector('#fxUnQBar');
+    if(!bar){
+      host.innerHTML='<div id="fxUnQBar" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;background:#fff;border:1px solid #d6deea;border-bottom:0;padding:9px 14px;font-size:12.5px"></div>'
+        + '<div id="fxUnBody"></div>';
+      bar=host.querySelector('#fxUnQBar');
+      bar.innerHTML='<span style="font-weight:700;color:#d97706">미배정 입금</span>'
+        + '<input type="text" id="fxUnQ" class="q-flat" placeholder="입금자·날짜·금액 검색…" autocomplete="off" style="width:210px;border:1px solid #d6deea !important;background:#fff;font-weight:400">'
+        + '<button type="button" id="fxUnQClr" class="btn" style="font-size:11px;padding:2px 10px;border:1px solid #d6deea;color:#6b7280;background:#fff;font-weight:400">지우기</button>'
+        + '<span id="fxUnQInfo" style="color:#8a94a6;font-weight:400"></span>';
+      var el=bar.querySelector('#fxUnQ');
+      el.addEventListener('input', function(){ fxUnQInput(); });
+      el.addEventListener('compositionend', function(){ fxUnQEnd(); });
+      el.addEventListener('keydown', function(ev){ if(ev.key==='Escape'){ this.value=''; fxUnQEnd(); } });
+      bar.querySelector('#fxUnQClr').addEventListener('click', function(){
+        var q=document.getElementById('fxUnQ');
+        if(q){ q.value=''; try{ q.focus(); }catch(_e){} }   // 지워도 커서는 검색창에 남는다
+        fxUnQEnd();
+      });
+    }
+    return { bar:bar, body:host.querySelector('#fxUnBody') };
+  }
   function _fxRenderUnasg(){
     var host=document.getElementById('fxUnasg'); if(!host) return;
     _fxUnList = fxDeposits.filter(function(e){ return !e.vendor && !e.excluded && !e.held; });
     _fxHeldList = fxDeposits.filter(function(e){ return !e.vendor && !e.excluded && e.held; });
     _fxHeldList.sort(function(a,b){ return a.date<b.date?1:a.date>b.date?-1:0; });
     _fxExList = fxDeposits.filter(function(e){ return e.excluded; });
-    if(!_fxUnList.length && !_fxHeldList.length && !_fxExList.length && !Object.keys(fxAlias).length && !_fxAsgBatches().length && !_fxNoBizAssigned().length){ host.innerHTML=''; return; }
+    if(!_fxUnList.length && !_fxHeldList.length && !_fxExList.length && !Object.keys(fxAlias).length && !_fxAsgBatches().length && !_fxNoBizAssigned().length){
+      if(!_fxUnQ){ host.innerHTML=''; }   // 검색 중이면 껍데기(검색창)를 남겨 둔다
+      return;
+    }
     _fxUnList.sort(function(a,b){ return a.date<b.date?1:a.date>b.date?-1:0; });
     // r169: 검색 필터. 행 버튼이 _fxUnList[i]/_fxExList[i] 인덱스로 동작하므로 배열 자체를 거른다.
     //  보류 목록은 [전체 다시 확인]이 목록 전체를 푸는 버튼이라 거르지 않는다.
@@ -17857,8 +17893,6 @@ function reloadState() {
       html += '<div style="background:#fff;border:1px solid #d6deea">'
         + '<div style="padding:10px 14px;border-bottom:1px solid #e3e9f0;font-size:12.5px;font-weight:700;color:#d97706;display:flex;align-items:center;gap:8px;flex-wrap:wrap">미배정 입금 '+_fxFmt(_unAll)+'건'
         + (_fxUnQ?'<span style="font-weight:400;color:#b45309">(검색 '+_fxFmt(_fxUnList.length)+'건)</span>':'')
-        + '<input type="text" id="fxUnQ" class="q-flat" placeholder="입금자·날짜·금액 검색…" autocomplete="off" value="'+esc(_fxUnQ)+'" oninput="fxUnQInput(this.value, event)" style="width:190px;border:1px solid #d6deea !important;background:#fff;font-weight:400">'
-        + (_fxUnQ?'<button type="button" class="btn" onclick="fxUnQClear()" style="font-size:11px;padding:2px 10px;border:1px solid #d6deea;color:#6b7280;background:#fff;font-weight:400">검색 지우기</button>':'')
         + ' <span style="font-weight:400;color:#8a94a6">— 거래처를 지정하면 같은 입금자명은 다음부터 자동 배정됩니다. 회사 수금이 아니면 제외하세요.</span>'
         + '<span style="flex:1"></span>'
         + (_isAdmin()?'<button type="button" class="btn" onclick="fxReassignRun()" style="font-size:11px;padding:2px 10px;border:1px solid #1B3A6B;color:#14305c;background:#fff;font-weight:400" title="별칭·업체명·대표자명 규칙으로 미배정·보류 건을 다시 매칭">자동 배정 재실행</button>':'')
@@ -17943,16 +17977,16 @@ function reloadState() {
           + '<tbody>'+arows+'</tbody></table></div>';
       }
     }
-    host.innerHTML=html;
-    // r169: innerHTML 로 다시 그리면 포커스가 날아가므로 검색 중이면 되돌려 준다.
-    var _qi=document.getElementById('fxUnQ');
-    if(_qi && !_qi.__imeBound){
-      _qi.__imeBound=1;
-      _qi.addEventListener('compositionend', function(){ fxUnQEnd(this.value); });
-    }
-    if(_fxUnQ && _qi && document.activeElement!==_qi){
-      try{ _qi.focus(); _qi.setSelectionRange(_qi.value.length, _qi.value.length); }catch(_e){}
-    }
+    // r171: 본문만 갈아끼운다. 검색창은 건드리지 않으므로 조합·커서가 그대로 유지된다.
+    var _sh=_fxUnShell(host);
+    _sh.body.innerHTML=html;
+    _sh.bar.style.display = _unAll ? 'flex' : 'none';
+    var _inf=document.getElementById('fxUnQInfo');
+    if(_inf) _inf.textContent = _fxUnQ
+      ? ('전체 '+_fxFmt(_unAll)+'건 중 '+_fxFmt(_fxUnList.length)+'건 일치')
+      : ('전체 '+_fxFmt(_unAll)+'건 — 이름·날짜·금액으로 좁혀보세요');
+    var _clr=document.getElementById('fxUnQClr');
+    if(_clr) _clr.style.visibility = _fxUnQ ? 'visible' : 'hidden';
   }
   // ── r155: 사업자번호 판정 ──────────────────────────────
   //  계산서와 맞출 수 있으려면 사업자번호가 있어야 한다. 단 기초이월·조정은
