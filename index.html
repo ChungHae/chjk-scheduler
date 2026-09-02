@@ -94,6 +94,10 @@
     #invItemOverlay input, #invItemOverlay select, #invItemOverlay .btn,
     #invLogOverlay input, #invLogOverlay select, #invLogOverlay .btn,
     #invExcelGuideOverlay .btn { border-radius:0 !important; }
+    /* r170: 창(모달)과 떠 있는 목록의 버튼·입력칸은 항상 각지게 — 화면마다 모양이 달라 보이지 않도록 */
+    #confirmOverlay button, #infoOverlay button, #promptOverlay button,
+    #addClientOverlay button, #addClientOverlay input[type=text],
+    #fxUnDdG button, #fxUnasg button { border-radius:0 !important; }
     #pagePurchase input, #pagePurchase select, #pagePurchase .btn { border-radius:0 !important; }
     #pageLinks input, #pageLinks select, #pageLinks .btn { border-radius:0 !important; }
     #pageFiles .btn { border-radius:0 !important; }
@@ -2352,7 +2356,7 @@
   <div id="pageClients" class="page-section">
     <div class="q-toolbar inv-toolbar">
       <span class="inv-flat-label">업체 관리</span>
-      <input type="text" id="clxSearch" class="q-flat" placeholder="업체명/사업자번호 검색…" autocomplete="off" oninput="clxSearchInput(this.value)">
+      <input type="text" id="clxSearch" class="q-flat" placeholder="업체명/사업자번호 검색…" autocomplete="off" oninput="clxSearchInput(this.value, event)" onkeydown="if(event.key==='Enter'){event.preventDefault();clxSearchEnd(this.value);}">
       <span class="inv-flat-div"></span>
       <div id="clxBrBtns" style="display:flex;gap:4px"></div>
       <span id="clxMigWrap"></span>
@@ -4650,15 +4654,16 @@ function reloadState() {
     var isEdit=!!editOrig;
     var ov=document.getElementById('addClientOverlay');
     if(!ov){ ov=document.createElement('div'); ov.id='addClientOverlay'; ov.style.cssText='position:fixed;inset:0;z-index:2000001;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px'; document.body.appendChild(ov); }
-    ov.innerHTML='<div style="width:100%;max-width:380px;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 14px 44px rgba(27,58,107,.22)">'
-      +'<div style="padding:16px 20px;border-bottom:2px solid #1B3A6B;display:flex;justify-content:space-between;align-items:center"><span style="font-size:16px;font-weight:700;color:#1B3A6B">'+(isEdit?'거래처 수정':'신규 업체 추가')+'</span><button class="btn" onclick="document.getElementById(\'addClientOverlay\').style.display=\'none\'" style="padding:4px 10px">닫기</button></div>'
+    // r170: 다른 창(확인창 등)은 전부 각진 디자인인데 이 창만 둥글어서 버튼 모양이 달라 보였다.
+    ov.innerHTML='<div style="width:100%;max-width:380px;background:#fff;border:1px solid #c8d2de;border-radius:0;overflow:hidden">'
+      +'<div style="padding:9px 14px;border-bottom:1px solid #c8d2de;background:#f4f6f9;display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="display:flex;align-items:center;gap:8px"><span style="width:3px;height:15px;background:#1a1a1a"></span><span style="font-size:13.5px;font-weight:700;color:#1a1a1a">'+(isEdit?'거래처 수정':'신규 업체 추가')+'</span></span><button type="button" onclick="document.getElementById(\'addClientOverlay\').style.display=\'none\'" style="padding:0 10px;height:24px;background:#fff;border:1px solid #c8d2de;border-radius:0;font-size:11.5px;color:#4b5563;cursor:pointer;font-family:inherit">닫기</button></div>'
       +'<div style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">'
-      +'<div><label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:5px">업체명</label><input id="acNewName" type="text" value="'+esc(name||'')+'" style="width:100%;box-sizing:border-box;padding:8px 11px;border:1.5px solid #e5e5e5;border-radius:8px;font-size:13px;font-family:inherit"></div>'
-      +'<div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><label style="font-size:12px;font-weight:600;color:#555">사업자번호</label><label style="font-weight:600;font-size:11px;color:#1B3A6B;display:inline-flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="acNewIsNew" onchange="var b=document.getElementById(\'acNewBiz\'); b.disabled=this.checked; b.style.background=this.checked?\'#f3f4f6\':\'#fff\'; if(this.checked) b.value=\'\';">신규업체 (번호 미정)</label></div><input id="acNewBiz" type="text" value="'+esc(editBiz||'')+'" placeholder="000-00-00000" style="width:100%;box-sizing:border-box;padding:8px 11px;border:1.5px solid #e5e5e5;border-radius:8px;font-size:13px;font-family:inherit"></div>'
+      +'<div><label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:5px">업체명</label><input id="acNewName" type="text" value="'+esc(name||'')+'" style="width:100%;box-sizing:border-box;padding:7px 10px;border:1px solid #c8d2de;border-radius:0;font-size:12.5px;font-family:inherit"></div>'
+      +'<div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><label style="font-size:12px;font-weight:600;color:#555">사업자번호</label><label style="font-weight:600;font-size:11px;color:#1B3A6B;display:inline-flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="acNewIsNew" onchange="var b=document.getElementById(\'acNewBiz\'); b.disabled=this.checked; b.style.background=this.checked?\'#f3f4f6\':\'#fff\'; if(this.checked) b.value=\'\';">신규업체 (번호 미정)</label></div><input id="acNewBiz" type="text" value="'+esc(editBiz||'')+'" placeholder="000-00-00000" style="width:100%;box-sizing:border-box;padding:7px 10px;border:1px solid #c8d2de;border-radius:0;font-size:12.5px;font-family:inherit"></div>'
       +'</div>'
-      +'<div style="display:flex;gap:8px;justify-content:flex-end;padding:0 20px 18px">'
-      +'<button class="btn" onclick="document.getElementById(\'addClientOverlay\').style.display=\'none\'">닫기</button>'
-      +'<button class="btn btn-primary" id="acNewSave">'+(isEdit?'저장':'추가')+'</button>'
+      +'<div style="display:flex;gap:6px;justify-content:flex-end;padding:0 14px 14px">'
+      +'<button type="button" onclick="document.getElementById(\'addClientOverlay\').style.display=\'none\'" style="padding:0 12px;height:28px;background:#fff;border:1px solid #c8d2de;border-radius:0;font-size:12px;color:#4b5563;cursor:pointer;font-family:inherit">닫기</button>'
+      +'<button type="button" id="acNewSave" style="padding:0 14px;height:28px;border:1px solid #1B3A6B;background:#1B3A6B;color:#fff;border-radius:0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">'+(isEdit?'저장':'추가')+'</button>'
       +'</div></div>';
     ov.style.display='flex';
     setTimeout(function(){ var b=document.getElementById('acNewBiz'); if(b) b.focus(); },50);
@@ -14456,8 +14461,30 @@ function reloadState() {
     localStorage.setItem('sched_local_ts', Date.now().toString());
     try{ debouncedFbSave(); }catch(_e){}
   }
-  window.clxSearchInput = function(v){ _clxQ = String(v||'').trim().toLowerCase(); _clxPage = 1; _clxRender(); };
+  // r170: 글자마다 목록을 통째로 다시 그리느라 타이핑이 밀렸다(4,000곳 기준 글자당 21ms).
+  //  매입매출 검색(r151)과 같은 180ms 디바운스 + 한글 조합 보호를 넣는다.
+  var _clxQTimer=null;
+  function _clxQApply(v){
+    if(_clxQTimer){ clearTimeout(_clxQTimer); _clxQTimer=null; }
+    _clxQ = String(v||'').trim().toLowerCase(); _clxPage = 1; _clxRender();
+  }
+  window.clxSearchInput = function(v, ev){
+    if(ev && ev.isComposing) return;   // 한글 조합 중에는 거르지 않는다
+    if(_clxQTimer) clearTimeout(_clxQTimer);
+    _clxQTimer=setTimeout(function(){ _clxQTimer=null; _clxQApply(v); }, 180);
+  };
+  window.clxSearchEnd = function(v){   // 조합 완료 / 엔터 — 즉시 반영
+    _clxQApply(v);
+  };
+  // r170: 업체 검색창의 한글 조합 완료 처리 (인라인 속성으로는 안 붙는다)
+  function _clxBindIme(){
+    var el=document.getElementById('clxSearch');
+    if(!el || el.__imeBound) return;
+    el.__imeBound=1;
+    el.addEventListener('compositionend', function(){ clxSearchInput(this.value); });
+  }
   window.renderClientsPage = function(){
+    _clxBindIme();
     if(_clxExp!==null) return;   // 열람/편집 중에는 동기화 갱신으로 화면을 덮지 않는다
     var ae=document.activeElement;
     if(ae && ae.id==='clxSearch') return;
@@ -17262,7 +17289,15 @@ function reloadState() {
               .replace(/[,\s]/g,'').toLowerCase();
     return hay.indexOf(q)>=0;
   }
-  window.fxUnQInput = function(v){
+  // r170: 한글 조합 중에 패널을 다시 그리면 입력칸이 새 것으로 갈려 조합이 끊긴다
+  //  ('씬' -> 'ㅆㅣㄴ'). 조합이 끝난 뒤에만 거른다.
+  window.fxUnQInput = function(v, ev){
+    if(ev && ev.isComposing) return;   // 조합 중 — 아무것도 하지 않는다
+    if(_fxUnQTimer) clearTimeout(_fxUnQTimer);
+    _fxUnQTimer=setTimeout(function(){ _fxUnQTimer=null; _fxUnQ=String(v==null?'':v).trim(); _fxRenderUnasg(); }, 180);
+  };
+  // 조합이 끝나는 순간(한 글자 완성)에 그 값으로 거른다
+  window.fxUnQEnd = function(v){
     if(_fxUnQTimer) clearTimeout(_fxUnQTimer);
     _fxUnQTimer=setTimeout(function(){ _fxUnQTimer=null; _fxUnQ=String(v==null?'':v).trim(); _fxRenderUnasg(); }, 180);
   };
@@ -17621,7 +17656,7 @@ function reloadState() {
       html += '<div style="background:#fff;border:1px solid #d6deea">'
         + '<div style="padding:10px 14px;border-bottom:1px solid #e3e9f0;font-size:12.5px;font-weight:700;color:#d97706;display:flex;align-items:center;gap:8px;flex-wrap:wrap">미배정 입금 '+_fxFmt(_unAll)+'건'
         + (_fxUnQ?'<span style="font-weight:400;color:#b45309">(검색 '+_fxFmt(_fxUnList.length)+'건)</span>':'')
-        + '<input type="text" id="fxUnQ" class="q-flat" placeholder="입금자·날짜·금액 검색…" autocomplete="off" value="'+esc(_fxUnQ)+'" oninput="fxUnQInput(this.value)" style="width:190px;border:1px solid #d6deea !important;background:#fff;font-weight:400">'
+        + '<input type="text" id="fxUnQ" class="q-flat" placeholder="입금자·날짜·금액 검색…" autocomplete="off" value="'+esc(_fxUnQ)+'" oninput="fxUnQInput(this.value, event)" style="width:190px;border:1px solid #d6deea !important;background:#fff;font-weight:400">'
         + (_fxUnQ?'<button type="button" class="btn" onclick="fxUnQClear()" style="font-size:11px;padding:2px 10px;border:1px solid #d6deea;color:#6b7280;background:#fff;font-weight:400">검색 지우기</button>':'')
         + ' <span style="font-weight:400;color:#8a94a6">— 거래처를 지정하면 같은 입금자명은 다음부터 자동 배정됩니다. 회사 수금이 아니면 제외하세요.</span>'
         + '<span style="flex:1"></span>'
@@ -17709,11 +17744,13 @@ function reloadState() {
     }
     host.innerHTML=html;
     // r169: innerHTML 로 다시 그리면 포커스가 날아가므로 검색 중이면 되돌려 준다.
-    if(_fxUnQ){
-      var _qi=document.getElementById('fxUnQ');
-      if(_qi && document.activeElement!==_qi){
-        try{ _qi.focus(); _qi.setSelectionRange(_qi.value.length, _qi.value.length); }catch(_e){}
-      }
+    var _qi=document.getElementById('fxUnQ');
+    if(_qi && !_qi.__imeBound){
+      _qi.__imeBound=1;
+      _qi.addEventListener('compositionend', function(){ fxUnQEnd(this.value); });
+    }
+    if(_fxUnQ && _qi && document.activeElement!==_qi){
+      try{ _qi.focus(); _qi.setSelectionRange(_qi.value.length, _qi.value.length); }catch(_e){}
     }
   }
   // ── r155: 사업자번호 판정 ──────────────────────────────
