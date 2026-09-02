@@ -64,7 +64,13 @@ r116 이전 재구축은 clone된 배포본/모듈 체인 사용 (RECOVERY.md �
 - 배포 후 ~90초 뒤 chunghae.github.io에서 fetch({cache:'no-store'})로 서빙 바이트 마커 검증.
 
 ## 5. 현재 상태 (2026-08-26)
-- **r170 배포됨** (live 39e5ca6b / test f4d3860d, 2026-08-31). PC test 파일 = r170.
+- **r171 배포됨** (live e36d4bc5 / test d7f9de68, 2026-08-31). PC test 파일 = r171.
+  r171 = 미배정 검색창을 고정 영역(#fxUnQBar)으로 분리 — 한글 연속 입력 깨짐·커서 사라짐 근본 해결.
+  ★ 규칙: **다시 그리는 영역 안에 입력칸을 두지 말 것.** innerHTML 로 갈아끼우면 입력칸이 새 요소가 되어
+    (a) 한글 조합이 끊기고 (b) 포커스·커서가 사라진다. 조합 가드·포커스 복원은 임시방편일 뿐이며,
+    연속 입력에서는 결국 깨진다(r170 에서 실제로 그랬다). 검색창은 고정 바로 빼고 목록만 다시 그릴 것.
+  ※ oncompositionend 는 인라인 속성으로 안 붙는다(r170 기록) — addEventListener 사용.
+- (r170: 업체 검색 디바운스 + 업체 등록 창 각진 디자인 통일.)
   r170 = 검색창 한글 조합 깨짐 수정 + 업체 검색 디바운스 + 업체 등록 창 각진 디자인 통일.
   ※ **oncompositionend 는 인라인 속성으로 안 붙는다**(실측). 한글 입력을 다루는 검색창을 새로 만들면
     ① oninput 에서 event.isComposing 이면 return ② compositionend 를 addEventListener 로 붙일 것.
