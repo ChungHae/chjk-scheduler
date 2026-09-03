@@ -64,7 +64,13 @@ r116 이전 재구축은 clone된 배포본/모듈 체인 사용 (RECOVERY.md �
 - 배포 후 ~90초 뒤 chunghae.github.io에서 fetch({cache:'no-store'})로 서빙 바이트 마커 검증.
 
 ## 5. 현재 상태 (2026-08-26)
-- **r173 배포됨** (live 20342510 / test d6b05281, 2026-08-31). PC test 파일 = r173.
+- **r174 배포됨** (live 5da34b00 / test 976ca3e8, 2026-09-03). PC test 파일 = r174.
+  r174 = 업체명 변경이 매입매출 거래처명까지 따라간다(_fxRenameVendor). 매칭·배정·잔액은 불변.
+  ★ fx 블롭을 저장하는 코드를 새로 쓸 때는 **반드시 await _fxEnsureData() 를 먼저** 할 것.
+    자료를 안 받은 상태에서 _fxSaveBig() 를 부르면 빈 배열로 서버를 덮어써 계산서·입금이 전부 날아간다.
+  ※ 거래처 이름이 저장돼 있는 곳: fxSalesInv/fxPurchInv/fxDeposits/fxAdjusts 의 vendor, fxExcluded.vendor,
+    fxAlias 의 값, fxTerms·fxOpenings 의 '사업장|이름' 키. 이름을 다루는 기능은 이 7곳을 모두 확인할 것.
+- (r173: 조정 날짜에 달력 선택 추가.)
   r173 = 조정 날짜에 달력 선택 추가(타이핑 기능은 r172 그대로).
   ※ 날짜 입력은 '연/월/일 세 칸 + 달력 아이콘' 구조. 저장 값은 언제나 세 칸에서 읽는다(_fxAdjDateVal).
     달력은 세 칸을 채워주는 보조 수단일 뿐이라 두 곳이 어긋날 수 없다. 다른 날짜 입력을 만들 때도 이 패턴을 쓸 것.
