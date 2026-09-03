@@ -16230,16 +16230,84 @@ function reloadState() {
   window.fxAdjSave = function(){
     if(!_isAdmin()) return;
     var x=_fxLedgers(_fxRegion).find(function(e){ return e.key===_fxExp; }); if(!x) return;
-    var d=(document.getElementById('fxAdjDate')||{}).value;
+    var d=_fxAdjDateVal();
     var amt=_fxN((document.getElementById('fxAdjAmt')||{}).value);
     var memo=String((document.getElementById('fxAdjMemo')||{}).value||'').trim();
-    if(!d || !amt){ showInfoModal('조정','일자와 금액을 입력하세요. (음수 = 미수 차감/상계, 양수 = 미수 증가)'); return; }
+    if(!d){ showInfoModal('조정','일자를 올바르게 입력하세요. (연 4자리 / 월 1~12 / 일은 그 달에 있는 날짜)'); return; }
+    if(!amt){ showInfoModal('조정','금액을 입력하세요. (음수 = 미수 차감/상계, 양수 = 미수 증가)'); return; }
     fxAdjusts.push({ id:'M|'+x.rgn+'|'+(x.vbiz||x.name)+'|'+Date.now(), biz:x.rgn, date:d, vendor:x.name,
                      vbiz:x.vbiz||'', amount:amt, memo:memo||'수동 조정', author:(_authUser&&_authUser.name)||'' });
     _fxAdjForm=false;
     _fxSave();
     _fxRenderArBody();
   };
+  // ── r172: 조정 날짜 입력 (연/월/일 세 칸) ──
+  //  input[type=date] 는 브라우저마다 칸 이동이 달라 좌우 화살표·Tab 이 먹지 않는다(사용자 보고).
+  //  세 칸으로 나누면 Tab 은 기본 동작으로, 화살표는 아래 규칙으로 자연스럽게 이동한다.
+  function _fxAdjDateHtml(dt, DI){
+    var p2=function(n){ return (n<10?'0':'')+n; };
+    var S=DI+';text-align:center;padding:0 3px';
+    return '<span id="fxAdjDate" style="display:inline-flex;align-items:center;gap:3px">'
+      + '<input type="text" class="fxdt" data-p="y" maxlength="4" inputmode="numeric" autocomplete="off" value="'+dt.getFullYear()+'" title="연" style="'+S+';width:50px">'
+      + '<span style="color:#c8d2de">-</span>'
+      + '<input type="text" class="fxdt" data-p="m" maxlength="2" inputmode="numeric" autocomplete="off" value="'+p2(dt.getMonth()+1)+'" title="월" style="'+S+';width:32px">'
+      + '<span style="color:#c8d2de">-</span>'
+      + '<input type="text" class="fxdt" data-p="d" maxlength="2" inputmode="numeric" autocomplete="off" value="'+p2(dt.getDate())+'" title="일" style="'+S+';width:32px">'
+      + '</span>';
+  }
+  function _fxAdjDateBind(){
+    var box=document.getElementById('fxAdjDate'); if(!box || box.__dtb) return; box.__dtb=1;
+    var els=[].slice.call(box.querySelectorAll('.fxdt'));
+    els.forEach(function(el, idx){
+      // 칸에 들어오면 전체 선택 — 그래야 클릭 후 바로 숫자를 치면 갈아끼워진다.
+      //  마우스로 누를 때는 기본 동작(캐럿 놓기 + mouseup 해제)이 선택을 풀어버리므로
+      //  mousedown 을 막고 직접 focus 를 준다(그래야 select 가 유지된다).
+      el.addEventListener('mousedown', function(ev){ if(document.activeElement!==this){ ev.preventDefault(); this.focus(); } });
+      el.addEventListener('focus', function(){ try{ this.select(); }catch(_e){} });
+      el.addEventListener('input', function(){
+        var mx=parseInt(this.getAttribute('maxlength'),10)||2;
+        this.value=this.value.replace(/\D/g,'').slice(0,mx);
+        if(this.value.length>=mx && idx<els.length-1) els[idx+1].focus();   // 다 채우면 다음 칸
+      });
+      el.addEventListener('keydown', function(ev){
+        var k=ev.key;
+        // ←/→ 는 늘 칸 사이를 옮긴다(달력 입력칸과 같은 느낌). 칸 안은 어차피 숫자뿐이라
+        //  글자 단위 이동은 쓸 일이 없고, 칸에 들어가면 전체 선택이라 바로 고쳐 쓰면 된다.
+        if(k==='ArrowLeft'){ if(idx>0){ ev.preventDefault(); els[idx-1].focus(); } return; }
+        if(k==='ArrowRight'){ if(idx<els.length-1){ ev.preventDefault(); els[idx+1].focus(); } return; }
+        if(k==='Backspace' && !this.value && idx>0){ ev.preventDefault(); els[idx-1].focus(); return; }
+        if(k==='ArrowUp' || k==='ArrowDown'){
+          ev.preventDefault();
+          var p=this.dataset.p, n=parseInt(this.value||'0',10)||0;
+          n += (k==='ArrowUp'?1:-1);
+          if(p==='m'){ if(n<1) n=12; if(n>12) n=1; this.value=(n<10?'0':'')+n; }
+          else if(p==='d'){ if(n<1) n=31; if(n>31) n=1; this.value=(n<10?'0':'')+n; }
+          else { if(n<1900) n=1900; if(n>2999) n=2999; this.value=String(n); }
+          try{ this.select(); }catch(_e){}
+          return;
+        }
+        if(k==='Enter'){ ev.preventDefault(); fxAdjSave(); }
+      });
+      el.addEventListener('blur', function(){
+        var p=this.dataset.p, n=parseInt(this.value||'',10);
+        if(!n) return;
+        if(p==='m'){ n=Math.min(12,Math.max(1,n)); this.value=(n<10?'0':'')+n; }
+        else if(p==='d'){ n=Math.min(31,Math.max(1,n)); this.value=(n<10?'0':'')+n; }
+      });
+    });
+  }
+  //  세 칸을 합쳐 'YYYY-MM-DD' 로. 달력에 없는 날(2월 30일 등)이면 빈 값을 돌려준다.
+  function _fxAdjDateVal(){
+    var box=document.getElementById('fxAdjDate'); if(!box) return '';
+    var g=function(p){ var e=box.querySelector('.fxdt[data-p="'+p+'"]'); return e?String(e.value||'').replace(/\D/g,''):''; };
+    var y=g('y'), m=g('m'), d=g('d');
+    if(y.length!==4 || !m || !d) return '';
+    var yi=parseInt(y,10), mi=parseInt(m,10), di=parseInt(d,10);
+    if(!(mi>=1 && mi<=12)) return '';
+    var last=new Date(yi, mi, 0).getDate();
+    if(!(di>=1 && di<=last)) return '';
+    return y+'-'+(mi<10?'0':'')+mi+'-'+(di<10?'0':'')+di;
+  }
   window.fxDepUnassign = function(id){
     if(!_isAdmin()) return;
     var d=fxDeposits.find(function(e){ return e.id===id; }); if(!d) return;
@@ -16348,7 +16416,7 @@ function reloadState() {
     var adjForm = (_fxAdjForm && _isAdmin())
       ? '<div onclick="event.stopPropagation()" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;padding:9px 12px;background:#fff8ef;border:1px solid #f0d9b8;font-size:12px">'
         + '<b style="color:#b45309">조정 추가</b>'
-        + '<input type="date" id="fxAdjDate" value="'+dk(new Date())+'" style="'+DI+'">'
+        + _fxAdjDateHtml(new Date(), DI)
         + '<input type="text" id="fxAdjAmt" placeholder="금액 (음수=상계·차감)" style="'+DI+';width:150px;text-align:right">'
         + '<input type="text" id="fxAdjMemo" placeholder="메모 (예: 상계처리)" style="'+DI+';width:220px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();fxAdjSave();}">'
         + '<button type="button" class="btn" onclick="fxAdjSave()" style="font-size:11.5px;padding:3px 14px;border:1px solid #1B3A6B;color:#fff;background:#1B3A6B">저장</button>'
@@ -16615,6 +16683,7 @@ function reloadState() {
       + '<thead><tr><th style="'+TH+'" rowspan="2">상태</th><th style="'+TH+'" rowspan="2">거래처</th><th style="'+TH+'" rowspan="2">미수 잔액</th><th style="'+TH+'" colspan="5">채권 연령 (만기 기준)</th><th style="'+TH+'" rowspan="2">계산서 누계</th><th style="'+TH+'" rowspan="2">입금 누계</th><th style="'+TH+'" rowspan="2">최근 계산서</th><th style="'+TH+'" rowspan="2">최근 입금</th><th style="'+TH+'" rowspan="2">경과</th></tr>'
       + '<tr><th style="'+TH+'">미도래</th><th style="'+TH+'">1~30일</th><th style="'+TH+'">31~60일</th><th style="'+TH+'">61~90일</th><th style="'+TH+'">90일+</th></tr></thead>'
       + '<tbody>'+rows+'</tbody></table>' + _fxArPagerHtml(_arTotal, _fxArPageSize, _fxArPage) + '</div>';
+    try{ _fxAdjDateBind(); }catch(_e){}   // r172: 조정 폼이 떠 있으면 날짜칸 키 이동을 붙인다
   }
   function _fxRegionBtnsHtml(){
     return '<div id="fxRegionBtns" style="display:flex;gap:4px">'
@@ -17171,12 +17240,18 @@ function reloadState() {
       var seen={};
       fxDeposits.forEach(function(e){ seen[e.id]=1; if(e.noteNo) seen['NN|'+e.biz+'|'+e.noteNo]=1; });
       var nDep=0, nNote=0, nDup=0, nAuto=0, nUn=0, nAx=0, errs=[], lines=[];
+      var nSkipD=0, warns=[];   // r172: 조용히 넘어가던 행을 눈에 보이게
       for(var fi=0; fi<files.length; fi++){
         var f=files[fi];
         _fxUpLog('파일 처리 중… ('+(fi+1)+'/'+files.length+') — '+esc(f.name));
         try{
           var wb=XLSX.read(await f.arrayBuffer(), {type:'array', cellDates:true});
           var rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1, raw:true, defval:null});
+          // r172: 첫 시트만 읽는다 — 시트가 여러 개면 나머지는 무시되므로 반드시 알린다
+          if(wb.SheetNames.length > 1){
+            warns.push(esc(f.name)+': 시트가 '+wb.SheetNames.length+'개인데 첫 시트("'+esc(String(wb.SheetNames[0]))+'")만 읽었습니다. '
+              + '나머지 시트('+esc(wb.SheetNames.slice(1).join(', '))+')는 반영되지 않았습니다 — 시트별로 따로 올려주세요.');
+          }
           // 1) 어음 형식 판별
           var noteKind=null, hIdx=-1, H=null;
           for(var r=0;r<Math.min(rows.length,14);r++){
@@ -17244,14 +17319,19 @@ function reloadState() {
           var iIn=-1;
           ['입금액(원)','입금금액(원)','입금(원)','입금액','입금'].some(function(kk){ iIn=H.indexOf(kk); return iIn>=0; });
           if(iDate<0 || iIn<0){ errs.push(f.name+': '+bank+' 헤더 열을 찾지 못했습니다'); continue; }
-          var fN3=0, fU3=0, fD3=0;
+          var fN3=0, fU3=0, fD3=0, fSkipD=0, skipRows=[], dupRows=[];
           for(var r6=hIdx+1;r6<rows.length;r6++){
             var row6=rows[r6]||[];
             var rawDt=_fxCell(row6[iDate]);
             var d6=_fxD(row6[iDate]), amt6=_fxN(row6[iIn]), payer=_fxCell(row6[iPay]);
-            if(!d6 || !amt6 || amt6<=0) continue;
+            // r172: 날짜를 못 읽어 버려지는 행을 센다. 단 완전히 빈 줄(파일 끝 여백)은 제외.
+            if(!d6){
+              if(rawDt || payer || _fxCell(row6[iIn])){ fSkipD++; if(skipRows.length<5) skipRows.push(r6+1); }
+              continue;
+            }
+            if(!amt6 || amt6<=0) continue;   // 출금행 등 — 정상적으로 건너뜀
             var id6='B|'+biz+'|'+bank+'|'+(rawDt||d6)+'|'+amt6+'|'+payer;
-            if(seen[id6]){ nDup++; fD3++; continue; }
+            if(seen[id6]){ nDup++; fD3++; if(dupRows.length<5) dupRows.push((r6+1)+'행 '+(payer||'')); continue; }
             seen[id6]=1;
             var v6=_fxResolveVendor(biz, payer);
             var ax6=(!v6 && _fxAutoExclPayer(payer));
@@ -17261,7 +17341,20 @@ function reloadState() {
             nDep++; fN3++;
             if(v6){ nAuto++; } else if(ax6){ nAx++; } else { nUn++; fU3++; }
           }
-          lines.push(esc(f.name)+' → '+bank+' · 입금 '+fN3+'건'+(fU3?(' · 미배정 '+fU3):'')+(fD3?(' · 중복 '+fD3):''));
+          // r172: 몇 행이 왜 빠졌는지 숫자로 남긴다
+          nSkipD += fSkipD;
+          lines.push(esc(f.name)+' → '+bank+' · 입금 '+fN3+'건'+(fU3?(' · 미배정 '+fU3):'')+(fD3?(' · 중복 '+fD3):'')
+            + ' <span style="color:#9ca3af">(읽은 시트: '+esc(String(wb.SheetNames[0]))+(wb.SheetNames.length>1?(' / 전체 '+wb.SheetNames.length+'개'):'')+')</span>');
+          if(fSkipD){
+            warns.push(esc(f.name)+': 거래일시를 읽지 못해 <b>'+fSkipD+'행</b>을 건너뛰었습니다'
+              + ' (엑셀 '+skipRows.join(', ')+(fSkipD>skipRows.length?' 외':'')+'행).'
+              + ' 날짜는 2026-08-31 / 2026.08.31 / 2026/08/31 형식만 읽습니다.');
+          }
+          if(fD3){
+            warns.push(esc(f.name)+': 같은 은행·같은 거래일시·같은 금액·같은 입금자라서 <b>'+fD3+'행</b>을 중복으로 제외했습니다'
+              + ' (엑셀 '+esc(dupRows.join(' / '))+(fD3>dupRows.length?' 외':'')+').'
+              + ' 실제로 다른 거래라면 은행에서 거래시각까지 나오는 형식으로 다시 받아 올려주세요.');
+          }
         }catch(e){ errs.push(f.name+': '+(e&&e.message||e)); }
       }
       _fxUpLog('저장 중… (Firebase)');
@@ -17271,7 +17364,11 @@ function reloadState() {
       var html='<b style="color:#15803d">반영 완료</b> — '+biz+' · 입금 +'+nDep+'건 · 어음 +'+nNote+'건'
         + (nAuto?(' · 자동 배정 '+nAuto):'') + (nAx?(' · 카드·결제 자동 제외 '+nAx):'') + (nDup?(' · 중복 제외 '+nDup):'');
       if(nUn) html+='<br><b style="color:#d97706">미배정 '+nUn+'건</b> — 아래 미배정 입금 패널에서 거래처를 지정해 주세요.';
+      if(nSkipD) html+='<br><b style="color:#dc2626">건너뛴 행 '+nSkipD+'행</b> — 아래 내용을 확인해 주세요.';
       if(lines.length) html+='<br><span style="color:#6b7280">'+lines.join('<br>')+'</span>';
+      // r172: 조용히 넘어가던 것들을 여기 모아 보여준다
+      if(warns.length) html+='<div style="margin-top:8px;padding:8px 12px;background:#fff8ef;border:1px solid #f0d9b8;color:#b45309;line-height:1.7">'
+        + '&#9888;&#65039; ' + warns.join('<br>&#9888;&#65039; ') + '</div>';
       if(errs.length) html+='<br><span style="color:#dc2626">오류 '+errs.length+'건: '+esc(errs.slice(0,5).join(' / '))+'</span>';
       _fxUpLog(html);
       _fxRenderUnasg();
