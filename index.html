@@ -4703,6 +4703,8 @@ function reloadState() {
       }
       _saveClients();
       ov.style.display='none';
+      // r174: 이름이 바뀐 수정이면 매입매출 자료의 거래처명도 같이 바꾼다
+      if(isEdit && editOrig && editOrig!==nm){ try{ _fxRenameVendorAfter(editOrig, nm); }catch(_e){} }
       if(typeof _refreshClientMgr==='function') _refreshClientMgr();
       if(input){ input.value=nm; try{ input.dispatchEvent(new Event('change')); }catch(_){} try{ input.focus(); }catch(_){} }
       if(typeof onDone==='function'){ try{ onDone(nm); }catch(_){} }
@@ -15051,6 +15053,8 @@ function reloadState() {
     _clxPersist();
     _clxExp=_newKey;   // r162
     _clxRender();
+    // r174: 업체명이 바뀌었으면 매입매출 자료의 거래처명도 같이 바꾼다
+    if(orig && _op.name && _op.name!==nm){ try{ _fxRenameVendorAfter(_op.name, nm); }catch(_e){} }
   };
   window.clxDelete = function(key){
     if(!key) return;
@@ -16241,6 +16245,77 @@ function reloadState() {
     _fxSave();
     _fxRenderArBody();
   };
+  // ── r174: 업체명이 바뀌면 매입매출 자료의 거래처명도 같이 바꾼다 ──
+  //  이름은 계산서·입금 레코드마다 문자열로 박혀 있어 자동으로 따라가지 않는다.
+  //  원장은 사업자번호로 묶으므로 이 작업은 '표시 이름'만 바꾼다 — 매칭·배정·잔액은 불변.
+  async function _fxRenameVendor(oldName, newName){
+    var o=String(oldName==null?'':oldName).trim(), n=String(newName==null?'':newName).trim();
+    if(!o || !n || o===n) return null;
+    try{ if(_isViewer()) return null; }catch(_e){}
+    if(!_fbDbUrl) return null;                    // 동기화 연결이 없으면 저장할 수 없다
+    // 옛 이름이 업체 목록에 아직 있으면(다른 지점 등) 어느 쪽 자료인지 확정 불가 -> 손대지 않는다
+    try{
+      if((allClients()||[]).some(function(c){ return c && String(c[0]).trim()===o; })) return {ambiguous:true};
+    }catch(_e2){}
+    await _fxEnsureData();   // ★ 먼저 받아오지 않고 저장하면 빈 자료로 덮어쓴다
+    var cnt={inv:0, dep:0, adj:0, alias:0, term:0, open:0, excl:0};
+    fxSalesInv.forEach(function(e){ if(e && e.vendor===o){ e.vendor=n; cnt.inv++; } });
+    fxPurchInv.forEach(function(e){ if(e && e.vendor===o){ e.vendor=n; cnt.inv++; } });
+    fxDeposits.forEach(function(e){ if(e && e.vendor===o){ e.vendor=n; cnt.dep++; } });
+    fxAdjusts.forEach(function(a){ if(a && a.vendor===o){ a.vendor=n; cnt.adj++; } });
+    fxExcluded.forEach(function(x){ if(x && x.vendor===o){ x.vendor=n; cnt.excl++; } });
+    Object.keys(fxAlias).forEach(function(k){ if(fxAlias[k]===o){ fxAlias[k]=n; cnt.alias++; } });
+    CLI_BR.forEach(function(b){
+      var ko=b+'|'+o, kn=b+'|'+n;
+      if(fxTerms[ko]!==undefined){ fxTerms[kn]=fxTerms[ko]; delete fxTerms[ko]; cnt.term++; }
+      if(fxOpenings[ko]!==undefined){
+        if(fxOpenings[kn]!==undefined){   // 새 이름 자리에 이미 있으면 합친다(기간은 이른 쪽)
+          var a1=Number(fxOpenings[kn].amount)||0, a2=Number(fxOpenings[ko].amount)||0;
+          var s1=fxOpenings[kn].asOf||'', s2=fxOpenings[ko].asOf||'';
+          fxOpenings[kn]={ amount:a1+a2, asOf:(s1&&s2)?(s1<s2?s1:s2):(s1||s2) };
+        } else { fxOpenings[kn]=fxOpenings[ko]; }
+        delete fxOpenings[ko]; cnt.open++;
+      }
+    });
+    var total=cnt.inv+cnt.dep+cnt.adj+cnt.alias+cnt.term+cnt.open+cnt.excl;
+    if(!total) return cnt;
+    _fxCacheBump++;
+    _fxSave();               // 별칭·결제조건·기초이월·조정·제외 (소용량 설정)
+    await _fxSaveBig();      // 계산서·입금 (블롭)
+    return cnt;
+  }
+  //  이름 변경 뒤에 부르는 마무리 — 결과를 사람이 볼 수 있게 안내한다.
+  function _fxRenameVendorAfter(oldName, newName){
+    var o=String(oldName==null?'':oldName).trim(), n=String(newName==null?'':newName).trim();
+    if(!o || !n || o===n) return;
+    _fxRenameVendor(o, n).then(function(cnt){
+      if(!cnt) return;
+      if(cnt.ambiguous){
+        showInfoModal('매입매출 거래처명',
+          '"'+o+'" 이(가) 업체 목록에 아직 남아 있어(다른 지점 등) 매입매출 자료의 이름은 바꾸지 않았습니다.\n'
+          + '어느 쪽 자료인지 확정할 수 없기 때문입니다.');
+        return;
+      }
+      var total=cnt.inv+cnt.dep+cnt.adj+cnt.alias+cnt.term+cnt.open+cnt.excl;
+      if(!total) return;
+      var parts=[];
+      if(cnt.inv) parts.push('계산서 '+cnt.inv);
+      if(cnt.dep) parts.push('입금 '+cnt.dep);
+      if(cnt.adj) parts.push('조정 '+cnt.adj);
+      if(cnt.alias) parts.push('별칭 '+cnt.alias);
+      if(cnt.term) parts.push('결제조건 '+cnt.term);
+      if(cnt.open) parts.push('기초이월 '+cnt.open);
+      if(cnt.excl) parts.push('제외 '+cnt.excl);
+      showInfoModal('매입매출 거래처명 변경',
+        '"'+o+'" → "'+n+'" 으로 매입매출 자료 '+total+'건의 거래처명도 함께 바꿨습니다.\n'
+        + '(' + parts.join(' · ') + ')\n\n'
+        + '사업자번호로 묶는 방식은 그대로라 미수 잔액과 배정은 바뀌지 않았습니다.');
+      try{ if(_fxTab) renderFxPage(); }catch(_e){}
+    }).catch(function(e){
+      showInfoModal('매입매출 거래처명', '매입매출 자료의 거래처명을 바꾸지 못했습니다.\n'+(e&&e.message||e)
+        + '\n\n업체 목록의 이름은 정상적으로 바뀌었습니다.');
+    });
+  }
   // ── r172: 조정 날짜 입력 (연/월/일 세 칸) ──
   //  input[type=date] 는 브라우저마다 칸 이동이 달라 좌우 화살표·Tab 이 먹지 않는다(사용자 보고).
   //  세 칸으로 나누면 Tab 은 기본 동작으로, 화살표는 아래 규칙으로 자연스럽게 이동한다.
