@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r172 2026-08-31 -->
+<!-- test build r173 2026-08-31 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -16454,11 +16454,35 @@ function reloadState() {
       + '<input type="text" class="fxdt" data-p="m" maxlength="2" inputmode="numeric" autocomplete="off" value="'+p2(dt.getMonth()+1)+'" title="월" style="'+S+';width:32px">'
       + '<span style="color:#c8d2de">-</span>'
       + '<input type="text" class="fxdt" data-p="d" maxlength="2" inputmode="numeric" autocomplete="off" value="'+p2(dt.getDate())+'" title="일" style="'+S+';width:32px">'
+      // r173: 달력으로도 고를 수 있게. 브라우저가 그려주는 달력 아이콘만 보이도록 폭을 줄여 놓는다.
+      //  Tab 순서에서는 빠진다(tabindex=-1) — Tab 은 연/월/일만 돈다.
+      + '<input type="date" class="fxdtpick" tabindex="-1" title="달력에서 고르기" value="'+dt.getFullYear()+'-'+p2(dt.getMonth()+1)+'-'+p2(dt.getDate())+'"'
+      +   ' style="height:24px;width:26px;box-sizing:border-box;padding:0 1px;margin-left:4px;border:1px solid #cdd8e6;border-radius:0;background:#fff;color:transparent;font-family:inherit;cursor:pointer">'
       + '</span>';
+  }
+  // r173: 타이핑한 값을 달력의 기준 날짜에도 반영해 둔다(달력을 열면 그 달이 보이게).
+  function _fxAdjDateSyncPick(){
+    var box=document.getElementById('fxAdjDate'); if(!box) return;
+    var p=box.querySelector('.fxdtpick'); if(!p) return;
+    try{ p.value = _fxAdjDateVal() || ''; }catch(_e){}
   }
   function _fxAdjDateBind(){
     var box=document.getElementById('fxAdjDate'); if(!box || box.__dtb) return; box.__dtb=1;
     var els=[].slice.call(box.querySelectorAll('.fxdt'));
+    // 달력에서 고르면 세 칸을 채운다. 저장은 늘 세 칸에서 읽으므로 값의 출처는 하나뿐이다.
+    var pick=box.querySelector('.fxdtpick');
+    if(pick){
+      pick.addEventListener('change', function(){
+        var m=String(this.value||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if(!m) return;
+        var g=function(p){ return box.querySelector('.fxdt[data-p="'+p+'"]'); };
+        if(g('y')) g('y').value=m[1];
+        if(g('m')) g('m').value=m[2];
+        if(g('d')) g('d').value=m[3];
+      });
+      // 아이콘 클릭으로도 열리지만, showPicker 가 있으면 더 확실하게 열어 준다
+      pick.addEventListener('click', function(){ try{ if(this.showPicker) this.showPicker(); }catch(_e){} });
+    }
     els.forEach(function(el, idx){
       // 칸에 들어오면 전체 선택 — 그래야 클릭 후 바로 숫자를 치면 갈아끼워진다.
       //  마우스로 누를 때는 기본 동작(캐럿 놓기 + mouseup 해제)이 선택을 풀어버리므로
@@ -16469,6 +16493,7 @@ function reloadState() {
         var mx=parseInt(this.getAttribute('maxlength'),10)||2;
         this.value=this.value.replace(/\D/g,'').slice(0,mx);
         if(this.value.length>=mx && idx<els.length-1) els[idx+1].focus();   // 다 채우면 다음 칸
+        _fxAdjDateSyncPick();
       });
       el.addEventListener('keydown', function(ev){
         var k=ev.key;
@@ -16485,6 +16510,7 @@ function reloadState() {
           else if(p==='d'){ if(n<1) n=31; if(n>31) n=1; this.value=(n<10?'0':'')+n; }
           else { if(n<1900) n=1900; if(n>2999) n=2999; this.value=String(n); }
           try{ this.select(); }catch(_e){}
+          _fxAdjDateSyncPick();
           return;
         }
         if(k==='Enter'){ ev.preventDefault(); fxAdjSave(); }
@@ -16494,6 +16520,7 @@ function reloadState() {
         if(!n) return;
         if(p==='m'){ n=Math.min(12,Math.max(1,n)); this.value=(n<10?'0':'')+n; }
         else if(p==='d'){ n=Math.min(31,Math.max(1,n)); this.value=(n<10?'0':'')+n; }
+        _fxAdjDateSyncPick();
       });
     });
   }
