@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r175 2026-09-03 -->
+<!-- test build r176 2026-09-04 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -3373,6 +3373,8 @@
   let fxAdjusts   = load('sched_fx_adjusts')  ?? [];  // 조정 [{id,date,vendor,amount,memo,author}]
   let fxTerms     = load('sched_fx_terms')    ?? {};  // { 사업장|거래처: 결제조건 } 미수판정 기준
   let fxExcluded  = load('sched_fx_excluded') ?? [];  // 제외 거래처 [{biz,vendor,vbiz,reason}]
+  // r176: 고치지 않고 '그대로 두기'로 판단한 후보들. 'NM|사업자번호|옛이름|새이름' / 'DUP|원장키A\t원장키B'
+  let fxKeepAs    = load('sched_fx_keepas')   ?? [];
   var _fxCacheBump = 0;  // r151: 원장 캐시 무효화 카운터 (자료가 바뀔 때마다 +1)
   let assignSeen = load('sched_assign_seen') ?? {}; // { assignId: { memberId: lastSeenTs } } — 계정별 코멘트 확인 시각(로컬)
   let bankTxns = load('sched_bank_txns') ?? []; // [{id,datetime,type,credit,debit,desc,balance,branch}]
@@ -4343,6 +4345,7 @@
         sched_fx_adjusts: fxAdjusts,
         sched_fx_terms: fxTerms,
         sched_fx_excluded: fxExcluded,
+        sched_fx_keepas: fxKeepAs,
         _updatedAt: ts,
       });
       _fbLastUpdatedAt = ts;
@@ -4394,7 +4397,7 @@
       const d = await _syncGet();
       if (!d || (d._updatedAt || 0) <= _fbLastUpdatedAt) return;
       _fbLastUpdatedAt = d._updatedAt || 0;
-      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded'];
+      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
       KEYS.forEach(k => { if (d[k] !== undefined) save(k, d[k]); });
       // ── 바로가기(sched_links) 보호 ──
       // 키가 없을 때: sched_links_ts가 있으면 신버전 클라이언트의 정상 저장(목록이 비어서
@@ -4497,7 +4500,7 @@
       const d = await _syncGet();
       const fbTs    = (d && d._updatedAt) || 0;
       const localTs = parseInt(localStorage.getItem('sched_local_ts') || '0');
-      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded'];
+      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
 
       // ── 올바른 팀원 ID 목록 (하드코딩) ──────────────────────
       const _VALID_MEMBER_IDS = defaultMembers().map(m => m.id);
@@ -4626,6 +4629,7 @@ function reloadState() {
     fxAdjusts        = load('sched_fx_adjusts')  ?? [];
     fxTerms          = load('sched_fx_terms')    ?? {};
     fxExcluded       = load('sched_fx_excluded') ?? [];
+    fxKeepAs         = load('sched_fx_keepas')   ?? [];   // r176
     _fxCacheBump++;
     personalSchedules= load('sched_personal')    ?? [];
     schedCategories  = load('sched_categories')  ?? schedCategories;
@@ -8289,8 +8293,8 @@ function reloadState() {
           var KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos'];
           KEYS.forEach(function(k){ if(prod[k]!==undefined) save(k, prod[k]); });
           // r134: 매입매출 규칙은 정식에 없으면 빈 값으로 리셋 (스테이지 로컬 잔재 제거)
-          ['sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded'].forEach(function(k){
-            var v = prod[k]!==undefined ? prod[k] : ((k==='sched_fx_adjusts'||k==='sched_fx_excluded') ? [] : {});
+          ['sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'].forEach(function(k){
+            var v = prod[k]!==undefined ? prod[k] : ((k==='sched_fx_adjusts'||k==='sched_fx_excluded'||k==='sched_fx_keepas') ? [] : {});
             save(k, v);
           });
           _fbLastUpdatedAt = prod._updatedAt || 0;
@@ -10347,7 +10351,7 @@ function reloadState() {
       sched_projects: projectsList, sched_client_info: clientInfo, sched_proj_memos: projMemos,
       // r157: 매입매출 설정 5종 — 빠져 있어서 복원 시 미배정 매칭 작업이 통째로 사라졌다
       sched_fx_alias: fxAlias, sched_fx_openings: fxOpenings, sched_fx_adjusts: fxAdjusts,
-      sched_fx_terms: fxTerms, sched_fx_excluded: fxExcluded
+      sched_fx_terms: fxTerms, sched_fx_excluded: fxExcluded, sched_fx_keepas: fxKeepAs
     };
   }
   document.getElementById('btnExport').addEventListener('click', async () => {
@@ -16095,6 +16099,7 @@ function reloadState() {
     save('sched_fx_adjusts', fxAdjusts);
     save('sched_fx_terms', fxTerms);
     save('sched_fx_excluded', fxExcluded);
+    save('sched_fx_keepas', fxKeepAs);   // r176
     localStorage.setItem('sched_local_ts', Date.now().toString());
     try{ debouncedFbSave(); }catch(_e){}
   }
@@ -16840,9 +16845,65 @@ function reloadState() {
     return out;
   }
   window.fxDupToggle = function(){ _fxDupOpen=!_fxDupOpen; _fxRenderArBody(); };
+  // ── r176: '그대로 두기' 판단 보관 ──
+  //  '업체명 불일치'와 '중복 거래처 후보'는 확정이 아니라 후보다. 고치지 않기로 한 판단도
+  //  남겨 두어야 같은 후보를 볼 때마다 다시 판단하지 않는다. 되살리기는 항상 가능하다.
+  function _fxKeepHas(k){ return fxKeepAs.indexOf(k)>=0; }
+  function _fxKeepAdd(k){ if(!_fxKeepHas(k)){ fxKeepAs.push(k); _fxSave(); } }
+  function _fxKeepDel(k){ var i=fxKeepAs.indexOf(k); if(i>=0){ fxKeepAs.splice(i,1); _fxSave(); } }
+  function _fxKeepDelPrefix(p){
+    var before=fxKeepAs.length;
+    var rest=fxKeepAs.filter(function(k){ return String(k).indexOf(p)!==0; });
+    if(rest.length!==before){ fxKeepAs.length=0; rest.forEach(function(k){ fxKeepAs.push(k); }); _fxSave(); }
+    return before-fxKeepAs.length;
+  }
+  function _fxKeepBtn(onclick){
+    return '<button type="button" class="btn" onclick="'+onclick+'" style="font-size:11px;padding:2px 10px;border:1px solid #c8d2de;color:#6b7280;background:#fff">그대로 두기</button>';
+  }
+  function _fxUnkeepBtn(onclick){
+    return '<button type="button" class="btn" onclick="'+onclick+'" style="font-size:11px;padding:2px 10px;border:1px solid #c8d2de;color:#5b7ba6;background:#fff">다시 보기</button>';
+  }
+  //  그대로 둔 항목을 보여 주는 공통 꼬리말 — 결정을 되돌릴 통로다.
+  function _fxKeptFootHtml(rows, allOnclick){
+    if(!rows.length) return '';
+    return '<div style="padding:8px 14px;border-top:1px solid #e3e9f0;background:#fafbfc;font-size:11.5px;color:#8a94a6">'
+      + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:'+(rows.length?'6px':'0')+'">'
+      +   '<b style="color:#6b7280;font-weight:600">그대로 두기로 한 '+rows.length+'곳</b>'
+      +   '<span>— 목록에서 빼 두었을 뿐 자료는 그대로입니다.</span>'
+      +   '<span style="flex:1"></span>'
+      +   _fxUnkeepBtn(allOnclick+'()')
+      + '</div>'
+      + rows.join('')
+      + '</div>';
+  }
+  // r176: 후보 한 쌍의 '그대로 두기' 키 — 두 원장키를 정렬해 담으므로 A/B 순서가 바뀌어도 같은 키다.
+  function _fxDupKey(p){ return 'DUP|'+[String(p[0].key), String(p[1].key)].sort().join('\t'); }
+  //  withKept=true 면 그대로 두기 한 쌍까지 모두 돌려준다.
+  function _fxDupActive(region, withKept){
+    return _fxDupCandidates(region).filter(function(p){
+      return withKept ? true : !_fxKeepHas(_fxDupKey(p));
+    });
+  }
+  window.fxDupKeepIt = function(kA, kB){
+    if(!_isAdmin()) return;
+    _fxKeepAdd(_fxDupKey([{key:kA},{key:kB}]));
+    _fxRenderArBody();
+  };
+  window.fxDupUnkeep = function(kA, kB){
+    if(!_isAdmin()) return;
+    _fxKeepDel(_fxDupKey([{key:kA},{key:kB}]));
+    _fxRenderArBody();
+  };
+  window.fxDupUnkeepAll = function(){
+    if(!_isAdmin()) return;
+    _fxKeepDelPrefix('DUP|');
+    _fxRenderArBody();
+  };
   function _fxDupPanelHtml(){
-    var dups=_fxDupCandidates(_fxRegion);
-    if(!dups.length) return '';
+    var all=_fxDupActive(_fxRegion, true);
+    var dups=all.filter(function(p){ return !_fxKeepHas(_fxDupKey(p)); });
+    var kept=all.filter(function(p){ return _fxKeepHas(_fxDupKey(p)); });
+    if(!all.length) return '';
     var TH='padding:8px 10px;background:#fafafa;color:#888;font-weight:500;font-size:11.5px;text-align:center;border-bottom:2px solid #d3dce6;white-space:nowrap';
     var TD='padding:7px 10px;border-bottom:1px solid #eef2f7;font-size:12px;vertical-align:middle';
     var rows=dups.map(function(p){
@@ -16853,21 +16914,36 @@ function reloadState() {
         + '<td style="'+TD+'"><b>'+esc(b.name)+'</b> <span style="color:#9ca3af">'+(b.vbiz||'사업자번호 없음')+' · 잔액 '+_fxFmt(b.bal)+'</span></td>'
         + '<td style="'+TD+';text-align:center;white-space:nowrap">'
         +   '<button type="button" class="btn" onclick="fxMergeDup(\''+a.rgn+'\',\''+a.key.replace(/'/g,"\\'")+'\',\''+b.key.replace(/'/g,"\\'")+'\')" style="font-size:11px;padding:2px 8px;border:1px solid #1B3A6B;color:#14305c;background:#fff;margin-right:4px">◀ A로 병합</button>'
-        +   '<button type="button" class="btn" onclick="fxMergeDup(\''+b.rgn+'\',\''+b.key.replace(/'/g,"\\'")+'\',\''+a.key.replace(/'/g,"\\'")+'\')" style="font-size:11px;padding:2px 8px;border:1px solid #1B3A6B;color:#14305c;background:#fff">B로 병합 ▶</button>'
+        +   '<button type="button" class="btn" onclick="fxMergeDup(\''+b.rgn+'\',\''+b.key.replace(/'/g,"\\'")+'\',\''+a.key.replace(/'/g,"\\'")+'\')" style="font-size:11px;padding:2px 8px;border:1px solid #1B3A6B;color:#14305c;background:#fff;margin-right:4px">B로 병합 ▶</button>'
+        +   _fxKeepBtn('fxDupKeepIt(\''+a.key.replace(/'/g,"\\'")+'\',\''+b.key.replace(/'/g,"\\'")+'\')')   // r176
         + '</td></tr>';
     }).join('');
+    var keptRows=kept.map(function(p){
+      var a=p[0], b=p[1];
+      return '<div style="display:flex;align-items:center;gap:8px;padding:3px 0;flex-wrap:wrap">'
+        + '<span style="color:#6b7280">'+esc(a.name)+' <span style="color:#b6bec9">↔</span> '+esc(b.name)+'</span>'
+        + '<span style="flex:1"></span>'
+        + _fxUnkeepBtn('fxDupUnkeep(\''+a.key.replace(/'/g,"\\'")+'\',\''+b.key.replace(/'/g,"\\'")+'\')')
+        + '</div>';
+    });
     return '<div style="background:#fff;border:1px solid #d6deea;margin-bottom:12px">'
       + '<div style="padding:9px 14px;border-bottom:1px solid #e3e9f0;font-size:12.5px;font-weight:700;color:#14305c">중복 거래처 후보 '
       + '<span style="font-weight:400;color:#8a94a6">— 공백·괄호(주식회사/㈜ 등) 표기만 다르고 이름이 사실상 같은 거래처가 원장에 따로 잡혀 있으면 여기 나타납니다. 같은 회사가 맞을 때만 병합하세요 (되돌릴 수 없음).</span></div>'
-      + '<div style="max-height:300px;overflow:auto"><table style="width:100%;border-collapse:collapse">'
-      + '<thead><tr><th style="'+TH+';text-align:left">거래처 A</th><th style="'+TH+'"></th><th style="'+TH+';text-align:left">거래처 B</th><th style="'+TH+'">병합</th></tr></thead>'
-      + '<tbody>'+rows+'</tbody></table></div></div>';
+      + (dups.length
+          ? ('<div style="max-height:300px;overflow:auto"><table style="width:100%;border-collapse:collapse">'
+             + '<thead><tr><th style="'+TH+';text-align:left">거래처 A</th><th style="'+TH+'"></th><th style="'+TH+';text-align:left">거래처 B</th><th style="'+TH+'">병합 / 넘어가기</th></tr></thead>'
+             + '<tbody>'+rows+'</tbody></table></div>')
+          : '<div style="padding:10px 14px;font-size:12px;color:#8a94a6">확인이 필요한 후보가 없습니다.</div>')
+      + _fxKeptFootHtml(keptRows, 'fxDupUnkeepAll')   // r176
+      + '</div>';
   }
   // ── r175: 업체 목록과 이름이 어긋난 거래처 찾기 ──
   //  사업자번호는 같은데 원장에 찍힌 이름이 업체 목록의 이름과 다른 경우.
   //  (옛 버전에서 이름을 바꿨거나, 홈택스 상호가 바뀐 경우 등)
   var _fxNmOpen=false;
-  function _fxNameMismatch(region){
+  function _fxNmKey(m){ return 'NM|'+String(m.vbiz||'').replace(/[^0-9]/g,'')+'|'+m.old+'|'+m.neu; }
+  //  withKept=true 면 '그대로 두기' 한 것까지 모두 돌려준다(꼬리말·칩 계산용).
+  function _fxNameMismatch(region, withKept){
     var out=[], seen={};
     var cliNames={}, byBiz={};
     try{
@@ -16892,10 +16968,29 @@ function reloadState() {
       var k=nm+'|'+reg;
       if(seen[k]) return;
       seen[k]=1;
-      out.push({ old:nm, neu:reg, vbiz:x.vbiz, rgn:x.rgn, bal:x.bal });
+      var m={ old:nm, neu:reg, vbiz:x.vbiz, rgn:x.rgn, bal:x.bal };
+      m.kk=_fxNmKey(m); m.kept=_fxKeepHas(m.kk);     // r176
+      if(m.kept && !withKept) return;
+      out.push(m);
     });
     return out;
   }
+  // r176: 고치지 않고 그대로 두기 / 되살리기
+  window.fxNmKeepIt = function(oldName, newName, vbiz){
+    if(!_isAdmin()) return;
+    _fxKeepAdd(_fxNmKey({old:oldName, neu:newName, vbiz:vbiz}));
+    _fxRenderArBody();
+  };
+  window.fxNmUnkeep = function(oldName, newName, vbiz){
+    if(!_isAdmin()) return;
+    _fxKeepDel(_fxNmKey({old:oldName, neu:newName, vbiz:vbiz}));
+    _fxRenderArBody();
+  };
+  window.fxNmUnkeepAll = function(){
+    if(!_isAdmin()) return;
+    _fxKeepDelPrefix('NM|');
+    _fxRenderArBody();
+  };
   window.fxNmToggle = function(){ _fxNmOpen=!_fxNmOpen; _fxRenderArBody(); };
   window.fxNmFix = function(oldName, newName){
     if(!_isAdmin()) return;
@@ -16929,8 +17024,10 @@ function reloadState() {
       + '\n\n미수 잔액과 배정은 바뀌지 않았습니다.');
   }
   function _fxNmPanelHtml(){
-    var list=_fxNameMismatch(_fxRegion);
-    if(!list.length) return '';
+    var all=_fxNameMismatch(_fxRegion, true);
+    var list=all.filter(function(m){ return !m.kept; });
+    var kept=all.filter(function(m){ return m.kept; });
+    if(!all.length) return '';
     var TH='padding:8px 10px;background:#fafafa;color:#888;font-weight:500;font-size:11.5px;text-align:center;border-bottom:2px solid #d3dce6;white-space:nowrap';
     var TD='padding:7px 10px;border-bottom:1px solid #eef2f7;font-size:12px;vertical-align:middle';
     var rows=list.map(function(m){
@@ -16942,18 +17039,32 @@ function reloadState() {
         + '<td style="'+TD+';text-align:center;color:#9ca3af">→</td>'
         + '<td style="'+TD+'"><b style="color:#14305c">'+esc(m.neu)+'</b> <span style="color:#9ca3af">업체 목록</span></td>'
         + '<td style="'+TD+';text-align:center">'
-        +   '<button type="button" class="btn" onclick="fxNmFix(\''+ro+'\',\''+rn+'\')" style="font-size:11px;padding:2px 10px;border:1px solid #1B3A6B;color:#14305c;background:#fff">맞추기</button>'
+        +   '<button type="button" class="btn" onclick="fxNmFix(\''+ro+'\',\''+rn+'\')" style="font-size:11px;padding:2px 10px;border:1px solid #1B3A6B;color:#14305c;background:#fff;margin-right:4px">맞추기</button>'
+        +   _fxKeepBtn('fxNmKeepIt(\''+ro+'\',\''+rn+'\',\''+m.vbiz+'\')')   // r176
         + '</td></tr>';
     }).join('');
+    var keptRows=kept.map(function(m){
+      var ro=String(m.old).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      var rn=String(m.neu).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      return '<div style="display:flex;align-items:center;gap:8px;padding:3px 0;flex-wrap:wrap">'
+        + '<span style="color:#6b7280">'+esc(m.old)+' <span style="color:#b6bec9">→</span> '+esc(m.neu)+'</span>'
+        + '<span style="flex:1"></span>'
+        + _fxUnkeepBtn('fxNmUnkeep(\''+ro+'\',\''+rn+'\',\''+m.vbiz+'\')')
+        + '</div>';
+    });
     return '<div style="background:#fff;border:1px solid #d6deea;margin-bottom:12px">'
-      + '<div style="padding:9px 14px;border-bottom:1px solid #e3e9f0;font-size:12.5px;font-weight:700;color:#b45309;display:flex;align-items:center;gap:8px;flex-wrap:wrap">업체명 불일치 '+list.length+'곳'
+      + '<div style="padding:9px 14px;border-bottom:1px solid #e3e9f0;font-size:12.5px;font-weight:700;color:'+(list.length?'#b45309':'#6b7280')+';display:flex;align-items:center;gap:8px;flex-wrap:wrap">업체명 불일치 '+list.length+'곳'
       +   '<span style="font-weight:400;color:#8a94a6">— 사업자번호는 같은데 계산서·입금에 찍힌 이름이 업체 목록과 다릅니다. 맞추면 표시 이름만 바뀌고 잔액·배정은 그대로입니다.</span>'
       +   '<span style="flex:1"></span>'
-      +   '<button type="button" class="btn" onclick="fxNmFixAll()" style="font-size:11px;padding:2px 10px;border:1px solid #1B3A6B;color:#fff;background:#1B3A6B;font-weight:400">전체 맞추기</button>'
+      +   (list.length ? '<button type="button" class="btn" onclick="fxNmFixAll()" style="font-size:11px;padding:2px 10px;border:1px solid #1B3A6B;color:#fff;background:#1B3A6B;font-weight:400">전체 맞추기</button>' : '')
       + '</div>'
-      + '<div style="max-height:300px;overflow:auto"><table style="width:100%;border-collapse:collapse">'
-      + '<thead><tr><th style="'+TH+';text-align:left">매입매출에 찍힌 이름</th><th style="'+TH+'"></th><th style="'+TH+';text-align:left">업체 목록 이름</th><th style="'+TH+'">적용</th></tr></thead>'
-      + '<tbody>'+rows+'</tbody></table></div></div>';
+      + (list.length
+          ? ('<div style="max-height:300px;overflow:auto"><table style="width:100%;border-collapse:collapse">'
+             + '<thead><tr><th style="'+TH+';text-align:left">매입매출에 찍힌 이름</th><th style="'+TH+'"></th><th style="'+TH+';text-align:left">업체 목록 이름</th><th style="'+TH+'">적용 / 넘어가기</th></tr></thead>'
+             + '<tbody>'+rows+'</tbody></table></div>')
+          : '<div style="padding:10px 14px;font-size:12px;color:#8a94a6">확인이 필요한 후보가 없습니다.</div>')
+      + _fxKeptFootHtml(keptRows, 'fxNmUnkeepAll')   // r176
+      + '</div>';
   }
   window.fxMergeDup = function(rgn, keepKey, dropKey){
     if(!_isAdmin()) return;
@@ -17037,11 +17148,14 @@ function reloadState() {
       if(nExcl) h+='<span onclick="fxExclToggle()" style="cursor:pointer" title="클릭하면 제외 목록이 열립니다">'+_fxChip('제외', nExcl+'곳'+(_fxExclOpen?' ▲':' ▼'), false)+'</span>';
       if(notes.length) h+='<span onclick="fxNotesToggle()" style="cursor:pointer" title="클릭하면 어음 목록이 열립니다">'+_fxChip('어음', notes.length+'건'+(nSoon?(' · 7일 내 만기 '+nSoon):'')+(_fxNotesOpen?' ▲':' ▼'), false)+'</span>';
       if(_isAdmin()){
-        var nDup=_fxDupCandidates(_fxRegion).length;
-        if(nDup) h+='<span onclick="fxDupToggle()" style="cursor:pointer" title="이름이 사실상 같은 거래처가 원장에 따로 잡혀 있을 수 있습니다. 클릭하면 후보 목록이 열립니다">'+_fxChip('중복 거래처 후보', nDup+'쌍'+(_fxDupOpen?' ▲':' ▼'), false)+'</span>';
+        // r176: '그대로 두기'한 것은 건수에서 빼되, 칩 자체는 남긴다 — 안 그러면 되돌릴 통로가 사라진다.
+        var dupAll=_fxDupActive(_fxRegion, true), nDup=dupAll.filter(function(p){ return !_fxKeepHas(_fxDupKey(p)); }).length;
+        if(dupAll.length) h+='<span onclick="fxDupToggle()" style="cursor:pointer" title="이름이 사실상 같은 거래처가 원장에 따로 잡혀 있을 수 있습니다. 클릭하면 후보 목록이 열립니다">'
+          +_fxChip(nDup?'중복 거래처 후보':'중복 거래처 (그대로 둠)', (nDup||(dupAll.length-nDup))+'쌍'+(_fxDupOpen?' ▲':' ▼'), false)+'</span>';
         // r175: 업체 목록과 이름이 어긋난 거래처
-        var nNm=_fxNameMismatch(_fxRegion).length;
-        if(nNm) h+='<span onclick="fxNmToggle()" style="cursor:pointer" title="사업자번호는 같은데 계산서·입금에 찍힌 이름이 업체 목록과 다릅니다. 클릭하면 목록이 열립니다">'+_fxChip('업체명 불일치', nNm+'곳'+(_fxNmOpen?' ▲':' ▼'), false)+'</span>';
+        var nmAll=_fxNameMismatch(_fxRegion, true), nNm=nmAll.filter(function(m){ return !m.kept; }).length;
+        if(nmAll.length) h+='<span onclick="fxNmToggle()" style="cursor:pointer" title="사업자번호는 같은데 계산서·입금에 찍힌 이름이 업체 목록과 다릅니다. 클릭하면 목록이 열립니다">'
+          +_fxChip(nNm?'업체명 불일치':'업체명 (그대로 둠)', (nNm||(nmAll.length-nNm))+'곳'+(_fxNmOpen?' ▲':' ▼'), false)+'</span>';
       }
       chips.innerHTML=h;
     }
@@ -18631,7 +18745,7 @@ function reloadState() {
         try{
           _fxUpLog('초기화 중… (Firebase)');
           fxSalesInv=[]; fxPurchInv=[]; fxDeposits=[];
-          fxAdjusts=[]; fxOpenings={}; fxTerms={}; fxExcluded=[];
+          fxAdjusts=[]; fxOpenings={}; fxTerms={}; fxExcluded=[]; fxKeepAs=[];   // r176
           await _fxSaveBig();
           _fxSave();
           _fxLoaded=true;
