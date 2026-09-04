@@ -16662,6 +16662,98 @@ function reloadState() {
       + '<thead><tr><th style="'+TH+';text-align:left">거래처 A</th><th style="'+TH+'"></th><th style="'+TH+';text-align:left">거래처 B</th><th style="'+TH+'">병합</th></tr></thead>'
       + '<tbody>'+rows+'</tbody></table></div></div>';
   }
+  // ── r175: 업체 목록과 이름이 어긋난 거래처 찾기 ──
+  //  사업자번호는 같은데 원장에 찍힌 이름이 업체 목록의 이름과 다른 경우.
+  //  (옛 버전에서 이름을 바꿨거나, 홈택스 상호가 바뀐 경우 등)
+  var _fxNmOpen=false;
+  function _fxNameMismatch(region){
+    var out=[], seen={};
+    var cliNames={}, byBiz={};
+    try{
+      (allClients()||[]).forEach(function(c){
+        if(!c || !c[0]) return;
+        var nm=String(c[0]).trim(); if(!nm) return;
+        cliNames[nm]=1;
+        var bd=String(c[1]||'').replace(/[^0-9]/g,'');
+        if(bd.length!==10) return;
+        if(!byBiz[bd]) byBiz[bd]=[];
+        if(byBiz[bd].indexOf(nm)<0) byBiz[bd].push(nm);   // 같은 사업자번호에 이름이 여러 개면 확정 불가
+      });
+    }catch(_e){ return out; }
+    _fxLedgers(region).forEach(function(x){
+      var nm=String(x.name||'').trim();
+      if(!nm || !x.vbiz || !/\d{3}-\d{2}-\d{5}/.test(x.vbiz)) return;
+      if(cliNames[nm]) return;                     // 원장 이름이 업체 목록에 있으면 그대로 둔다
+      var cand=byBiz[String(x.vbiz).replace(/[^0-9]/g,'')];
+      if(!cand || cand.length!==1) return;          // 등록이 없거나 이름이 둘 이상이면 손대지 않는다
+      var reg=cand[0];
+      if(reg===nm) return;
+      var k=nm+'|'+reg;
+      if(seen[k]) return;
+      seen[k]=1;
+      out.push({ old:nm, neu:reg, vbiz:x.vbiz, rgn:x.rgn, bal:x.bal });
+    });
+    return out;
+  }
+  window.fxNmToggle = function(){ _fxNmOpen=!_fxNmOpen; _fxRenderArBody(); };
+  window.fxNmFix = function(oldName, newName){
+    if(!_isAdmin()) return;
+    _fxRenameVendorAfter(oldName, newName);
+  };
+  window.fxNmFixAll = function(){
+    if(!_isAdmin()) return;
+    var list=_fxNameMismatch(_fxRegion);
+    if(!list.length) return;
+    showConfirmModal('업체명 맞추기',
+      list.length+'곳의 매입매출 거래처명을 업체 목록의 이름으로 바꿉니다.\n\n'
+      + list.slice(0,8).map(function(m){ return '· '+m.old+'  →  '+m.neu; }).join('\n')
+      + (list.length>8?('\n… 외 '+(list.length-8)+'곳'):'')
+      + '\n\n사업자번호로 묶는 방식은 그대로라 미수 잔액과 배정은 바뀌지 않습니다.',
+      function(){ _fxNmFixSeq(list.slice()); }, '맞추기', '#1B3A6B');
+  };
+  //  한 번에 여러 곳을 고칠 때는 하나씩 순서대로 — 동시에 저장하면 서로 덮어쓴다.
+  async function _fxNmFixSeq(list){
+    var done=0, fail=0;
+    for(var i=0;i<list.length;i++){
+      try{
+        var c=await _fxRenameVendor(list[i].old, list[i].neu);
+        if(c && !c.ambiguous) done++; else fail++;
+      }catch(_e){ fail++; }
+    }
+    _fxNmOpen=false;
+    try{ renderFxPage(); }catch(_e2){}
+    showInfoModal('업체명 맞추기',
+      done+'곳의 매입매출 거래처명을 업체 목록 이름으로 바꿨습니다.'
+      + (fail?('\n'+fail+'곳은 바꾸지 않았습니다 — 같은 이름이 업체 목록에 아직 남아 있어 어느 쪽 자료인지 확정할 수 없는 경우입니다.'):'')
+      + '\n\n미수 잔액과 배정은 바뀌지 않았습니다.');
+  }
+  function _fxNmPanelHtml(){
+    var list=_fxNameMismatch(_fxRegion);
+    if(!list.length) return '';
+    var TH='padding:8px 10px;background:#fafafa;color:#888;font-weight:500;font-size:11.5px;text-align:center;border-bottom:2px solid #d3dce6;white-space:nowrap';
+    var TD='padding:7px 10px;border-bottom:1px solid #eef2f7;font-size:12px;vertical-align:middle';
+    var rows=list.map(function(m){
+      var ro=String(m.old).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      var rn=String(m.neu).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      return '<tr>'
+        + '<td style="'+TD+'">'+(_fxRegion==='all'?_fxBizBadge(m.rgn):'')+'<b>'+esc(m.old)+'</b>'
+        +   ' <span style="color:#9ca3af">'+m.vbiz+' · 잔액 '+_fxFmt(m.bal)+'</span></td>'
+        + '<td style="'+TD+';text-align:center;color:#9ca3af">→</td>'
+        + '<td style="'+TD+'"><b style="color:#14305c">'+esc(m.neu)+'</b> <span style="color:#9ca3af">업체 목록</span></td>'
+        + '<td style="'+TD+';text-align:center">'
+        +   '<button type="button" class="btn" onclick="fxNmFix(\''+ro+'\',\''+rn+'\')" style="font-size:11px;padding:2px 10px;border:1px solid #1B3A6B;color:#14305c;background:#fff">맞추기</button>'
+        + '</td></tr>';
+    }).join('');
+    return '<div style="background:#fff;border:1px solid #d6deea;margin-bottom:12px">'
+      + '<div style="padding:9px 14px;border-bottom:1px solid #e3e9f0;font-size:12.5px;font-weight:700;color:#b45309;display:flex;align-items:center;gap:8px;flex-wrap:wrap">업체명 불일치 '+list.length+'곳'
+      +   '<span style="font-weight:400;color:#8a94a6">— 사업자번호는 같은데 계산서·입금에 찍힌 이름이 업체 목록과 다릅니다. 맞추면 표시 이름만 바뀌고 잔액·배정은 그대로입니다.</span>'
+      +   '<span style="flex:1"></span>'
+      +   '<button type="button" class="btn" onclick="fxNmFixAll()" style="font-size:11px;padding:2px 10px;border:1px solid #1B3A6B;color:#fff;background:#1B3A6B;font-weight:400">전체 맞추기</button>'
+      + '</div>'
+      + '<div style="max-height:300px;overflow:auto"><table style="width:100%;border-collapse:collapse">'
+      + '<thead><tr><th style="'+TH+';text-align:left">매입매출에 찍힌 이름</th><th style="'+TH+'"></th><th style="'+TH+';text-align:left">업체 목록 이름</th><th style="'+TH+'">적용</th></tr></thead>'
+      + '<tbody>'+rows+'</tbody></table></div></div>';
+  }
   window.fxMergeDup = function(rgn, keepKey, dropKey){
     if(!_isAdmin()) return;
     var rows=_fxLedgers(rgn);
@@ -16746,10 +16838,14 @@ function reloadState() {
       if(_isAdmin()){
         var nDup=_fxDupCandidates(_fxRegion).length;
         if(nDup) h+='<span onclick="fxDupToggle()" style="cursor:pointer" title="이름이 사실상 같은 거래처가 원장에 따로 잡혀 있을 수 있습니다. 클릭하면 후보 목록이 열립니다">'+_fxChip('중복 거래처 후보', nDup+'쌍'+(_fxDupOpen?' ▲':' ▼'), false)+'</span>';
+        // r175: 업체 목록과 이름이 어긋난 거래처
+        var nNm=_fxNameMismatch(_fxRegion).length;
+        if(nNm) h+='<span onclick="fxNmToggle()" style="cursor:pointer" title="사업자번호는 같은데 계산서·입금에 찍힌 이름이 업체 목록과 다릅니다. 클릭하면 목록이 열립니다">'+_fxChip('업체명 불일치', nNm+'곳'+(_fxNmOpen?' ▲':' ▼'), false)+'</span>';
       }
       chips.innerHTML=h;
     }
-    var noteHtml = (_fxNotesOpen ? _fxNotesPanelHtml() : '') + (_fxExclOpen ? _fxExclPanelHtml() : '') + (_isAdmin()&&_fxDupOpen ? _fxDupPanelHtml() : '');
+    var noteHtml = (_fxNotesOpen ? _fxNotesPanelHtml() : '') + (_fxExclOpen ? _fxExclPanelHtml() : '') + (_isAdmin()&&_fxDupOpen ? _fxDupPanelHtml() : '')
+      + (_isAdmin()&&_fxNmOpen ? _fxNmPanelHtml() : '');   // r175
     if(!data.length){ host.innerHTML=noteHtml+'<div style="text-align:center;padding:48px;color:#b6bec9;font-size:13px">조건에 맞는 거래처가 없습니다.</div>'; return; }
     var _arTotal=data.length;
     var _arTotalPages=Math.max(1, Math.ceil(_arTotal/_fxArPageSize));
