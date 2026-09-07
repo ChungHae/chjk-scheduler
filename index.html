@@ -8994,6 +8994,7 @@ function reloadState() {
   document.addEventListener('focusin', function(e){
     var t=e.target; if(!t || !t.classList) return;
     if(!(t.classList.contains('qc-in')||t.classList.contains('qc-nego')||t.classList.contains('qc-memo'))) return;
+    if(_qgPasting) return;   // r177: 붙여넣기 중 재렌더의 커서 복귀는 실행취소 단계가 아니다
     var box=document.getElementById('qCart'); if(box && box.contains(t)) _qPushUndo();
   });
   document.addEventListener('keydown', function(e){
@@ -9058,10 +9059,78 @@ function reloadState() {
   function _qgBuildTSV(){ var b=_qgBounds(); if(!b) return null; var g=_qcGrid(),lines=[]; for(var r=b.r0;r<=b.r1;r++){ var cells=[]; for(var c=b.c0;c<=b.c1;c++){ var inp=(g[r]||[])[c]; cells.push(inp?String(inp.value||''):''); } lines.push(cells.join('\t')); } return lines.join('\n'); }
   function _qgSetInput(inp,val){ if(!inp||inp.readOnly||inp.disabled) return; inp.value=val; try{ inp.dispatchEvent(new Event('input',{bubbles:true})); }catch(e){} try{ inp.dispatchEvent(new Event('change',{bubbles:true})); }catch(e){} }
   function _qgDelete(){ if(!_qgSel||!_qgSel.set.size) return; var g=_qcGrid(),targets=[]; _qgSel.set.forEach(function(k){ var p=k.split(','); var inp=(g[+p[0]]||[])[+p[1]]; if(inp&&!inp.readOnly&&!inp.disabled) targets.push(inp); }); if(!targets.length) return; _qgSuspend=true; try{ targets.forEach(function(inp){ _qgSetInput(inp,''); }); } finally { _qgSuspend=false; } renderQCart(); _qgPaint(); }
-  function _qgFillFromLedger(i){ var c=_qCart[i]; if(!c) return false; var key=_qNorm(c.spec); if(!key) return false; var r=(_qRows||[]).find(function(x){ return _qNorm(x.spec)===key; }); if(!r) return false; c.name=r.name||''; c.e=(r.e!=null&&r.e!=='')?Number(r.e):null; c.buy=(r.buy!=null&&r.buy!=='')?Number(r.buy):null; c.small=(r.small!=null&&r.small!=='')?Number(r.small):null; c.pl=r.pl?true:false; c.sell=(r.sell!=null&&r.sell!=='')?Number(r.sell):null; c.disc=r.disc||''; c.eta=r.eta||''; return true; }
+  // ── r178: 붙여넣은 규격의 가격 채우기 — 규격칸에 직접 입력할 때와 같은 기준 ──
+  //  ① 내 원장 → ② 타 거래처 원장(구매가 최저) → ③ 가격표.  SMC 는 ①, 없으면 확판/소물 있는 가격표만.
+  //  _qResolveMatches 는 부분 일치 검색이라 호출마다 전체 색인을 훑는다(행마다 부르면 느리다).
+  //  붙여넣기는 규격이 정해져 있으므로 같은 우선순위 규칙만 옮겨 키로 바로 찾는다.
+  var _qgObk=null;   // 이번 붙여넣기 동안 쓰는 '내 원장 규격 색인' (한 번만 만든다)
+  function _qgOwnByKey(){
+    var m={};
+    (_qRows||[]).forEach(function(r){ var k=_qNorm(r.spec); if(!k) return; (m[k]=m[k]||[]).push(r); });
+    return m;
+  }
+  function _qgPriceRow(k, p){
+    return { spec:p.spec||k, name:p.name||'', e:(p.e!=null?p.e:null), buy:(p.buy!=null?p.buy:null),
+             small:(p.small!=null?p.small:null), pl:p.pl?true:false, sell:null, disc:'', eta:'' };
+  }
+  function _qgResolveOne(key, ownByKey){
+    if(!key) return null;
+    var own=ownByKey[key]||[];
+    var others=((_qAllIdx&&_qAllIdx[key])||[]).filter(function(e){ return e.vid!==_qCurId; });
+    var price=_qPriceIdx?_qPriceIdx[key]:null;
+    var smc = own.some(function(r){ return _qIsSmc(r,key); })
+           || others.some(function(e){ return _qIsSmc(e.r,key); })
+           || !!(price && price.isSMC);
+    if(smc){
+      if(own.length) return _qCheapest(own).item||own[0];
+      if(price && price.hasSmcPrice) return _qgPriceRow(key, price);
+      return null;                                  // SMC 는 타 거래처 원장을 쓰지 않는다(불변 조건)
+    }
+    if(own.length) return _qCheapest(own).item||own[0];        // 내 원장이 항상 우선
+    if(others.length){ var pk=_qCheapest(others).item; return pk?pk.r:null; }
+    if(price) return _qgPriceRow(key, price);
+    return null;
+  }
+  function _qgFillFromLedger(i){
+    var c=_qCart[i]; if(!c) return false;
+    var key=_qNorm(c.spec); if(!key) return false;
+    if(!_qgObk) _qgObk=_qgOwnByKey();
+    var r=_qgResolveOne(key, _qgObk);
+    if(!r) return false;
+    c.name=r.name||'';
+    c.e   =(r.e!=null&&r.e!=='')?Number(r.e):null;
+    c.buy =(r.buy!=null&&r.buy!=='')?Number(r.buy):null;
+    c.small=(r.small!=null&&r.small!=='')?Number(r.small):null;
+    c.pl  =r.pl?true:false;
+    c.sell=(r.sell!=null&&r.sell!=='')?Number(r.sell):null;
+    c.disc=r.disc||''; c.eta=r.eta||'';
+    return true;
+  }
+  var _QPASTE_MAX=2000;   // r177: 한 번에 만들 수 있는 최대 행수
+  var _qgPasting=false;   // r177: 붙여넣는 동안에는 칸 이동(focusin)으로 실행취소를 쌓지 않는다
   function _qgPasteText(txt){
+    if(!_guardW()) return;
     var g=_qcGrid(); var b=_qgBounds(); var start = b?{r:b.r0,c:b.c0}:(_qcPos(document.activeElement)||{r:0,c:0});
     var rows=String(txt).replace(/\r/g,'').replace(/\n+$/,'').split('\n').map(function(ln){ return ln.split('\t'); });
+    // ── r177: 붙여넣을 만큼 행이 없으면 먼저 늘린다 ──
+    //  전에는 화면에 있는 행에만 써서 나머지가 말 없이 사라졌다(1행에 100행을 붙이면 99행 소실).
+    _qgObk=null;    // r178: 원장 색인 캐시 초기화
+    _qPushUndo();   // 붙여넣기 전체를 한 단계로 — 100행을 되돌릴 방법이 있어야 한다
+    var _cut=0;
+    if(rows.length > _QPASTE_MAX){ _cut=rows.length-_QPASTE_MAX; rows=rows.slice(0,_QPASTE_MAX); }
+    var _need = start.r + rows.length;
+    if(_need > _qCart.length){
+      var _vendorSel=!!(_qCurId && (typeof quoteVendors!=='undefined'&&quoteVendors) && quoteVendors.find(function(v){return v.id===_qCurId;}));
+      if(!_vendorSel && !_qCartHasContent()){ showInfoModal('거래처 확인','거래처를 먼저 선택한 뒤 붙여넣어 주세요.'); return; }
+      _qgPasting=true;
+      var _vid=_qCart.length?_qCart[0].vid:(_qCurId||'');
+      var _vn=_qCart.length?_qCart[0].vname:((typeof quoteVendors!=='undefined'&&quoteVendors?(quoteVendors.find(function(v){return v.id===_qCurId;})||{}):{}).name||'');
+      while(_qCart.length < _need){
+        _qCart.push({vid:_vid, vname:_vn, spec:'', name:'', e:null, buy:null, small:null, pl:false, sell:null, disc:'', eta:'', qty:1, manual:true});
+      }
+      renderQCart();
+      g=_qcGrid();   // 늘린 표를 다시 읽는다 — 늘리기 전 표에는 새 행이 없다
+    }
     _qgSuspend=true; var specRows={};
     try{
       for(var ri=0;ri<rows.length;ri++){ var gi=start.r+ri; for(var ci=0;ci<(rows[ri]||[]).length;ci++){ var inp=(g[gi]||[])[start.c+ci]; if(!inp) continue; if(inp.getAttribute && inp.getAttribute('data-mf')==='spec'){ inp.value=rows[ri][ci]; try{ qCartFieldNoRender(gi,'spec',rows[ri][ci]); }catch(e){} specRows[gi]=1; } } }
@@ -9069,7 +9138,26 @@ function reloadState() {
       for(var rj=0;rj<rows.length;rj++){ var gj=start.r+rj; for(var cj=0;cj<(rows[rj]||[]).length;cj++){ var in2=(g[gj]||[])[start.c+cj]; if(!in2) continue; if(in2.getAttribute && in2.getAttribute('data-mf')==='spec') continue; _qgSetInput(in2, rows[rj][cj]); } }
     } finally { _qgSuspend=false; }
     try{ _qcsHide(); }catch(e){}
+    _qgPasting=true;
     _qCartSave(); renderQCart(); _qgPaint();
+    _qgPasting=false;
+    // r178: 전체 색인(타 거래처·가격표)이 아직이면 기다리지 않고, 준비되는 대로 빈 행만 다시 채운다
+    if(!_qAllReady && typeof _qEnsureAllIdx==='function'){
+      var _pend=Object.keys(specRows).map(Number);
+      if(_pend.length){
+        _qEnsureAllIdx().then(function(){
+          _qgObk=null; var _n=0;
+          _pend.forEach(function(ri){
+            var c2=_qCart[ri]; if(!c2 || !String(c2.spec||'').trim()) return;
+            if(c2.e!=null || c2.buy!=null || c2.sell!=null) return;   // 이미 값이 있으면 덮지 않는다
+            if(_qgFillFromLedger(ri)) _n++;
+          });
+          if(_n){ _qgPasting=true; _qCartSave(); renderQCart(); _qgPaint(); _qgPasting=false; }
+        }).catch(function(){});
+      }
+    }
+    if(_cut) showInfoModal('붙여넣기','한 번에 넣을 수 있는 행은 '+_QPASTE_MAX+'행까지입니다.\n'
+      + '앞에서부터 '+_QPASTE_MAX+'행만 넣었고 '+_cut+'행은 넣지 않았습니다.\n\n나머지는 이어서 한 번 더 붙여넣어 주세요.');
   }
   function _qgSelRows(){ if(!_qgSel||!_qgSel.set.size) return []; var rs={}; _qgSel.set.forEach(function(k){ rs[+k.split(',')[0]]=1; }); return Object.keys(rs).map(Number).sort(function(a,b){return a-b;}); }
   window._qgDeleteRows=function(){ if(!_guardW()) return; var rows=_qgSelRows(); if(!rows.length) return; _qPushUndo(); rows.sort(function(a,b){return b-a;}); rows.forEach(function(r){ if(r>=0&&r<_qCart.length) _qCart.splice(r,1); });
