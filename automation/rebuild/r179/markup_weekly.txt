@@ -1,0 +1,11 @@
+  <div id="pageWeekly" class="page-section">
+    <div class="q-toolbar inv-toolbar">
+      <span class="inv-flat-label">주간 일정표</span>
+      <button class="qic" onclick="wkMove(-1)" data-tip="지난 주" aria-label="지난 주" style="border-color:#5b7ba6;color:#5b7ba6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <span id="wkTitle" style="font-size:13px;font-weight:700;color:#1a1a1a;min-width:190px;text-align:center"></span>
+      <button class="qic" onclick="wkMove(1)" data-tip="다음 주" aria-label="다음 주" style="border-color:#5b7ba6;color:#5b7ba6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+      <button class="qic" onclick="wkMove(0)" data-tip="이번 주" aria-label="이번 주" style="border-color:#1B3A6B;color:#1B3A6B;width:auto !important;padding:0 8px;font-size:11.5px;font-weight:700">오늘</button>
+      <span style="flex:1"></span>
+    </div>
+    <div style="overflow-x:auto"><table class="wk-tbl" id="wkTable"></table></div>
+  </div>
