@@ -7586,12 +7586,14 @@ function reloadState() {
         var dl=document.getElementById('qPvDlBtn');
         if(dl) dl.onclick=function(){
           showConfirmModal('견적서 저장', '견적번호 <b>'+esc(no)+'</b> 로 저장 후 PDF 파일을 다운로드합니다.\n\n파일명 · 견적서 '+esc(no)+'.pdf', function(){ (async function(){
-            try{ await _qPersistQuote(); }catch(_pe){ showInfoModal('견적 저장 실패', (_pe&&_pe.message||String(_pe))+'\n\n다운로드는 계속 진행하지만, 이 견적은 저장되지 않았습니다.'); }
+            var _saved=true;   // r186
+            try{ await _qPersistQuote(); }catch(_pe){ _saved=false; showInfoModal('견적 저장 실패', (_pe&&_pe.message||String(_pe))+'\n\n다운로드는 계속 진행하지만, 이 견적은 저장되지 않았습니다.'); }
             try{
               var _fn=('견적서 '+no).replace(/[<>:"/\\|?*]/g,' ').replace(/\s+/g,' ').trim();
               var a=document.createElement('a'); a.href=window._qPvUrl; a.download=_fn+'.pdf';
               document.body.appendChild(a); a.click(); a.remove();
               window._qPdfPreviewClose();
+              if(_saved){ _qResetQuoteScreen(); showInfoModal('저장 완료', '"'+esc(no)+'" 견적을 저장하고 PDF 로 내려받았습니다.\n새 견적을 작성할 수 있게 목록을 비웠습니다.'); }   // r186
             }catch(_de){ showInfoModal('PDF 다운로드 실패', (_de&&_de.message||String(_de))); }
           })(); }, 'PDF 다운로드', '#1B3A6B');
         };
@@ -7612,8 +7614,9 @@ function reloadState() {
     _qEnsureQuoteNo();
     var no=_qQuoteNo||'';
     showConfirmModal('견적서 저장', '견적번호 <b>'+esc(no)+'</b> 로 저장 후 PDF 파일을 다운로드합니다.\n\n파일명 · 견적서 '+esc(no)+'.pdf', function(){ (async function(){
-      try{ await _qPersistQuote(); }catch(_pe){ showInfoModal('견적 저장 실패', (_pe&&_pe.message||String(_pe))+'\n\n다운로드는 계속 진행하지만, 이 견적은 저장되지 않았습니다.'); }
-      try{ await window.qDownloadPdf(window._qPdfOrient); }
+      var _saved=true;   // r186
+      try{ await _qPersistQuote(); }catch(_pe){ _saved=false; showInfoModal('견적 저장 실패', (_pe&&_pe.message||String(_pe))+'\n\n다운로드는 계속 진행하지만, 이 견적은 저장되지 않았습니다.'); }
+      try{ await window.qDownloadPdf(window._qPdfOrient); if(_saved){ _qResetQuoteScreen(); showInfoModal('저장 완료', '"'+esc(no)+'" 견적을 저장하고 PDF 로 내려받았습니다.\n새 견적을 작성할 수 있게 목록을 비웠습니다.'); } }   // r186
       catch(_de){ showInfoModal('PDF 생성 실패', (_de&&_de.message||String(_de))+'\n\n브라우저 인쇄창 방식으로 대신 진행합니다.'); try{ qExportPdf(true); }catch(_e2){} }
     })(); }, 'PDF 다운로드', '#1B3A6B');
   };
@@ -7679,6 +7682,13 @@ function reloadState() {
     saveAll();
   }
   // 견적 저장 마무리 공통 로직 (실제 저장 + 목록 비우기 + 이탈 가드 콜백 실행)
+  // r186: 견적 화면 초기화 (저장 후 공통) — 목록·거래처·검색·날짜 비움
+  function _qResetQuoteScreen(){
+    _qLoadedId=null; _qQuoteNo=null; _qNego=null; _qMemo=''; _qNote=''; _qCart=[]; _qCols=[]; _qQuoteYmd=''; _qCartSave(); _qSyncNoteInput(); renderQCart();
+    _qCurId=''; var _vi=document.getElementById('qVendorSearch'); if(_vi) _vi.value=''; var _qr=document.getElementById('qResults'); if(_qr) _qr.innerHTML=''; var _sp=document.getElementById('qSpec'); if(_sp) _sp.value=''; var _ab=document.getElementById('qAddBtn'); if(_ab) _ab.style.display='none';
+    var _di=document.getElementById('qQuoteDate'); if(_di) _di.value='';
+    try{ if(typeof _qRenderMetaInfo==='function') _qRenderMetaInfo(); }catch(_e){}
+  }
   function _qFinishSaveQuote(){
     var _no=_qQuoteNo;
     _qPersistQuote().then(function(){
