@@ -1,96 +1,138 @@
 # -*- coding: utf-8 -*-
-# r179: 메모장 기반 개인 일정 — 서브탭 일정(메모장)·완료(구 일정/프로젝트)·주간·달력·업체 (흰색·전폭 패드) (TEST 우선, 사용자 결정 2026-09-10)
+# r179: 견적 불러오기 — 날짜를 '기간'으로 검색 + 10개 넘어도 페이지로 전부 보기
 #
-#  사용자 요구 요약:
-#   · 한 페이지(노란 리갈패드)에 메모만 적는다. 로그인한 사람 이름으로 저장, 메모 본문은 본인만 본다.
-#   · 붉은 세로선 왼쪽 여백에 작성 날짜.
-#   · 줄 앞에 '-' 또는 '1.' 을 치면 바로 위 메모의 하위 줄로 들어간다(Tab 도 지원).
-#   · 줄 맨 앞 키워드로 종류 판별: 미팅/프로젝트/납품/공지/요청(이름). 업체명은 등록 업체 목록과 자동 매칭.
-#     '이름 010-…' 줄은 담당자, 명함 사진을 붙이면 담당자 기록.
-#   · 세부 옵션은 전부 '완료' 시점의 창에서 정한다 — 일정 저장 / 프로젝트 저장 / 담당자 등록.
-#     메모 적은 날 = 프로젝트 시작일, 완료 누른 날 = 종료일.
-#   · 완료하면 검은 취소선 + 흐림. 완료 후 24시간 지나면 목록에서 사라진다(자료는 남음, 30일 뒤 정리).
-#   · '공지 …' 는 모든 사람 메모장 맨 위에. '요청 이름 …' 은 그 사람 메모장에 뜨고, 피드백·완료가
-#     요청한 사람 메모장에도 보인다.
-#   · 주간 일정표(주간 탭)에서 사람별로 그 주에 한 일(미팅·납품·프로젝트 완료·휴가)을 다같이 본다.
-#   · 달력은 휴가만 (공지 막대 제거).
+#  사용자 요청 2가지:
+#   ① 지금은 날짜를 하나만 찍어 그 날짜만 검색된다 → 시작일~종료일 기간으로 찾고 싶다.
+#   ② 10개까지만 보이고 그 뒤는 볼 방법이 없다 → 페이지를 넘겨 전부 볼 수 있게.
 #
-#  자료: sched_memos (memoLines) / sched_memo_cards (memoCards: 명함 dataURL, 640px JPEG 로 줄여 저장)
-#   memoLines 항목 = { id, owner(로그인 이름), text, parent(상위 id|null), kind(memo|meeting|project|delivery|
-#     notice|request|contact), vendor(매칭 업체명), to(요청 대상), name/phone(담당자), when:{date,time},
-#     date(작성일 YYYY-MM-DD), createdAt, done, doneAt, feedback:[{by,text,ts}], card(카드 id), linked:{sched,proj} }
-#   등록 지점: 선언 / saveAll / doFbSave 페이로드 / reloadState / KEYS(live 2·test 3) / 백업.
+#  현재 동작(코드 확인):
+#   · 필터는 qLoadDate 한 칸, qq.savedAt(저장 시각)의 YYYYMMDD 와 '완전히 같을 때'만 통과.
+#   · 날짜를 안 고르면 최신 10건만 자르고 '최신 10개만 표시됩니다' 안내만 붙었다.
+#     → 11번째부터는 날짜나 거래처로 우연히 좁히지 않는 한 볼 방법이 아예 없었다.
+#     (날짜를 고르면 상한이 풀려 그날 것은 전부 나왔다 — 상한이 일관되지도 않았다.)
 #
-#  ★ 다시 그리는 영역(#mmList) 안에 입력칸을 두지 않는다(r171 규칙). 새 줄 입력칸(#mmInput)은 고정,
-#    기존 줄 수정은 그 줄에만 input 을 끼워 넣고(_mmEditing) 편집 중엔 재렌더를 건너뛴다.
+#  수정:
+#   ① qLoadDate → qLoadFrom ~ qLoadTo 두 칸. 기준 필드는 종전과 같은 savedAt 이다
+#      (목록에 찍히는 날짜가 savedAt 이므로, 보이는 값으로 걸러야 예측 가능하다).
+#      · 시작일만: 그날부터 이후 전부   · 종료일만: 그날까지 이전 전부
+#      · 둘 다: 사이(양끝 포함)         · 거꾸로 넣으면 두 값을 바꿔서 적용한다
+#   ② 페이지 나누기(한 쪽 10건). 목록 아래에 '이전 / N M 페이지 · 조건에 맞는 견적 K건 / 다음'.
+#      미수현황 페이저(_fxArPagerHtml)와 같은 각진 디자인.
+#      · 필터가 바뀌면 1쪽으로 되돌린다(안 그러면 빈 쪽이 보인다).
+#      · 삭제 등으로 건수가 줄어 현재 쪽이 사라지면 마지막 쪽으로 당긴다.
+#   · '최신 10개만 표시됩니다' 안내는 더 이상 사실이 아니므로 제거한다.
 
-import io, sys
+import io
 
 def rep(s, old, new, exp, label):
     n = s.count(old)
     if n != exp: raise SystemExit('R179 FAIL %s count %d (expect %d)' % (label, n, exp))
     return s.replace(old, new)
 
-_D = __import__('os').path.join(__import__('os').path.dirname(__import__('os').path.abspath(__file__)), 'r179')
-def _part(n):
-    with io.open(__import__('os').path.join(_D, n + '.txt'), 'r', encoding='utf-8', newline='') as f: return f.read()
-CSS = _part('css'); MARKUP_MEMO = _part('markup_memo'); MARKUP_WEEKLY = _part('markup_weekly'); JS = _part('js')
-
 def apply_r179(s, path):
-    is_test = 'testpage' in path
-
-    # ── (0) 자료 등록 ──
-    s = rep(s, "  let projectsList = load('sched_projects') ?? [];",
-        "  let projectsList = load('sched_projects') ?? [];\n"
-        "  let memoLines = load('sched_memos') ?? [];        // r179 메모장 줄 [{id,owner,text,parent,kind,vendor,to,name,phone,when,date,createdAt,done,doneAt,feedback,card,linked}]\n"
-        "  let memoCards = load('sched_memo_cards') ?? {};   // r179 명함 사진 {cardId: dataURL}", 1, 'DECL')
-    s = rep(s, "    save('sched_projects', projectsList);\n    save('sched_client_info', clientInfo);\n",
-        "    save('sched_projects', projectsList);\n    save('sched_client_info', clientInfo);\n    save('sched_memos', memoLines);   // r179\n    save('sched_memo_cards', memoCards);\n", 1, 'SAVEALL')
-    s = rep(s, "        sched_projects: projectsList,\n",
-        "        sched_projects: projectsList,\n        sched_memos: memoLines,   // r179\n        sched_memo_cards: memoCards,\n", 1, 'FBPUT')
-    s = rep(s, "    projectsList     = load('sched_projects') ?? [];\n",
-        "    projectsList     = load('sched_projects') ?? [];\n    memoLines        = load('sched_memos') ?? [];   // r179\n    memoCards        = load('sched_memo_cards') ?? {};\n", 1, 'RELOAD')
-    s = rep(s, "'sched_client_list','sched_projects','sched_client_info','sched_proj_memos'",
-        "'sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards'", 3 if is_test else 2, 'KEYS')
-    s = rep(s, "      sched_projects: projectsList, sched_client_info: clientInfo, sched_proj_memos: projMemos,\n",
-        "      sched_projects: projectsList, sched_client_info: clientInfo, sched_proj_memos: projMemos,\n      sched_memos: memoLines, sched_memo_cards: memoCards,   // r179\n", 1, 'BACKUP')
-
-    # ── (1) 마크업 ──
-    s = rep(s, '  <button class="sub-tab active" data-page="project">일정</button>',
-        '  <button class="sub-tab active" data-page="memo">일정</button>\n  <button class="sub-tab" data-page="project">완료</button>\n  <button class="sub-tab" data-page="weekly">주간</button>', 1, 'SUBNAV')
-    s = rep(s, '  <div id="pageWeekly" class="page-section"></div><!-- r117: 팀원 일정 삭제 -->', MARKUP_WEEKLY + MARKUP_MEMO, 1, 'MARKUP')
-
-    # ── (2) 페이지 전환 ──
-    s = rep(s, "    var _SCHED=['personal','weekly','biz','project','clients'];",
-        "    var _SCHED=['personal','weekly','biz','project','clients','memo'];   // r179", 1, 'SCHED')
-    s = rep(s, "const pageMap = { weekly:'pageWeekly',", "const pageMap = { memo:'pageMemo', weekly:'pageWeekly',", 1, 'PAGEMAP')
-    # live 에는 _wkMobSel 줄(주간 모바일 코드)이 없다 — 분기
+    # (1) 필터 줄: 날짜 한 칸 → 기간 두 칸
     s = rep(s,
-        "    if (page === 'weekly') {\n" + ("      _wkMobSel = null;   // 탭 진입 시 항상 오늘부터 (모바일 하루 이동 상태 초기화)\n" if is_test else "") +
-        "      weekStart = getMonday(new Date());\n      render();\n      try{ window.scrollTo(0, 0); }catch(e){}\n      setTimeout(_scrollWeeklyToToday, 140);\n    }",
-        "    if (page === 'weekly') { _wkStart = getMonday(new Date()); renderWeeklyPage(); }   // r179 주간 일정표\n    if (page === 'memo') { _mmEditing=null; renderMemoPage(true); setTimeout(function(){ try{ var _mi=document.getElementById('mmInput'); if(_mi && window.innerWidth>640) _mi.focus(); }catch(_e){} }, 60); }",
-        1, 'HOOK')
-    s = rep(s, "      else if(_id==='pageClients' && typeof renderClientsPage==='function') renderClientsPage();",
-        "      else if(_id==='pageClients' && typeof renderClientsPage==='function') renderClientsPage();\n      else if(_id==='pageMemo' && typeof renderMemoPage==='function') renderMemoPage();   // r179 (편집 중이면 건너뜀)\n      else if(_id==='pageWeekly' && typeof renderWeeklyPage==='function') renderWeeklyPage();",
-        1, 'REFRESH')
-    # 시작 탭 = 메모 (일정 탭 버튼·로고·초기 진입 3곳)
-    s = rep(s, "switchPage('project');", "switchPage('memo');", 3, 'START')
+        "        +'<input type=\"date\" id=\"qLoadDate\" value=\"\" onchange=\"_qRenderLoadList()\" style=\"'+INP+'\">'\n"
+        "        +'<button class=\"btn\" onclick=\"qLoadResetFilters()\" style=\"font-size:12px;padding:6px 10px\">초기화</button>'",
+        "        // r179: 날짜 한 칸 → 기간(시작~종료). 한쪽만 넣어도 된다.\n"
+        "        +'<span style=\"display:inline-flex;align-items:center;gap:5px\">'\n"
+        "          +'<input type=\"date\" id=\"qLoadFrom\" value=\"\" title=\"시작일 (이 날짜부터)\" onchange=\"_qLoadFilterChanged()\" style=\"'+INP+'\">'\n"
+        "          +'<span style=\"color:#9ca3af;font-size:12px\">~</span>'\n"
+        "          +'<input type=\"date\" id=\"qLoadTo\" value=\"\" title=\"종료일 (이 날짜까지)\" onchange=\"_qLoadFilterChanged()\" style=\"'+INP+'\">'\n"
+        "        +'</span>'\n"
+        "        +'<button class=\"btn\" onclick=\"qLoadResetFilters()\" style=\"font-size:12px;padding:6px 10px\">초기화</button>'",
+        1, 'DATERANGE')
 
-    # ── (3) 달력은 휴가만 ──
-    s = rep(s, "      if (_psShowBcast()) bcastBarsHtml(dStr).forEach(h => _lines.push(h));",
-        "      // r179: 달력은 휴가만 (공지 막대 제거)", 1, 'CAL')
+    # 검색어·작성자도 필터가 바뀌면 1쪽으로
+    s = rep(s,
+        "        +'<input id=\"qLoadSearch\" value=\"'+esc(_defVn)+'\" placeholder=\"거래처 · 이름 · 작성자 · 메모 검색\" oninput=\"_qRenderLoadList()\" style=\"'+INP+';flex:1;min-width:150px\">'\n"
+        "        +'<select id=\"qLoadWriter\" onchange=\"_qRenderLoadList()\" style=\"'+INP+'\">'+_wopts2+'</select>'",
+        "        +'<input id=\"qLoadSearch\" value=\"'+esc(_defVn)+'\" placeholder=\"거래처 · 이름 · 작성자 · 메모 검색\" oninput=\"_qLoadFilterChanged()\" style=\"'+INP+';flex:1;min-width:150px\">'\n"
+        "        +'<select id=\"qLoadWriter\" onchange=\"_qLoadFilterChanged()\" style=\"'+INP+'\">'+_wopts2+'</select>'",
+        1, 'FILTERHOOK')
 
-    # ── (4) CSS / JS ──
-    s = rep(s, "    .page-section { display: none; }", CSS + "    .page-section { display: none; }", 1, 'CSS')
-    s = rep(s, "  // ─── 개인 일정 페이지 ──────────────────────────────────", JS + "  // ─── 개인 일정 페이지 ──────────────────────────────────", 1, 'JS')
+    # 팝업을 열 때는 1쪽부터
+    s = rep(s,
+        "    ov.style.display='flex';\n"
+        "    _qRenderLoadList();\n"
+        "  };\n"
+        "  window.qLoadResetFilters = function(){   // 필터 모두 비우기 → 전체 표시\n"
+        "    var s=document.getElementById('qLoadSearch'); if(s) s.value='';\n"
+        "    var w=document.getElementById('qLoadWriter'); if(w) w.value='';\n"
+        "    var d=document.getElementById('qLoadDate'); if(d) d.value='';\n"
+        "    _qRenderLoadList();\n"
+        "  };",
+        "    ov.style.display='flex';\n"
+        "    _qLoadPage=1;   // r179\n"
+        "    _qRenderLoadList();\n"
+        "  };\n"
+        "  // ── r179: 목록 페이지 ──\n"
+        "  var _qLoadPage=1, _QLOAD_PER=10;\n"
+        "  window._qLoadFilterChanged = function(){ _qLoadPage=1; _qRenderLoadList(); };   // 필터가 바뀌면 첫 쪽부터\n"
+        "  window.qLoadPageDelta = function(d){\n"
+        "    _qLoadPage += d; if(_qLoadPage<1) _qLoadPage=1;\n"
+        "    _qRenderLoadList();\n"
+        "    var box=document.getElementById('qLoadList'); if(box) box.scrollTop=0;\n"
+        "  };\n"
+        "  window.qLoadResetFilters = function(){   // 필터 모두 비우기 → 전체 표시\n"
+        "    var s=document.getElementById('qLoadSearch'); if(s) s.value='';\n"
+        "    var w=document.getElementById('qLoadWriter'); if(w) w.value='';\n"
+        "    var f=document.getElementById('qLoadFrom'); if(f) f.value='';\n"
+        "    var t=document.getElementById('qLoadTo'); if(t) t.value='';\n"
+        "    _qLoadPage=1;\n"
+        "    _qRenderLoadList();\n"
+        "  };",
+        1, 'PAGEVARS')
 
-    if is_test:
-        s = rep(s, "<!-- test build r178 2026-09-07 -->", "<!-- test build r179 2026-09-10 -->", 1, 'MARKER')
+    # (2) 필터 판정: 하루 → 기간
+    s = rep(s,
+        "    var dv=((document.getElementById('qLoadDate')||{}).value||'');\n"
+        "    var dnum=dv?dv.replace(/-/g,''):'';",
+        "    // r179: 기간 필터 — 한쪽만 넣어도 되고, 거꾸로 넣으면 바꿔서 적용한다\n"
+        "    var _f=((document.getElementById('qLoadFrom')||{}).value||'').replace(/-/g,'');\n"
+        "    var _t=((document.getElementById('qLoadTo')||{}).value||'').replace(/-/g,'');\n"
+        "    if(_f && _t && _f>_t){ var _sw=_f; _f=_t; _t=_sw; }",
+        1, 'RANGEVARS')
+
+    s = rep(s,
+        "      if(dnum){ var d=qq.savedAt?new Date(qq.savedAt):null; var ds=d?(d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')):''; if(ds!==dnum) return false; }\n"
+        "      return true;",
+        "      if(_f || _t){\n"
+        "        var d=qq.savedAt?new Date(qq.savedAt):null;\n"
+        "        var ds=d?(d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')):'';\n"
+        "        if(!ds) return false;                 // 저장 시각이 없으면 기간 판정을 할 수 없다\n"
+        "        if(_f && ds<_f) return false;\n"
+        "        if(_t && ds>_t) return false;\n"
+        "      }\n"
+        "      return true;",
+        1, 'RANGEFILTER')
+
+    # (3) 10개 자르기 → 페이지 나누기
+    s = rep(s,
+        "    var _moreN='';\n"
+        "    if(!dnum && list.length>10){ _moreN='<div style=\"padding:8px 14px;text-align:center;font-size:11px;color:#9ca3af\">최신 10개만 표시됩니다 · 날짜/거래처로 좁혀주세요</div>'; list=list.slice(0,10); }",
+        "    // r179: 잘라서 감추지 않고 쪽을 나눈다 — 11번째부터는 볼 방법이 아예 없었다\n"
+        "    var _total=list.length;\n"
+        "    var _pages=Math.max(1, Math.ceil(_total/_QLOAD_PER));\n"
+        "    if(_qLoadPage>_pages) _qLoadPage=_pages;   // 삭제 등으로 줄었으면 마지막 쪽으로\n"
+        "    if(_qLoadPage<1) _qLoadPage=1;\n"
+        "    list=list.slice((_qLoadPage-1)*_QLOAD_PER, _qLoadPage*_QLOAD_PER);\n"
+        "    var _moreN = (_total>_QLOAD_PER)\n"
+        "      ? ('<div style=\"display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 14px;border-top:1px solid #eef2f7;background:#fafbfc\">'\n"
+        "         + '<button type=\"button\" class=\"btn\" onclick=\"qLoadPageDelta(-1)\"'+(_qLoadPage<=1?' disabled':'')+' style=\"font-size:11.5px;padding:3px 12px;border:1px solid #c8d2de;border-radius:0;background:#fff;color:'+(_qLoadPage<=1?'#c9d0da':'#374151')+';cursor:'+(_qLoadPage<=1?'default':'pointer')+'\">&lsaquo; 이전</button>'\n"
+        "         + '<span style=\"font-size:12px;color:#6b7280\">'+_qLoadPage+' / '+_pages+' 페이지 &middot; 조건에 맞는 견적 '+_total+'건</span>'\n"
+        "         + '<button type=\"button\" class=\"btn\" onclick=\"qLoadPageDelta(1)\"'+(_qLoadPage>=_pages?' disabled':'')+' style=\"font-size:11.5px;padding:3px 12px;border:1px solid #c8d2de;border-radius:0;background:#fff;color:'+(_qLoadPage>=_pages?'#c9d0da':'#374151')+';cursor:'+(_qLoadPage>=_pages?'default':'pointer')+'\">다음 &rsaquo;</button>'\n"
+        "         + '</div>')\n"
+        "      : '';",
+        1, 'PAGER')
     return s
 
 if __name__ == '__main__':
-    for path in sys.argv[1:]:
-        with io.open(path, 'r', encoding='utf-8') as f: s=f.read()
+    for path in ('/mnt/user-data/outputs/index.html', '/mnt/user-data/outputs/testpage/index.html'):
+        s = io.open(path, encoding='utf-8').read()
         s = apply_r179(s, path)
-        with io.open(path, 'w', encoding='utf-8', newline='') as f: f.write(s)
-        print('r179 applied:', path)
+        if 'testpage' in path:
+            assert s.count('<!-- test build r178 2026-09-07 -->') == 1
+            s = s.replace('<!-- test build r178 2026-09-07 -->', '<!-- test build r179 2026-09-11 -->')
+        io.open(path, 'w', encoding='utf-8').write(s)
+        print('OK', path)
