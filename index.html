@@ -1731,6 +1731,29 @@
     .wk-it.k-vac { background:#e5e7eb; color:#374151; } .wk-it.k-etc { background:#fef3c7; color:#92400e; }
     .wk-it.done { text-decoration:line-through; opacity:.55; }
     @media (max-width:640px){ .mm-pad::before { left:60px; } .mm-row .mm-date, .mm-grp .mm-date, .mm-in-row .mm-date { flex-basis:60px; width:60px; padding-right:8px; font-size:10.5px; } .mm-empty { padding-left:74px; } .wk-tbl { min-width:760px; } }
+    /* ── r181 SMC 가격 확인 ── */
+    #qSubSmc .smc-tb { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:10px 14px; border-bottom:1px solid #e5e7eb; background:#fff; }
+    #qSubSmc .smc-tb .smc-title { font-size:14px; font-weight:700; color:#1f2937; }
+    #qSubSmc .smc-tb .smc-note { font-size:12px; color:#6b7280; }
+    #qSubSmc .smc-tb .smc-note.due { color:#b91c1c; font-weight:700; }
+    #qSubSmc .smc-f { padding:4px 10px; border:1px solid #d1d5db; border-radius:6px; background:#fff; font-size:12px; cursor:pointer; color:#374151; font-family:inherit; }
+    #qSubSmc .smc-f.on { background:#1f2937; color:#fff; border-color:#1f2937; }
+    #qSubSmc .smc-q { padding:5px 9px; border:1px solid #d1d5db; border-radius:6px; font-size:12px; font-family:inherit; min-width:160px; }
+    #qSubSmc #smcResult { overflow:auto; }
+    #qSubSmc #smcResult table { border-collapse:collapse; width:100%; font-size:12.5px; }
+    #qSubSmc #smcResult th, #qSubSmc #smcResult td { border:1px solid #e5e7eb; padding:6px 8px; white-space:nowrap; }
+    #qSubSmc #smcResult th { background:#f8fafc; font-weight:700; color:#374151; }
+    #qSubSmc #smcResult table thead th { position: static !important; top: auto !important; }   /* 옛 SMC 관리 화면의 sticky 규칙 무효화 */
+    #qSubSmc #smcResult input.smc-in { width:84px; padding:4px 6px; border:1px solid #cbd5e1; border-radius:5px; font-size:12.5px; text-align:right; font-family:inherit; }
+    #qSubSmc #smcResult .smc-btn { padding:4px 9px; border:1px solid #d1d5db; border-radius:5px; background:#fff; font-size:12px; cursor:pointer; font-family:inherit; color:#374151; margin-right:3px; }
+    #qSubSmc #smcResult .smc-btn.ok { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
+    #qSubSmc #smcResult .smc-empty { padding:28px; text-align:center; color:#9ca3af; font-size:13px; }
+    #qSubSmc #smcResult .smc-st { font-size:11px; color:#6b7280; }
+    .mm-smc { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:6px 10px 8px 116px; padding:8px 12px; border:1px solid #fde68a; background:#fffbeb; border-radius:8px; font-size:12.5px; color:#92400e; }
+    .mm-smc.due { border-color:#fecaca; background:#fef2f2; color:#b91c1c; }
+    .mm-smc b { font-weight:700; }
+    .mm-smc a { color:inherit; font-weight:700; text-decoration:underline; cursor:pointer; margin-left:auto; }
+    @media (max-width:640px){ .mm-smc { margin-left:68px; } }
     .page-section { display: none; }
     .page-section.active { display: block; }
 
@@ -2382,6 +2405,7 @@
 <nav class="sub-nav" id="estimateSubNav" style="display:none">
   <button id="qSubTabQuote" class="file-grp-tab active" onclick="qSetSubTab('quote')">견적 관리</button>
   <button id="qSubTabPrice" class="file-grp-tab" onclick="qSetSubTab('price')">가격 확인</button>
+  <button id="qSubTabSmc" class="file-grp-tab" onclick="qSetSubTab('smc')">SMC 확인</button>
 </nav>
 </div>
 
@@ -2714,6 +2738,7 @@
     <div id="qCart"></div>
     </div>
     <div id="qSubPrice" style="display:none"></div>
+    <div id="qSubSmc" style="display:none"></div><!-- r181 -->
   </div>
   <div id="pageInventory" class="page-section">
     <div class="q-toolbar inv-toolbar">
@@ -3412,6 +3437,7 @@
   let projectsList = load('sched_projects') ?? [];
   let memoLines = load('sched_memos') ?? [];        // r179 메모장 줄 [{id,owner,text,parent,kind,vendor,to,name,phone,when,date,createdAt,done,doneAt,feedback,card,linked}]
   let memoCards = load('sched_memo_cards') ?? {};   // r179 명함 사진 {cardId: dataURL}
+  let smcQueue = load('sched_smc_queue') ?? [];     // r181 SMC 가격 확인 대기열 [{id,spec,name,e,buy,vid,vname,by,at,quoteNo,status:wait|ok|skip,okE,okHp,okSm,okBy,okAt}]
   // 프로젝트 노트 [{id, memberId, authorName, title, content, createdAt, updatedAt}]
 
   // 마감일 헬퍼: dueDate 없으면 date 사용
@@ -3554,6 +3580,7 @@
     save('sched_client_info', clientInfo);
     save('sched_memos', memoLines);   // r179
     save('sched_memo_cards', memoCards);
+    save('sched_smc_queue', smcQueue);   // r181
     localStorage.setItem('sched_local_ts', Date.now().toString()); // 로컬 변경 시각 기록
     debouncedFbSave();
   }
@@ -4261,6 +4288,7 @@
         sched_projects: projectsList,
         sched_memos: memoLines,   // r179
         sched_memo_cards: memoCards,
+        sched_smc_queue: smcQueue,   // r181
         sched_comments: schedComments,
         sched_categories: schedCategories,
         sched_files: filesList,
@@ -4333,7 +4361,7 @@
       const d = await _syncGet();
       if (!d || (d._updatedAt || 0) <= _fbLastUpdatedAt) return;
       _fbLastUpdatedAt = d._updatedAt || 0;
-      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
+      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
       KEYS.forEach(k => { if (d[k] !== undefined) save(k, d[k]); });
       // ── 바로가기(sched_links) 보호 ──
       // 키가 없을 때: sched_links_ts가 있으면 신버전 클라이언트의 정상 저장(목록이 비어서
@@ -4436,7 +4464,7 @@
       const d = await _syncGet();
       const fbTs    = (d && d._updatedAt) || 0;
       const localTs = parseInt(localStorage.getItem('sched_local_ts') || '0');
-      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
+      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
 
       // ── 올바른 팀원 ID 목록 (하드코딩) ──────────────────────
       const _VALID_MEMBER_IDS = defaultMembers().map(m => m.id);
@@ -4559,6 +4587,7 @@ function reloadState() {
     projectsList     = load('sched_projects') ?? [];
     memoLines        = load('sched_memos') ?? [];   // r179
     memoCards        = load('sched_memo_cards') ?? {};
+    smcQueue         = load('sched_smc_queue') ?? [];   // r181
     clientInfo       = _ciMigrate(_cliDecMap(load('sched_client_info') ?? {}));   // r161
     _ciVer++;
     projMemos        = _pmNormList(load('sched_proj_memos') ?? []);
@@ -6797,7 +6826,7 @@ function reloadState() {
     }, '삭제','#dc2626');
   };
 
-  window.qSetSubTab = function(which){ var tabs={quote:'qSubQuote',price:'qSubPrice'}, btns={quote:'qSubTabQuote',price:'qSubTabPrice'}; if(!tabs[which]) which='quote'; Object.keys(tabs).forEach(function(k){ var el=document.getElementById(tabs[k]); if(el) el.style.display=(k===which)?'':'none'; var b=document.getElementById(btns[k]); if(b) b.classList.toggle('active', k===which); }); if(which==='price' && typeof renderPricePage==='function') renderPricePage(); };
+  window.qSetSubTab = function(which){ var tabs={quote:'qSubQuote',price:'qSubPrice',smc:'qSubSmc'}, btns={quote:'qSubTabQuote',price:'qSubTabPrice',smc:'qSubTabSmc'}; /* r181 */ if(which==='smc' && typeof renderSmcPage==='function') renderSmcPage(); if(!tabs[which]) which='quote'; Object.keys(tabs).forEach(function(k){ var el=document.getElementById(tabs[k]); if(el) el.style.display=(k===which)?'':'none'; var b=document.getElementById(btns[k]); if(b) b.classList.toggle('active', k===which); }); if(which==='price' && typeof renderPricePage==='function') renderPricePage(); };
   window.qCartClear = function(){ if(!_qCartHasContent()) return; _qPushUndo(); showConfirmModal('견적 목록 비우기','담은 견적 항목을 모두 비울까요?',function(){ _qCart=[]; _qLoadedId=null; _qQuoteNo=null; _qNego=null; _qCols=[]; _qMemo=''; _qNote=''; _qSyncNoteInput(); _qCartSave(); renderQCart(); },'비우기','#dc2626'); };
   window.qOpenDownloadMenu = function(){
     if(!_qCart.length || !_qCartHasContent()){ showInfoModal('견적 목록','견적 목록이 비어 있습니다.'); return; }
@@ -7587,6 +7616,7 @@ function reloadState() {
     _qEnsureQuoteNo();
     if(!_fbDbUrl) return;
     try{ await _qFlushLedgerFromCart(); }catch(_le){}   // 견적이 저장될 때만 원장(구매가·판매가) 갱신
+    try{ await _smcCollectFromCart(); }catch(_se){}   // r181: 가격표에 없는 규격+E가 → SMC 확인 대기열
     var items=JSON.parse(JSON.stringify(_qCart));
     // 견적 '항목'을 먼저 저장한다. 실패하면 예외를 던져 목록에 등록하지 않는다.
     // (등록만 되고 항목이 없으면 나중에 '불러오기 실패'가 나는 껍데기 견적이 된다)
@@ -9065,6 +9095,7 @@ function reloadState() {
         +'<span style="font-size:13px;color:#1a1a1a;white-space:nowrap">'+esc(r.spec)+badge+'</span>'
         +'<span style="font-size:11px;color:#6b7280;white-space:nowrap">구매 '+_qFmt(r.buy)+' · 판매 '+_qFmt(r.sell)+'</span></div>';
     }).join('');
+    html+='<div style="padding:5px 12px;font-size:11px;color:#9ca3af;background:#fafafa">↓↑ 로 고르거나 클릭하면 그 규격이 들어갑니다 · 그냥 Enter 는 입력한 그대로</div>';   // r181
     _qcsShow(el, html);
   };
   function _qcsHi(){
@@ -9485,7 +9516,13 @@ function reloadState() {
     if(open){   // 후보 목록이 떠 있으면 목록 조작이 우선
       if(ev.key==='ArrowDown'){ ev.preventDefault(); _qcsSel=Math.min(_qcsSel+1,_qcsCur.length-1); _qcsHi(); return; }
       if(ev.key==='ArrowUp'){   ev.preventDefault(); _qcsSel=Math.max(_qcsSel-1,0); _qcsHi(); return; }
-      if(ev.key==='Enter'){     ev.preventDefault(); qCartSpecPick(i, _qcsSel>=0?_qcsSel:0, true); return; }
+      if(ev.key==='Enter'){     // r181: ↓/↑ 로 고른 후보나 완전히 같은 규격만. 아니면 입력한 그대로 두고 다음 칸으로
+        if(_qcsSel>=0){ ev.preventDefault(); qCartSpecPick(i, _qcsSel, true); return; }
+        var _tq=_qNorm(ev.target.value), _ex=-1;
+        for(var _x=0; _x<_qcsCur.length; _x++){ if(_qcsCur[_x] && _qcsCur[_x].r && _qNorm(_qcsCur[_x].r.spec)===_tq){ _ex=_x; break; } }
+        if(_ex>=0){ ev.preventDefault(); qCartSpecPick(i, _ex, true); return; }
+        _qcsHide();   // 입력한 규격 유지 → 아래 격자 이동(다음 줄)
+      }
     }
     // r156: 후보가 없어 안내문만 떠 있는 상태 — 칸을 벗어나는 키에서는 먼저 닫는다
     //  (안 닫으면 안내문이 그대로 남아 아래 줄 입력칸을 가린다)
@@ -10356,6 +10393,7 @@ function reloadState() {
       sched_leave2026: _leaveVer, sched_clients_added: customClients, sched_client_list: clientList,
       sched_projects: projectsList, sched_client_info: clientInfo, sched_proj_memos: projMemos,
       sched_memos: memoLines, sched_memo_cards: memoCards,   // r179
+      sched_smc_queue: smcQueue,   // r181
       // r157: 매입매출 설정 5종 — 빠져 있어서 복원 시 미배정 매칭 작업이 통째로 사라졌다
       sched_fx_alias: fxAlias, sched_fx_openings: fxOpenings, sched_fx_adjusts: fxAdjusts,
       sched_fx_terms: fxTerms, sched_fx_excluded: fxExcluded, sched_fx_keepas: fxKeepAs
@@ -13418,6 +13456,7 @@ function reloadState() {
     var idt=document.getElementById('mmInDate'); if(idt) idt.textContent=_mmFmtD(_mmToday());
     _mmBindInput(); _mmSetChildUI();
     var h='';
+    try{ h+=_mmSmcBanner(); }catch(_e){}   // r181 SMC 확인 대기 배너
     // ① 공지 — 모든 사람 것
     var notices=(memoLines||[]).filter(function(l){ return l.kind==='notice' && !l.parent && _mmVisible(l, showDone); }).sort(function(a,b){ return (a.createdAt||0)-(b.createdAt||0); });
     if(notices.length){
@@ -13738,6 +13777,118 @@ function reloadState() {
   };
   // 달력(달력 탭)은 휴가만 — 공지 체크박스 숨김
   (function(){ try{ var b=document.getElementById('psShowBcast'); if(b && b.parentNode) b.parentNode.style.display='none'; }catch(_e){} })();
+
+  // ─── r181: SMC 가격 확인 대기열 ─────────────────────────────
+  var _smcFilter='wait', _smcQ='';
+  function _smcWho(){ return (typeof _authUser!=='undefined'&&_authUser&&_authUser.name)?_authUser.name:''; }
+  function _smcDueNow(){ var d=new Date(), wd=d.getDay(), h=d.getHours(); return (wd===5&&h>=17)||wd===6||wd===0; }   // 금 17시 ~ 일요일
+  function _smcWaitCount(){ return (smcQueue||[]).filter(function(q){ return (q.status||'wait')==='wait'; }).length; }
+  function _smcFmtD(ts){ if(!ts) return ''; var d=new Date(ts); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+  // 견적 저장 시: 가격표(어느 메이커든)에 없는 규격 + E가 입력 줄 → 대기열
+  async function _smcCollectFromCart(){
+    if(!_qCart||!_qCart.length) return;
+    try{ await _qEnsureAllIdx(); }catch(_e){}
+    var who=_smcWho(), vn=_qCart[0].vname||'', vid=_qCart[0].vid||'', now=Date.now();
+    _qCart.forEach(function(c){
+      if(!c||!c.spec||c.pl) return;
+      var e=Number(c.e); if(!(e>0)) return;
+      var k=_qNorm(c.spec); if(!k) return;
+      if(_qPriceIdx && _qPriceIdx[k]) return;
+      if(_qSmcSet && _qSmcSet[k]) return;
+      var buy=(c.buy!=null&&c.buy!=='')?Number(c.buy):null;
+      var ex=(smcQueue||[]).find(function(q){ return _qNorm(q.spec)===k && (q.status||'wait')!=='skip'; });
+      if(ex){ if((ex.status||'wait')==='wait'){ ex.e=e; ex.buy=buy; if(c.name) ex.name=c.name; ex.at=now; ex.by=who; ex.vname=vn; ex.vid=vid; ex.quoteNo=_qQuoteNo||''; } return; }
+      smcQueue.push({ id:'sq'+now.toString(36)+Math.random().toString(36).slice(2,6), spec:String(c.spec).trim(), name:c.name||'', e:e, buy:buy, vid:vid, vname:vn, by:who, at:now, quoteNo:_qQuoteNo||'', status:'wait' });
+    });
+  }
+  // 메모장 맨 위 배너
+  function _mmSmcBanner(){
+    var n=_smcWaitCount(); if(!n) return '';
+    var due=_smcDueNow();
+    return '<div class="mm-smc'+(due?' due':'')+'"><b>SMC 가격 확인 대기 '+n+'건</b><span>'+(due?'지금 확인할 시간입니다 (금요일 17시 이후)':'매주 금요일 17시 이후 SMC 사이트에서 가격 확인 후 등록')+'</span><a onclick="smcGo()">확인하러 가기 →</a></div>';
+  }
+  window.smcGo = function(){ try{ switchPage('estimate'); }catch(_e){} try{ qSetSubTab('smc'); }catch(_e){} };
+  window.smcSetFilter = function(f){ _smcFilter=f; renderSmcPage(); };
+  window.smcSearch = function(v){ _smcQ=String(v||''); renderSmcPage(true); };
+  window.smcCopy = function(id){ var q=(smcQueue||[]).find(function(x){ return x.id===id; }); if(!q) return; try{ navigator.clipboard.writeText(q.spec); }catch(_e){} };
+  window.renderSmcPage = function(keepFocus){
+    var host=document.getElementById('qSubSmc'); if(!host) return;
+    var all=(smcQueue||[]); var cnt={wait:0,ok:0,skip:0}; all.forEach(function(q){ var s=q.status||'wait'; cnt[s]=(cnt[s]||0)+1; });
+    var ql=_qNorm(_smcQ);
+    var list=all.filter(function(q){ return (q.status||'wait')===_smcFilter; })
+      .filter(function(q){ return !ql || _qNorm(q.spec).indexOf(ql)>=0 || _qNorm(q.name).indexOf(ql)>=0 || _qNorm(q.vname).indexOf(ql)>=0; })
+      .sort(function(a,b){ return (b.at||0)-(a.at||0); });
+    var due=_smcDueNow();
+    var h='<div class="smc-tb"><span class="smc-title">SMC 가격 확인</span>'
+      +'<span class="smc-note'+(due?' due':'')+'">'+(due?'지금 확인할 시간입니다 — 금요일 17시 이후':'매주 금요일 17시 이후 SMC 사이트에서 가격을 확인하고 맞으면 [등록]')+'</span>'
+      +'<a href="https://www.smckorea.co.kr/" target="_blank" rel="noopener" class="smc-f">SMC 사이트 열기</a>'
+      +'<span style="flex:1"></span>'
+      +'<button class="smc-f'+(_smcFilter==='wait'?' on':'')+'" onclick="smcSetFilter(\'wait\')">대기 '+cnt.wait+'</button>'
+      +'<button class="smc-f'+(_smcFilter==='ok'?' on':'')+'" onclick="smcSetFilter(\'ok\')">등록됨 '+cnt.ok+'</button>'
+      +'<button class="smc-f'+(_smcFilter==='skip'?' on':'')+'" onclick="smcSetFilter(\'skip\')">제외 '+cnt.skip+'</button>'
+      +'<input class="smc-q" id="smcQ" placeholder="규격·품목명·거래처 검색" value="'+esc(_smcQ)+'" oninput="smcSearch(this.value)"></div>';
+    h+='<div id="smcResult">';
+    if(!list.length){ h+='<div class="smc-empty">'+(_smcFilter==='wait'?'확인 대기 중인 품목이 없습니다. 견적을 저장할 때 가격표에 없는 규격에 E가를 넣으면 여기에 모입니다.':'해당하는 항목이 없습니다.')+'</div>'; }
+    else {
+      var isWait=(_smcFilter==='wait');
+      h+='<table><thead><tr><th>No.</th><th>규격</th><th>품목명</th><th>E가</th><th>확판가</th><th>소물가</th><th>거래처</th><th>작성자</th><th>날짜</th><th>견적번호</th><th>'+(isWait?'처리':'상태')+'</th></tr></thead><tbody>';
+      list.forEach(function(q,ix){
+        h+='<tr data-id="'+q.id+'"><td>'+(ix+1)+'</td><td><b>'+esc(q.spec)+'</b> <button class="smc-btn" title="규격 복사" onclick="smcCopy(\''+q.id+'\')" style="padding:1px 6px">복사</button></td><td>'+esc(q.name||'')+'</td>';
+        if(isWait){
+          h+='<td><input class="smc-in" data-f="e" value="'+(q.e!=null?q.e:'')+'"></td>'
+            +'<td><input class="smc-in" data-f="hp" value="'+(q.buy!=null?q.buy:'')+'" title="견적에 넣은 구매가가 미리 들어 있습니다. 확판가가 아니면 지우세요"></td>'
+            +'<td><input class="smc-in" data-f="sm" value=""></td>';
+        } else {
+          h+='<td style="text-align:right">'+_qFmt(q.okE!=null?q.okE:q.e)+'</td><td style="text-align:right">'+_qFmt(q.okHp)+'</td><td style="text-align:right">'+_qFmt(q.okSm)+'</td>';
+        }
+        h+='<td>'+esc(q.vname||'')+'</td><td>'+esc(q.by||'')+'</td><td>'+_smcFmtD(q.at)+'</td><td>'+esc(q.quoteNo||'')+'</td>';
+        if(isWait) h+='<td><button class="smc-btn ok" onclick="smcRegister(\''+q.id+'\')">등록</button><button class="smc-btn" onclick="smcSkip(\''+q.id+'\')">제외</button></td>';
+        else h+='<td><span class="smc-st">'+(q.status==='ok'?'등록':'제외')+' · '+esc(q.okBy||'')+' '+_smcFmtD(q.okAt)+'</span> <button class="smc-btn" onclick="smcRestore(\''+q.id+'\')">대기로</button></td>';
+        h+='</tr>';
+      });
+      h+='</tbody></table>';
+    }
+    h+='</div>';
+    host.innerHTML=h;
+    if(keepFocus){ var qi=document.getElementById('smcQ'); if(qi){ qi.focus(); try{ qi.setSelectionRange(qi.value.length, qi.value.length); }catch(_e){} } }
+  };
+  window.smcRegister = async function(id){
+    if(typeof _guardW==='function' && !_guardW()) return;
+    var q=(smcQueue||[]).find(function(x){ return x.id===id; }); if(!q||(q.status||'wait')!=='wait') return;
+    var row=document.querySelector('#smcResult tr[data-id="'+id+'"]');
+    var gv=function(f){ var el=row&&row.querySelector('input[data-f="'+f+'"]'); var v=el?String(el.value).replace(/,/g,'').trim():''; if(v==='') return null; var n=Number(v); return isNaN(n)?null:n; };
+    var e=gv('e'), hp=gv('hp'), sm=gv('sm');
+    if(!(e>0)){ showInfoModal('SMC 등록','E가를 입력하세요.'); return; }
+    if(!_fbDbUrl){ showInfoModal('동기화 필요','팀 동기화 연결이 필요합니다.'); return; }
+    try{
+      var m=(priceMakers||[]).find(function(x){ return String(x.name||'').toUpperCase().indexOf('SMC')>=0; });
+      var mid=m?m.id:('pm'+Date.now().toString(36)+'s');
+      var rows=[]; if(m){ var eb=await _priceBlobGet(mid); if(Array.isArray(eb)) rows=eb; }
+      var pk=function(z){ return String(z==null?'':z).toLowerCase().replace(/\s+/g,''); };
+      var k=pk(q.spec);
+      var r=rows.find(function(x){ return pk(x.spec)===k && !x.qr; });
+      if(!r){ r={ spec:q.spec, name:q.name||'', unit:'EA' }; rows.push(r); }
+      r.ega=e; if(q.name && !r.name) r.name=q.name;
+      if(hp!=null||sm!=null){ r.extra=r.extra||{}; if(hp!=null) r.extra['1DR3확판(개당)']=hp; if(sm!=null) r.extra['LRY확판(개당)']=sm; }
+      await _priceBlobPut(mid, rows);
+      if(m) m.count=rows.length; else priceMakers.push({ id:mid, name:'SMC', count:rows.length });
+      q.status='ok'; q.okE=e; q.okHp=hp; q.okSm=sm; q.okBy=_smcWho(); q.okAt=Date.now();
+      saveAll();
+      try{ _ensurePriceSyncMap(true); }catch(_e){}
+      try{ _qInvalidateAllIdx(); }catch(_e){}
+      renderSmcPage();
+    }catch(err){ showInfoModal('SMC 등록 실패', (err&&err.message)||String(err)); }
+  };
+  window.smcSkip = function(id){
+    if(typeof _guardW==='function' && !_guardW()) return;
+    var q=(smcQueue||[]).find(function(x){ return x.id===id; }); if(!q) return;
+    q.status='skip'; q.okBy=_smcWho(); q.okAt=Date.now(); saveAll(); renderSmcPage();
+  };
+  window.smcRestore = function(id){
+    if(typeof _guardW==='function' && !_guardW()) return;
+    var q=(smcQueue||[]).find(function(x){ return x.id===id; }); if(!q) return;
+    q.status='wait'; delete q.okBy; delete q.okAt; saveAll(); renderSmcPage();
+  };
   // ─── 개인 일정 페이지 ──────────────────────────────────
   // 카테고리 – localStorage에서 로드, 없으면 기본값
   let schedCategories = load('sched_categories') ?? [
