@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r182 2026-09-11 -->
+<!-- test build r184 2026-09-11 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -1755,6 +1755,40 @@
     .mm-smc b { font-weight:700; }
     .mm-smc a { color:inherit; font-weight:700; text-decoration:underline; cursor:pointer; margin-left:auto; }
     @media (max-width:640px){ .mm-smc { margin-left:68px; } }
+    /* ── r183 메모 날짜 수정·요일 ── */
+    .mm-row .mm-date.mm-date-rep { opacity:0; }
+    .mm-row:hover .mm-date.mm-date-rep { opacity:.55; }
+    .mm-date.mm-date-ed { cursor:pointer; }
+    .mm-date.mm-date-ed:hover { color:#1B3A6B; text-decoration:underline dotted; opacity:1; }
+    .mm-date input[type=date] { font-size:11px; width:100%; box-sizing:border-box; padding:1px 2px; border:1px solid #cbd5e1; border-radius:4px; font-family:inherit; color:#1f2937; background:#fff; }
+    #mmInDate { cursor:pointer; }
+    #mmInDate:hover { color:#1B3A6B; text-decoration:underline dotted; }
+    #mmInDate.mm-date-set { color:#1B3A6B; }
+    /* ── r184 완료 목록 ── */
+    #pageDone .dn-tb { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 16px; border-bottom:1px solid #e5e7eb; background:#fff; position:sticky; top:0; z-index:3; }
+    #pageDone .dn-tb .dn-title { font-size:14px; font-weight:700; color:#1f2937; }
+    #pageDone .dn-tb select, #pageDone .dn-tb input { padding:5px 9px; border:1px solid #d1d5db; border-radius:6px; font-size:12.5px; font-family:inherit; background:#fff; }
+    #pageDone .dn-tb input { min-width:220px; }
+    #pageDone .dn-cnt { font-size:12px; color:#6b7280; }
+    #dnList { padding:6px 16px 40px; }
+    .dn-day { display:flex; align-items:baseline; gap:8px; margin:16px 0 6px; padding-bottom:4px; border-bottom:2px solid #1B3A6B; }
+    .dn-day b { font-size:13.5px; color:#1B3A6B; }
+    .dn-day span { font-size:11.5px; color:#6b7280; }
+    .dn-row { display:flex; align-items:flex-start; gap:8px; padding:6px 4px; border-bottom:1px solid #eef1f4; font-size:13.5px; color:#1f2937; }
+    .dn-row:hover { background:#f8fafc; }
+    .dn-row .dn-time { flex:0 0 46px; font-size:11.5px; color:#9ca3af; padding-top:3px; }
+    .dn-row .dn-body { flex:1; min-width:0; }
+    .dn-row .dn-text { line-height:1.5; }
+    .dn-row .dn-meta { font-size:11.5px; color:#6b7280; margin-top:2px; }
+    .dn-row .dn-meta .dn-link { display:inline-block; margin-left:4px; padding:0 6px; border-radius:4px; font-size:10.5px; font-weight:700; background:#e0e7ff; color:#3730a3; }
+    .dn-row .dn-meta .dn-link.sched { background:#dcfce7; color:#166534; }
+    .dn-row .dn-kid { font-size:12.5px; color:#4b5563; margin:2px 0 0 14px; }
+    .dn-row .dn-kid.done { color:#9ca3af; text-decoration:line-through; }
+    .dn-row .dn-undo { flex:0 0 auto; border:1px solid #d1d5db; background:#fff; border-radius:5px; font-size:11.5px; padding:3px 8px; cursor:pointer; color:#374151; font-family:inherit; opacity:.6; }
+    .dn-row:hover .dn-undo { opacity:1; }
+    .dn-empty { padding:40px; text-align:center; color:#9ca3af; font-size:13px; }
+    .dn-row .mm-chip { margin-right:4px; }
+    .mm-k-newbiz { background:#fce7f3; color:#9d174d; }   /* r184 신규 */
     .page-section { display: none; }
     .page-section.active { display: block; }
 
@@ -2570,10 +2604,11 @@
 </nav>
 <nav class="sub-nav" id="scheduleSubNav">
   <button class="sub-tab active" data-page="memo">일정</button>
-  <button class="sub-tab" data-page="project">완료</button>
+  <button class="sub-tab" data-page="done">완료</button><!-- r184 -->
   <button class="sub-tab" data-page="weekly">주간</button>
   <button class="sub-tab" data-page="personal">달력</button>
   <button class="sub-tab" data-page="clients">업체</button>
+  <button class="sub-tab" data-page="project">프로젝트</button>
 </nav>
 <nav class="sub-nav" id="fileGroupTabs" style="display:none">
   <button class="file-grp-tab active" data-grp="충해전기" onclick="setFileGroup('충해전기')">충해전기</button>
@@ -2616,6 +2651,15 @@
     <div style="overflow-x:auto"><table class="wk-tbl" id="wkTable"></table></div>
   </div>
   <!-- ─── r179 메모장 페이지 ───────────────────────────────── -->
+  <section class="page-section" id="pageDone"><!-- r184 완료 목록 -->
+    <div class="dn-tb">
+      <span class="dn-title" id="dnTitle">완료한 업무</span>
+      <select id="dnRange" onchange="renderDonePage()"><option value="30">최근 30일</option><option value="90" selected>최근 90일</option><option value="365">최근 1년</option><option value="0">전체</option></select>
+      <input id="dnQ" placeholder="내용·업체 검색" oninput="renderDonePage()">
+      <span class="dn-cnt" id="dnCnt"></span>
+    </div>
+    <div id="dnList"></div>
+  </section>
   <section class="page-section" id="pageMemo">
     <div class="q-toolbar inv-toolbar">
       <span class="inv-flat-label" id="mmWho">일정</span>
@@ -2628,10 +2672,10 @@
       <div id="mmList"></div>
       <div class="mm-in-row" id="mmInRow">
         <span class="mm-date" id="mmInDate"></span>
-        <div class="mm-in-wrap"><span class="mm-sub">└ 하위</span><input type="text" id="mmInput" placeholder="메모를 적고 Enter (미팅 / 프로젝트 / 납품 / 공지 / 요청 이름 …  하위 줄은 - 또는 1.)" autocomplete="off"></div>
+        <div class="mm-in-wrap"><span class="mm-sub">└ 하위</span><input type="text" id="mmInput" placeholder="메모를 적고 Enter (미팅 / 프로젝트 / 납품 / 신규 / 공지 / 요청 이름 …  하위 줄은 - 또는 1.)" autocomplete="off"></div>
       </div>
     </div>
-    <div class="mm-hint">줄 맨 앞에 <b>미팅</b>·<b>프로젝트</b>·<b>납품</b>을 적으면 업체명을 자동으로 찾고, <b>공지</b>는 모두에게, <b>요청 이름</b>은 그 사람 메모장에 보입니다. 완료(☐)를 누르면 바로 완료되며 미팅·납품은 일정으로, 프로젝트는 프로젝트로 저장됩니다. 완료된 줄은 24시간 뒤 사라집니다.</div>
+    <div class="mm-hint">줄 맨 앞에 <b>미팅</b>·<b>프로젝트</b>·<b>납품</b>·<b>신규</b>를 적으면 업체명을 자동으로 찾고, <b>공지</b>는 모두에게, <b>요청 이름</b>은 그 사람 메모장에 보입니다. 완료(☐)를 누르면 바로 완료되며 미팅·납품은 일정으로, 프로젝트는 프로젝트로 저장됩니다. 완료된 줄은 24시간 뒤 사라집니다.</div>
   </section>
 
   <!--   </div><!-- /pageWeekly -->
@@ -4512,6 +4556,7 @@
       else if(_id==='pageProject' && typeof renderProjectPage==='function') renderProjectPage();
       else if(_id==='pageClients' && typeof renderClientsPage==='function') renderClientsPage();
       else if(_id==='pageMemo' && typeof renderMemoPage==='function') renderMemoPage();   // r179 (편집 중이면 건너뜀)
+      else if(_id==='pageDone' && typeof renderDonePage==='function') renderDonePage();   // r184
       else if(_id==='pageWeekly' && typeof renderWeeklyPage==='function') renderWeeklyPage();
       // 견적/가격 페이지는 작성 중 방해 방지를 위해 자동 재렌더 제외
     }catch(e){}
@@ -13366,7 +13411,7 @@ function reloadState() {
     if(!page) return;   // 실제 페이지가 없는 바로가기 버튼 등의 오작동 방지
     // 견적 작성 중 다른 카테고리로 이동 → 저장 여부 확인 (저장 안 하면 비움)
     try{ if(typeof _qLeaveGuard==='function' && _qLeaveGuard(page)) return; }catch(_e){}
-    var _SCHED=['personal','weekly','biz','project','clients','memo'];   // r179
+    var _SCHED=['personal','weekly','biz','project','clients','memo','done'];   // r179·r184
     var _ETC=['links'];
     var _ACCT=['armatch','fx','cardsales'];
     document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
@@ -13382,7 +13427,7 @@ function reloadState() {
     var _fxnav=document.getElementById('fxSubNav'); if(_fxnav) _fxnav.style.display = (page==='fx') ? 'flex' : 'none';
     document.querySelectorAll('.sub-tab').forEach(t => t.classList.toggle('active', t.dataset.page === page));
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-    const pageMap = { memo:'pageMemo', weekly:'pageWeekly', biz:'pageBiz', project:'pageProject', clients:'pageClients', assign:'pageAssign', personal:'pagePersonal', finance:'pageFinance', ar:'pageAr', inventory:'pageInventory', purchase:'pagePurchase', files:'pageFiles', estimate:'pageEstimate', armatch:'pageArmatch', fx:'pageFx', links:'pageLinks', cardsales:'pageCardSales' };
+    const pageMap = { memo:'pageMemo', done:'pageDone', weekly:'pageWeekly', biz:'pageBiz', project:'pageProject', clients:'pageClients', assign:'pageAssign', personal:'pagePersonal', finance:'pageFinance', ar:'pageAr', inventory:'pageInventory', purchase:'pagePurchase', files:'pageFiles', estimate:'pageEstimate', armatch:'pageArmatch', fx:'pageFx', links:'pageLinks', cardsales:'pageCardSales' };
     document.getElementById(pageMap[page] || 'pageWeekly').classList.add('active');
     // 견적 화면에서만 .main 의 가로 스크롤을 풀어 툴바 sticky 가 화면 기준으로 붙게 한다
     var _mn=document.querySelector('.main'); if(_mn) _mn.classList.toggle('main-estimate', page==='estimate' || page==='clients');
@@ -13393,7 +13438,8 @@ function reloadState() {
     if (page === 'project'){ _projMode={view:'list',id:null}; _projExpId=null; _projLogEditId=null; _projTitleEdit=false; _projDraft=null; _projDirty=false; _projSearchQ=''; var _ps8=document.getElementById('projSearch'); if(_ps8) _ps8.value=''; _projFilterMember = myMemberId || 'all'; var _pm8=document.getElementById('projMemberFilter'); if(_pm8){ try{ _pm8.blur(); }catch(_e8){} } renderProjectPage(); }
     if (page === 'clients'){ _clxExp=null; _clxQ=''; _clxPage=1; _clxBr='all'; _clxMigOpen=false; _clxSbOpen=false; var _cx8=document.getElementById('clxSearch'); if(_cx8) _cx8.value=''; renderClientsPage(); }
     if (page === 'weekly') { _wkStart = getMonday(new Date()); renderWeeklyPage(); }   // r179 주간 일정표
-    if (page === 'memo') { _mmEditing=null; renderMemoPage(true); setTimeout(function(){ try{ var _mi=document.getElementById('mmInput'); if(_mi && window.innerWidth>640) _mi.focus(); }catch(_e){} }, 60); }
+    if (page === 'done') { renderDonePage(); }   // r184
+    if (page === 'memo') { _mmEditing=null; _mmInDate=null; renderMemoPage(true); setTimeout(function(){ try{ var _mi=document.getElementById('mmInput'); if(_mi && window.innerWidth>640) _mi.focus(); }catch(_e){} }, 60); }
     if (page === 'personal') {
       _psMobSel = null;   // 탭 진입 시 항상 오늘부터 (모바일 하루 이동 상태 초기화)
       // 내 프로필이 설정돼 있으면 해당 팀원 자동 선택
@@ -13451,10 +13497,10 @@ function reloadState() {
   // ═══════════════ r179: 메모장 (개인 메모 → 일정·프로젝트·담당자) ═══════════════
   var _mmEditing = null;      // 편집 중인 줄 id (편집 중엔 재렌더 건너뜀)
   var _mmChildMode = false;   // 입력칸이 '하위 줄' 상태인지
-  var _mmKW = { '미팅':'meeting', '프로젝트':'project', '납품':'delivery', '공지':'notice', '요청':'request' };
-  var _mmKLabel = { meeting:'미팅', project:'프로젝트', delivery:'납품', notice:'공지', request:'요청', contact:'담당자', memo:'' };
+  var _mmKW = { '미팅':'meeting', '프로젝트':'project', '납품':'delivery', '공지':'notice', '요청':'request', '신규':'newbiz', '신규영업':'newbiz' };   // r184 신규
+  var _mmKLabel = { meeting:'미팅', project:'프로젝트', delivery:'납품', notice:'공지', request:'요청', contact:'담당자', newbiz:'신규', memo:'' };
   var _MM_HIDE_MS = 24*60*60*1000;      // 완료 후 목록에서 사라지기까지
-  var _MM_PURGE_MS = 30*24*60*60*1000;  // 완료 후 자료 정리까지
+  var _MM_PURGE_MS = 400*24*60*60*1000;  // 완료 후 자료 정리까지 (r184: 완료 목록 보관을 위해 400일)
 
   function _mmMe(){
     try{ if(typeof _authUser!=='undefined' && _authUser && _authUser.name) return String(_authUser.name).trim(); }catch(_e){}
@@ -13566,10 +13612,10 @@ function reloadState() {
     var parent=null;
     if(child){ var tg=_mmChildTarget?_mmFind(_mmChildTarget):null; if(tg && tg.owner===me && !tg.parent) parent=tg.id; else { var lt=_mmLastTop(me); if(lt) parent=lt.id; } }   // r180
     var p=_mmParse(text);
-    if(parent){ if(p.kind==='notice'||p.kind==='request'||p.kind==='meeting'||p.kind==='project'||p.kind==='delivery'){ parent=null; } }  // 키워드 줄은 항상 상위
+    if(parent){ if(p.kind==='notice'||p.kind==='request'||p.kind==='meeting'||p.kind==='project'||p.kind==='delivery'||p.kind==='newbiz'){ parent=null; } }  // 키워드 줄은 항상 상위
     var now=Date.now();
     var line={ id:_mmId(), owner:me, text:text, parent:parent, kind:p.kind, vendor:p.vendor, to:p.to, name:p.name, phone:p.phone,
-               when:p.when, date:_mmToday(), createdAt:now, done:false, doneAt:0, feedback:[], card:'', linked:{} };
+               when:p.when, date:(_mmInDate||_mmToday()), createdAt:now, done:false, doneAt:0, feedback:[], card:'', linked:{} };
     if(p.kind==='contact' && parent){ var pl=_mmFind(parent); if(pl && pl.vendor) line.vendor=pl.vendor; }
     memoLines.push(line);
     if(parent){ var pl2=_mmFind(parent); if(pl2 && pl2.done && pl2.linked && pl2.linked.proj){   // r180: 완료된 프로젝트 줄의 댓글은 프로젝트 기록으로
@@ -13601,12 +13647,14 @@ function reloadState() {
   var _MM_SVG_EDIT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
   var _MM_SVG_DEL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>';
   var _MM_SVG_CARD='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="1"/><circle cx="8.5" cy="11" r="2"/><path d="M13 10h5M13 14h5M5 18c.5-2 2-3 3.5-3s3 1 3.5 3"/></svg>';
+  var _MM_SVG_CAL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>';   // r183 날짜
   var _MM_SVG_REPLY='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17l-5-5 5-5"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>';   // r180 댓글
   var _MM_SVG_FB='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.2-4.4A8 8 0 1 1 21 12Z"/></svg>';
 
   function _mmChips(l, mine){
     var h='';
     if(l.kind && l.kind!=='memo') h+='<span class="mm-chip mm-k-'+l.kind+'">'+_mmKLabel[l.kind]+(l.kind==='request'&&l.to?(' → '+_mmEsc(l.to)):'')+'</span>';
+    if(l.kind==='newbiz' && l.vendor) h+='<span class="mm-chip mm-vend" onclick="mmVendorPick(\''+l.id+'\')" title="업체 바꾸기">'+_mmEsc(l.vendor)+'</span>';   // r184: 신규는 아는 업체일 때만
     if(l.kind==='meeting'||l.kind==='project'||l.kind==='delivery'||(l.kind==='contact'&&!l.parent)){
       if(l.vendor) h+='<span class="mm-chip mm-vend" onclick="mmVendorPick(\''+l.id+'\')" title="업체 바꾸기">'+_mmEsc(l.vendor)+'</span>';
       else if(mine) h+='<span class="mm-chip mm-vend mm-vend-none" onclick="mmVendorPick(\''+l.id+'\')" title="업체 지정">업체?</span>';
@@ -13621,7 +13669,8 @@ function reloadState() {
     var mine=opts.mine!==false;
     var cls='mm-row'+(l.parent?' mm-child':'')+(l.done?' mm-done':'');
     var h='<div class="'+cls+'" data-id="'+l.id+'">';
-    h+='<span class="mm-date">'+(opts.showDate?_mmFmtD(l.date):'')+'</span>';
+    var _de=(mine && !l.parent && !l.done && l.owner===_mmMe());   // r183: 내 상위 줄은 날짜 클릭 수정
+    h+='<span class="mm-date'+(opts.showDate?'':' mm-date-rep')+(_de?' mm-date-ed':'')+'"'+(_de?(' onclick="mmDateEdit(\''+l.id+'\')" title="날짜 수정"'):'')+'>'+(l.parent?'':_mmFmtDW(l.date))+'</span>';
     h+='<div class="mm-body">';
     if(opts.canDone!==false) h+='<span class="mm-chk" onclick="mmToggleDone(\''+l.id+'\')" title="'+(l.done?'완료 취소':'완료')+'">'+(l.done?'✓':'')+'</span>';
     else h+='<span class="mm-chk" style="border-color:transparent;cursor:default"></span>';
@@ -13633,6 +13682,7 @@ function reloadState() {
     if(opts.fb) h+='<button onclick="mmFeedback(\''+l.id+'\')" title="피드백">'+_MM_SVG_FB+'</button>';
     if(mine && l.done && !l.parent) h+='<button onclick="mmReplyTo(\''+l.id+'\')" title="댓글 붙이기">'+_MM_SVG_REPLY+'</button>';   // r180
     if(mine && !l.done){
+      if(!l.parent) h+='<button onclick="mmDateEdit(\''+l.id+'\')" title="날짜 수정">'+_MM_SVG_CAL+'</button>';   // r183
       if(l.vendor || l.kind==='contact' || l.parent) h+='<button onclick="mmCardAttach(\''+l.id+'\')" title="명함 사진 첨부">'+_MM_SVG_CARD+'</button>';
       if(!l.parent) h+='<button onclick="mmReplyTo(\''+l.id+'\')" title="이 줄에 하위 글(댓글) 붙이기">'+_MM_SVG_REPLY+'</button>';   // r180
       h+='<button onclick="mmEditStart(\''+l.id+'\')" title="수정">'+_MM_SVG_EDIT+'</button>';
@@ -13653,7 +13703,7 @@ function reloadState() {
     var me=_mmMe();
     var who=document.getElementById('mmWho'); if(who) who.textContent = me ? (me+'의 일정') : '일정';
     var sd=document.getElementById('mmShowDone'); var showDone = sd ? sd.checked : true;
-    var idt=document.getElementById('mmInDate'); if(idt) idt.textContent=_mmFmtD(_mmToday());
+    _mmInDateShow();   // r183
     _mmBindInput(); _mmSetChildUI();
     var h='';
     try{ h+=_mmSmcBanner(); }catch(_e){}   // r181 SMC 확인 대기 배너
@@ -13670,7 +13720,7 @@ function reloadState() {
       reqs.forEach(function(l){ h+=_mmRowHtml(l,{mine:false, showDate:true, by:l.owner, canDone:true, fb:true}); _mmChildren(l.id).forEach(function(c){ if(_mmVisible(c, showDone)) h+=_mmRowHtml(c,{mine:false, canDone:false}); }); });
     }
     // ③ 내 메모
-    var mine=(memoLines||[]).filter(function(l){ return l.owner===me && !l.parent && l.kind!=='notice' && _mmVisible(l, showDone); }).sort(function(a,b){ return (a.createdAt||0)-(b.createdAt||0); });
+    var mine=(memoLines||[]).filter(function(l){ return l.owner===me && !l.parent && l.kind!=='notice' && _mmVisible(l, showDone); }).sort(function(a,b){ var da=String(a.date||''), db=String(b.date||''); if(da!==db) return da<db?-1:1; return (a.createdAt||0)-(b.createdAt||0); });   // r183: 날짜→작성순
     if(notices.length||reqs.length) h+=_mmGroupHtml('메모');
     var prevDate='';
     mine.forEach(function(l){
@@ -13682,6 +13732,92 @@ function reloadState() {
     list.innerHTML=h;
   };
 
+  // ── r183: 날짜 요일 표기 + 날짜 클릭 수정 ──
+  var _mmInDate=null;   // 입력줄 날짜 지정(없으면 오늘)
+  function _mmWd(ds){ var p=String(ds||'').split('-'); if(p.length!==3) return ''; var d=new Date(+p[0],+p[1]-1,+p[2]); return ['일','월','화','수','목','금','토'][d.getDay()]||''; }
+  function _mmFmtDW(ds){ if(!ds) return ''; var w=_mmWd(ds); return _mmFmtD(ds)+(w?('('+w+')'):''); }
+  window.mmDateEdit = function(id){
+    var l=_mmFind(id); if(!l || l.done || l.parent) return;
+    if(typeof _guardW==='function' && !_guardW()) return;
+    var row=document.querySelector('#mmList .mm-row[data-id="'+id+'"]'); if(!row) return;
+    var sp=row.querySelector('.mm-date'); if(!sp || sp.querySelector('input')) return;
+    _mmEditing=id;
+    sp.classList.remove('mm-date-rep'); sp.style.opacity='1';
+    sp.innerHTML='<input type="date" value="'+_mmEsc(l.date||_mmToday())+'">';
+    var inp=sp.querySelector('input');
+    var done=false;
+    var finish=function(save){
+      if(done) return; done=true;
+      var v=inp.value;
+      if(save && v && /^\d{4}-\d{2}-\d{2}$/.test(v) && v!==l.date){
+        l.date=v; _mmChildren(l.id).forEach(function(c){ c.date=v; }); _mmSave();
+      }
+      _mmEditing=null; renderMemoPage(true);
+    };
+    inp.addEventListener('change', function(){ finish(true); });
+    inp.addEventListener('keydown', function(ev){ if(ev.key==='Escape'){ ev.preventDefault(); finish(false); } if(ev.key==='Enter'){ ev.preventDefault(); finish(true); } });
+    inp.addEventListener('blur', function(){ setTimeout(function(){ finish(true); }, 120); });
+    try{ inp.focus(); if(inp.showPicker) inp.showPicker(); }catch(_e){}
+  };
+  window.mmInDateEdit = function(){
+    var sp=document.getElementById('mmInDate'); if(!sp || sp.querySelector('input')) return;
+    var cur=_mmInDate||_mmToday();
+    sp.innerHTML='<input type="date" value="'+cur+'">';
+    var inp=sp.querySelector('input'); var done=false;
+    var finish=function(save){
+      if(done) return; done=true;
+      var v=inp.value;
+      if(save && v && /^\d{4}-\d{2}-\d{2}$/.test(v)) _mmInDate=(v===_mmToday()?null:v);
+      sp.innerHTML=''; _mmInDateShow();
+      var mi=document.getElementById('mmInput'); if(mi){ try{ mi.focus(); }catch(_e){} }
+    };
+    inp.addEventListener('change', function(){ finish(true); });
+    inp.addEventListener('keydown', function(ev){ if(ev.key==='Escape'){ ev.preventDefault(); finish(false); } if(ev.key==='Enter'){ ev.preventDefault(); finish(true); } });
+    inp.addEventListener('blur', function(){ setTimeout(function(){ finish(true); }, 120); });
+    try{ inp.focus(); if(inp.showPicker) inp.showPicker(); }catch(_e){}
+  };
+  function _mmInDateShow(){
+    var idt=document.getElementById('mmInDate'); if(!idt || idt.querySelector('input')) return;
+    idt.textContent=_mmFmtDW(_mmInDate||_mmToday());
+    idt.classList.toggle('mm-date-set', !!_mmInDate);
+    idt.title=_mmInDate?('이 날짜로 적는 중 — 클릭해서 변경 (오늘로 돌리려면 오늘 날짜 선택)'):'클릭하면 다른 날짜로 적을 수 있습니다';
+    idt.onclick=mmInDateEdit;
+  }
+
+  // ─── r184: 완료 목록 (내가 완료한 메모 줄) ───────────────────
+  function _dnFmtTime(ts){ if(!ts) return ''; var d=new Date(ts); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+  window.renderDonePage = function(){
+    var host=document.getElementById('dnList'); if(!host) return;
+    var me=_mmMe();
+    var tt=document.getElementById('dnTitle'); if(tt) tt.textContent = me ? ('완료한 업무 · '+me) : '완료한 업무';
+    var rangeEl=document.getElementById('dnRange'); var days=rangeEl?Number(rangeEl.value):90;
+    var qEl=document.getElementById('dnQ'); var q=_qNorm(qEl?qEl.value:'');
+    var since = days ? (Date.now()-days*24*60*60*1000) : 0;
+    var list=(memoLines||[]).filter(function(l){
+      if(!l.done || l.parent) return false;
+      if(!(l.owner===me || (l.kind==='request' && l.to===me))) return false;
+      if((l.doneAt||0) < since) return false;
+      if(q){ var kids=_mmChildren(l.id).map(function(c){ return c.text||''; }).join(' '); if(_qNorm((l.text||'')+' '+(l.vendor||'')+' '+kids).indexOf(q)<0) return false; }
+      return true;
+    }).sort(function(a,b){ return (b.doneAt||0)-(a.doneAt||0); });
+    var cnt=document.getElementById('dnCnt'); if(cnt) cnt.textContent = list.length ? (list.length+'건') : '';
+    if(!list.length){ host.innerHTML='<div class="dn-empty">'+(q?'검색 결과가 없습니다.':'아직 완료한 업무가 없습니다. 일정 탭에서 완료(☐)한 줄이 여기에 쌓입니다.')+'</div>'; return; }
+    var h='', prev='';
+    list.forEach(function(l){
+      var dd=l.doneAt?dk(new Date(l.doneAt)):(l.date||'');
+      if(dd!==prev){ prev=dd; var n=list.filter(function(x){ return (x.doneAt?dk(new Date(x.doneAt)):(x.date||''))===dd; }).length; h+='<div class="dn-day"><b>'+_mmFmtDW(dd)+'</b><span>'+n+'건'+(dd===_mmToday()?' · 오늘':'')+'</span></div>'; }
+      var chips=_mmChips(l, false);
+      var meta='작성 '+_mmFmtDW(l.date||'');
+      if(l.kind==='request' && l.owner!==me) meta+=' · '+_mmEsc(l.owner)+' 요청';
+      if(l.linked && l.linked.sched) meta+='<span class="dn-link sched">일정 저장</span>';
+      if(l.linked && l.linked.proj){ var pj=(projectsList||[]).find(function(x){ return x.id===l.linked.proj; }); meta+='<span class="dn-link">프로젝트'+(pj&&pj.logs?(' · 기록 '+pj.logs.length):'')+'</span>'; }
+      var kids=_mmChildren(l.id).filter(function(c){ return !c.card; }).map(function(c){ return '<div class="dn-kid'+(c.done?' done':'')+'">– '+_mmEsc(c.text||'')+'</div>'; }).join('');
+      h+='<div class="dn-row" data-id="'+l.id+'"><span class="dn-time">'+_dnFmtTime(l.doneAt)+'</span><div class="dn-body"><div class="dn-text">'+chips+_mmEsc(l.text||'')+'</div>'+kids+'<div class="dn-meta">'+meta+'</div></div>'
+        +((l.owner===me||(l.kind==='request'&&l.to===me))?'<button class="dn-undo" onclick="dnUndo(\''+l.id+'\')" title="완료를 취소하고 일정 탭으로 되돌립니다">완료 취소</button>':'')+'</div>';
+    });
+    host.innerHTML=h;
+  };
+  window.dnUndo = function(id){ var l=_mmFind(id); if(!l||!l.done) return; mmToggleDone(id); renderDonePage(); };
   // ── 줄 수정 (그 줄에만 input 을 끼운다) ──
   window.mmEditStart = function(id){
     var l=_mmFind(id); if(!l || l.done) return;
