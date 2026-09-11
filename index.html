@@ -13820,8 +13820,8 @@ function reloadState() {
       .sort(function(a,b){ return (b.at||0)-(a.at||0); });
     var due=_smcDueNow();
     var h='<div class="smc-tb"><span class="smc-title">SMC 가격 확인</span>'
-      +'<span class="smc-note'+(due?' due':'')+'">'+(due?'지금 확인할 시간입니다 — 금요일 17시 이후':'매주 금요일 17시 이후 SMC 사이트에서 가격을 확인하고 맞으면 [등록]')+'</span>'
-      +'<a href="https://www.smckorea.co.kr/" target="_blank" rel="noopener" class="smc-f">SMC 사이트 열기</a>'
+      +'<span class="smc-note'+(due?' due':'')+'">'+(due?'지금 확인할 시간입니다 — 금요일 17시 이후':'매주 금요일 17시 이후 SMC 사이트에서 E가를 확인하고 맞으면 [등록] · 확판가·소물가도 확인되면 같이 등록')+'</span>'
+      +'<a href="http://www.smckorea.net/main/main.jsp" target="_blank" rel="noopener" class="smc-f">SMC 사이트 열기</a>'   // r182
       +'<span style="flex:1"></span>'
       +'<button class="smc-f'+(_smcFilter==='wait'?' on':'')+'" onclick="smcSetFilter(\'wait\')">대기 '+cnt.wait+'</button>'
       +'<button class="smc-f'+(_smcFilter==='ok'?' on':'')+'" onclick="smcSetFilter(\'ok\')">등록됨 '+cnt.ok+'</button>'
@@ -13836,8 +13836,8 @@ function reloadState() {
         h+='<tr data-id="'+q.id+'"><td>'+(ix+1)+'</td><td><b>'+esc(q.spec)+'</b> <button class="smc-btn" title="규격 복사" onclick="smcCopy(\''+q.id+'\')" style="padding:1px 6px">복사</button></td><td>'+esc(q.name||'')+'</td>';
         if(isWait){
           h+='<td><input class="smc-in" data-f="e" value="'+(q.e!=null?q.e:'')+'"></td>'
-            +'<td><input class="smc-in" data-f="hp" value="'+(q.buy!=null?q.buy:'')+'" title="견적에 넣은 구매가가 미리 들어 있습니다. 확판가가 아니면 지우세요"></td>'
-            +'<td><input class="smc-in" data-f="sm" value=""></td>';
+            +'<td><input class="smc-in" data-f="hp" value="" placeholder="'+(q.buy!=null?('견적 '+_qFmt(q.buy)):'')+'" title="SMC 사이트에서 확인한 확판가 (회색 값은 견적에 넣었던 구매가 — 참고용)"></td>'   // r182
+            +'<td><input class="smc-in" data-f="sm" value="" title="SMC 사이트에서 확인한 소물가"></td>';
         } else {
           h+='<td style="text-align:right">'+_qFmt(q.okE!=null?q.okE:q.e)+'</td><td style="text-align:right">'+_qFmt(q.okHp)+'</td><td style="text-align:right">'+_qFmt(q.okSm)+'</td>';
         }
