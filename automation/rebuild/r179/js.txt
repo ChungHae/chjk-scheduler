@@ -1,0 +1,495 @@
+
+  // ═══════════════ r179: 메모장 (개인 메모 → 일정·프로젝트·담당자) ═══════════════
+  var _mmEditing = null;      // 편집 중인 줄 id (편집 중엔 재렌더 건너뜀)
+  var _mmChildMode = false;   // 입력칸이 '하위 줄' 상태인지
+  var _mmKW = { '미팅':'meeting', '프로젝트':'project', '납품':'delivery', '공지':'notice', '요청':'request' };
+  var _mmKLabel = { meeting:'미팅', project:'프로젝트', delivery:'납품', notice:'공지', request:'요청', contact:'담당자', memo:'' };
+  var _MM_HIDE_MS = 24*60*60*1000;      // 완료 후 목록에서 사라지기까지
+  var _MM_PURGE_MS = 30*24*60*60*1000;  // 완료 후 자료 정리까지
+
+  function _mmMe(){
+    try{ if(typeof _authUser!=='undefined' && _authUser && _authUser.name) return String(_authUser.name).trim(); }catch(_e){}
+    var m=(members||[]).find(function(x){ return x.id===myMemberId; });
+    return m ? String(m.name||'').trim() : '';
+  }
+  function _mmToday(){ return dk(new Date()); }
+  function _mmId(){ return 'mm'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+  function _mmEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function _mmSave(){
+    // 30일 지난 완료 줄(+하위·명함) 정리 — 자료가 계속 불어나지 않게
+    var now=Date.now(), drop={};
+    (memoLines||[]).forEach(function(l){ if(l.done && l.doneAt && now-l.doneAt>_MM_PURGE_MS && !l.parent) drop[l.id]=1; });
+    if(Object.keys(drop).length){
+      memoLines = memoLines.filter(function(l){ return !(drop[l.id] || (l.parent && drop[l.parent])); });
+      var used={}; memoLines.forEach(function(l){ if(l.card) used[l.card]=1; });
+      Object.keys(memoCards||{}).forEach(function(k){ if(!used[k]) delete memoCards[k]; });
+    }
+    save('sched_memos', memoLines);
+    save('sched_memo_cards', memoCards);
+    localStorage.setItem('sched_local_ts', Date.now().toString());
+    try{ debouncedFbSave(); }catch(_e){}
+  }
+  function _mmMemberNames(){ return (members||[]).map(function(m){ return String(m.name||'').trim(); }).filter(Boolean); }
+  function _mmMemberByName(nm){ nm=String(nm||'').trim(); return (members||[]).find(function(m){ return String(m.name||'').trim()===nm; })||null; }
+
+  // ── 업체명 매칭: 토큰 3개→1개 순으로 정확 일치, 없으면 '토큰으로 시작하는/토큰을 담은' 업체 하나 ──
+  function _mmMatchVendor(tokens){
+    var names=allClients().map(function(c){ return String(c[0]||'').trim(); }).filter(Boolean);
+    var lower={}; names.forEach(function(n){ lower[n.toLowerCase()]=n; });
+    for(var n=Math.min(3,tokens.length); n>=1; n--){
+      var cand=tokens.slice(0,n).join(' ').toLowerCase();
+      if(lower[cand]) return { vendor:lower[cand], used:n };
+      var cand2=tokens.slice(0,n).join('').toLowerCase();
+      if(lower[cand2]) return { vendor:lower[cand2], used:n };
+    }
+    var t0=String(tokens[0]||'').toLowerCase(); if(t0.length<2) return null;
+    var hits=names.filter(function(nm){ var l=nm.toLowerCase(); return l.indexOf(t0)===0 || (t0.length>=3 && t0.indexOf(l)===0); });
+    if(hits.length===1) return { vendor:hits[0], used:1 };
+    if(hits.length>1){ hits.sort(function(a,b){ return a.length-b.length; }); return { vendor:hits[0], used:1, ambiguous:true }; }
+    return null;
+  }
+  // ── 날짜·시간 읽기: 9/15, 9.15, 9월15일, 14:00, 오후 2시, 2시반 ──
+  function _mmParseWhen(text){
+    var out={ date:'', time:'' };
+    var m=text.match(/(\d{1,2})\s*[\/.월]\s*(\d{1,2})\s*일?/);
+    if(m){ var mo=+m[1], d=+m[2]; if(mo>=1&&mo<=12&&d>=1&&d<=31){ var now=new Date(); var y=now.getFullYear(); if(mo<now.getMonth()+1-6) y++; out.date=y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0'); } }
+    var t=text.match(/(\d{1,2})\s*:\s*(\d{2})/);
+    if(t){ out.time=String(Math.min(23,+t[1])).padStart(2,'0')+':'+t[2]; }
+    else { var t2=text.match(/(오전|오후)?\s*(\d{1,2})\s*시\s*(반|(\d{1,2})\s*분)?/); if(t2){ var h=+t2[2]; if(t2[1]==='오후'&&h<12) h+=12; if(!t2[1]&&h<8) h+=12; var mi=t2[3]==='반'?30:(t2[4]?+t2[4]:0); out.time=String(Math.min(23,h)).padStart(2,'0')+':'+String(mi).padStart(2,'0'); } }
+    return out;
+  }
+  var _MM_PHONE=/(0\d{1,2})[-\s.]?(\d{3,4})[-\s.]?(\d{4})/;
+  // ── 한 줄 해석 ──
+  function _mmParse(raw){
+    var text=String(raw||'').trim();
+    var r={ text:text, kind:'memo', vendor:'', to:'', name:'', phone:'', when:{date:'',time:''}, ambiguous:false };
+    if(!text) return r;
+    var tokens=text.split(/\s+/);
+    var k0=tokens[0].replace(/[:：]$/,'');
+    var kind=_mmKW[k0];
+    if(kind){
+      r.kind=kind;
+      var rest=tokens.slice(1);
+      if(kind==='request'){
+        var to=(rest[0]||'').replace(/(님|에게|한테)$/,'');
+        if(_mmMemberByName(to)){ r.to=to; }
+        else { r.kind='memo'; }   // 등록된 이름이 아니면 그냥 메모
+      } else if(kind!=='notice'){
+        var mv=rest.length?_mmMatchVendor(rest):null;
+        if(mv){ r.vendor=mv.vendor; r.ambiguous=!!mv.ambiguous; }
+        r.when=_mmParseWhen(rest.join(' '));
+      }
+      return r;
+    }
+    var ph=text.match(_MM_PHONE);
+    if(ph){
+      r.kind='contact'; r.phone=ph[1]+'-'+ph[2]+'-'+ph[3];
+      var nm=text.slice(0, ph.index).replace(/[\s,·:：\-]+$/,'').trim();
+      r.name = nm.split(/\s+/).pop() || '';
+      return r;
+    }
+    return r;
+  }
+  function _mmVisible(l, showDone){
+    if(!l.done) return true;
+    if(!showDone) return false;
+    return !(l.doneAt && Date.now()-l.doneAt>_MM_HIDE_MS);
+  }
+  function _mmChildren(pid){ return (memoLines||[]).filter(function(l){ return l.parent===pid; }).sort(function(a,b){ return (a.createdAt||0)-(b.createdAt||0); }); }
+  function _mmLastTop(me){
+    var mine=(memoLines||[]).filter(function(l){ return l.owner===me && !l.parent && !l.done && l.kind!=='notice'; });
+    mine.sort(function(a,b){ return (a.createdAt||0)-(b.createdAt||0); });
+    return mine.length?mine[mine.length-1]:null;
+  }
+  function _mmFind(id){ return (memoLines||[]).find(function(l){ return l.id===id; })||null; }
+  function _mmFmtD(ds){ if(!ds) return ''; var p=ds.split('-'); return p.length===3 ? (+p[1])+'/'+(+p[2]) : ds; }
+  function _mmFmtTs(ts){ var d=new Date(ts); return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+
+  // ── 새 줄 등록 ──
+  function _mmCommit(){
+    var inp=document.getElementById('mmInput'); if(!inp) return;
+    var me=_mmMe(); if(!me){ showInfoModal('메모장','로그인한 이름을 알 수 없어 메모를 저장할 수 없습니다.'); return; }
+    if(typeof _guardW==='function' && !_guardW()) return;
+    var raw=inp.value; var text=String(raw||'').trim(); if(!text){ return; }
+    var child=_mmChildMode;
+    var mk=text.match(/^(?:[-–—•*]|\d{1,2}[.)])\s*/);
+    if(mk){ child=true; text=text.slice(mk[0].length).trim(); if(!text) return; }
+    var parent=null;
+    if(child){ var lt=_mmLastTop(me); if(lt) parent=lt.id; }
+    var p=_mmParse(text);
+    if(parent){ if(p.kind==='notice'||p.kind==='request'||p.kind==='meeting'||p.kind==='project'||p.kind==='delivery'){ parent=null; } }  // 키워드 줄은 항상 상위
+    var now=Date.now();
+    var line={ id:_mmId(), owner:me, text:text, parent:parent, kind:p.kind, vendor:p.vendor, to:p.to, name:p.name, phone:p.phone,
+               when:p.when, date:_mmToday(), createdAt:now, done:false, doneAt:0, feedback:[], card:'', linked:{} };
+    if(p.kind==='contact' && parent){ var pl=_mmFind(parent); if(pl && pl.vendor) line.vendor=pl.vendor; }
+    memoLines.push(line);
+    _mmSave();
+    inp.value=''; _mmChildMode=false; _mmSetChildUI();
+    renderMemoPage(true);
+    if(p.ambiguous) showInfoModal('업체 확인', '"'+p.vendor+'" 로 잡았습니다. 다른 업체면 업체 칩을 눌러 바꿔 주세요.');
+  }
+  function _mmSetChildUI(){ var r=document.getElementById('mmInRow'); if(r) r.classList.toggle('mm-in-child', _mmChildMode); }
+  function _mmBindInput(){
+    var inp=document.getElementById('mmInput'); if(!inp || inp._mmBound) return; inp._mmBound=true;
+    inp.addEventListener('keydown', function(e){
+      if(e.isComposing || e.keyCode===229) return;
+      if(e.key==='Enter'){ e.preventDefault(); _mmCommit(); return; }
+      if(e.key==='Tab'){ e.preventDefault(); _mmChildMode=!e.shiftKey; _mmSetChildUI(); return; }
+      if(e.key==='Escape'){ _mmChildMode=false; _mmSetChildUI(); }
+    });
+    inp.addEventListener('input', function(){
+      var v=inp.value; var m=v.match(/^(?:[-–—•*]|\d{1,2}[.)])\s/);
+      if(m && !_mmChildMode){ _mmChildMode=true; _mmSetChildUI(); }
+      else if(!v && _mmChildMode){ _mmChildMode=false; _mmSetChildUI(); }
+    });
+  }
+
+  // ── 그리기 ──
+  var _MM_SVG_EDIT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+  var _MM_SVG_DEL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>';
+  var _MM_SVG_CARD='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="1"/><circle cx="8.5" cy="11" r="2"/><path d="M13 10h5M13 14h5M5 18c.5-2 2-3 3.5-3s3 1 3.5 3"/></svg>';
+  var _MM_SVG_FB='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.2-4.4A8 8 0 1 1 21 12Z"/></svg>';
+
+  function _mmChips(l, mine){
+    var h='';
+    if(l.kind && l.kind!=='memo') h+='<span class="mm-chip mm-k-'+l.kind+'">'+_mmKLabel[l.kind]+(l.kind==='request'&&l.to?(' → '+_mmEsc(l.to)):'')+'</span>';
+    if(l.kind==='meeting'||l.kind==='project'||l.kind==='delivery'||(l.kind==='contact'&&!l.parent)){
+      if(l.vendor) h+='<span class="mm-chip mm-vend" onclick="mmVendorPick(\''+l.id+'\')" title="업체 바꾸기">'+_mmEsc(l.vendor)+'</span>';
+      else if(mine) h+='<span class="mm-chip mm-vend mm-vend-none" onclick="mmVendorPick(\''+l.id+'\')" title="업체 지정">업체?</span>';
+    }
+    if((l.kind==='meeting'||l.kind==='delivery') && l.when && (l.when.date||l.when.time)) h+='<span class="mm-chip mm-when">'+_mmFmtD(l.when.date)+(l.when.time?(' '+l.when.time):'')+'</span>';
+    if(l.kind==='contact' && l.phone) h+='<span class="mm-chip mm-k-contact" style="background:transparent;border:1px solid #cbd5e1">'+_mmEsc(l.phone)+'</span>';
+    if(l.card && memoCards[l.card]) h+='<img class="mm-card" src="'+memoCards[l.card]+'" onclick="mmCardView(\''+l.card+'\')" alt="명함">';
+    return h;
+  }
+  function _mmRowHtml(l, opts){
+    opts=opts||{};
+    var mine=opts.mine!==false;
+    var cls='mm-row'+(l.parent?' mm-child':'')+(l.done?' mm-done':'');
+    var h='<div class="'+cls+'" data-id="'+l.id+'">';
+    h+='<span class="mm-date">'+(opts.showDate?_mmFmtD(l.date):'')+'</span>';
+    h+='<div class="mm-body">';
+    if(opts.canDone!==false) h+='<span class="mm-chk" onclick="mmToggleDone(\''+l.id+'\')" title="'+(l.done?'완료 취소':'완료')+'">'+(l.done?'✓':'')+'</span>';
+    else h+='<span class="mm-chk" style="border-color:transparent;cursor:default"></span>';
+    if(l.parent) h+='<span class="mm-bul">–</span>';
+    if(opts.by) h+='<span class="mm-chip" style="background:#fff;border:1px solid #cbd5e1;color:#374151">'+_mmEsc(opts.by)+'</span>';
+    h+=_mmChips(l, mine);
+    h+='<span class="mm-txt" '+(mine&&!l.done?('onclick="mmEditStart(\''+l.id+'\')"'):'')+'>'+_mmEsc(l.text)+'</span>';
+    h+='<span class="mm-act">';
+    if(opts.fb) h+='<button onclick="mmFeedback(\''+l.id+'\')" title="피드백">'+_MM_SVG_FB+'</button>';
+    if(mine && !l.done){
+      if(l.vendor || l.kind==='contact' || l.parent) h+='<button onclick="mmCardAttach(\''+l.id+'\')" title="명함 사진 첨부">'+_MM_SVG_CARD+'</button>';
+      h+='<button onclick="mmEditStart(\''+l.id+'\')" title="수정">'+_MM_SVG_EDIT+'</button>';
+      h+='<button class="mm-del" onclick="mmDelete(\''+l.id+'\')" title="삭제">'+_MM_SVG_DEL+'</button>';
+    }
+    h+='</span></div></div>';
+    if(l.feedback && l.feedback.length){
+      h+='<div class="mm-row'+(l.done?' mm-done':'')+'"><span class="mm-date"></span><div class="mm-fb" style="flex:1">'+l.feedback.map(function(f){ return '↳ '+_mmEsc(f.by)+': '+_mmEsc(f.text)+' <span style="color:#9ca3af;font-style:normal;font-size:11px">'+_mmFmtTs(f.ts)+'</span>'; }).join('<br>')+'</div></div>';
+    }
+    return h;
+  }
+  function _mmGroupHtml(title){ return '<div class="mm-grp"><span class="mm-date"></span><span class="mm-gt">'+title+'</span></div>'; }
+
+  window.renderMemoPage = function(force){
+    var list=document.getElementById('mmList'); if(!list) return;
+    if(_mmEditing && !force) return;
+    if(force) _mmEditing=null;
+    var me=_mmMe();
+    var who=document.getElementById('mmWho'); if(who) who.textContent = me ? (me+'의 일정') : '일정';
+    var sd=document.getElementById('mmShowDone'); var showDone = sd ? sd.checked : true;
+    var idt=document.getElementById('mmInDate'); if(idt) idt.textContent=_mmFmtD(_mmToday());
+    _mmBindInput(); _mmSetChildUI();
+    var h='';
+    // ① 공지 — 모든 사람 것
+    var notices=(memoLines||[]).filter(function(l){ return l.kind==='notice' && !l.parent && _mmVisible(l, showDone); }).sort(function(a,b){ return (a.createdAt||0)-(b.createdAt||0); });
+    if(notices.length){
+      h+=_mmGroupHtml('공지');
+      notices.forEach(function(l){ var mine=l.owner===me; h+=_mmRowHtml(l,{mine:mine, showDate:true, by:mine?'':l.owner, canDone:mine}); _mmChildren(l.id).forEach(function(c){ if(_mmVisible(c, showDone)) h+=_mmRowHtml(c,{mine:mine}); }); });
+    }
+    // ② 받은 요청 — 나에게 온 것
+    var reqs=(memoLines||[]).filter(function(l){ return l.kind==='request' && l.to===me && l.owner!==me && !l.parent && _mmVisible(l, showDone); }).sort(function(a,b){ return (a.createdAt||0)-(b.createdAt||0); });
+    if(reqs.length){
+      h+=_mmGroupHtml('받은 요청');
+      reqs.forEach(function(l){ h+=_mmRowHtml(l,{mine:false, showDate:true, by:l.owner, canDone:true, fb:true}); _mmChildren(l.id).forEach(function(c){ if(_mmVisible(c, showDone)) h+=_mmRowHtml(c,{mine:false, canDone:false}); }); });
+    }
+    // ③ 내 메모
+    var mine=(memoLines||[]).filter(function(l){ return l.owner===me && !l.parent && l.kind!=='notice' && _mmVisible(l, showDone); }).sort(function(a,b){ return (a.createdAt||0)-(b.createdAt||0); });
+    if(notices.length||reqs.length) h+=_mmGroupHtml('메모');
+    var prevDate='';
+    mine.forEach(function(l){
+      var sd2 = l.date!==prevDate; prevDate=l.date;
+      h+=_mmRowHtml(l,{mine:true, showDate:sd2, fb:(l.kind==='request')});
+      _mmChildren(l.id).forEach(function(c){ if(_mmVisible(c, showDone)) h+=_mmRowHtml(c,{mine:true}); });
+    });
+    if(!h) h='<div class="mm-empty">아직 적은 메모가 없습니다. 아래 줄에 적고 Enter.</div>';
+    list.innerHTML=h;
+  };
+
+  // ── 줄 수정 (그 줄에만 input 을 끼운다) ──
+  window.mmEditStart = function(id){
+    var l=_mmFind(id); if(!l || l.done) return;
+    if(typeof _guardW==='function' && !_guardW()) return;
+    var row=document.querySelector('#mmList .mm-row[data-id="'+id+'"]'); if(!row) return;
+    var txt=row.querySelector('.mm-txt'); if(!txt) return;
+    _mmEditing=id;
+    var inp=document.createElement('input'); inp.type='text'; inp.className='mm-edit'; inp.value=l.text;
+    txt.replaceWith(inp); inp.focus(); try{ inp.setSelectionRange(inp.value.length, inp.value.length); }catch(_e){}
+    var doneFlag=false;
+    function finish(saveIt){
+      if(doneFlag) return; doneFlag=true;
+      var v=String(inp.value||'').trim();
+      _mmEditing=null;
+      if(saveIt && v && v!==l.text){
+        var p=_mmParse(v);
+        l.text=v; l.kind=p.kind; l.to=p.to; l.name=p.name; l.phone=p.phone; l.when=p.when;
+        if(p.vendor) l.vendor=p.vendor; else if(l.kind==='memo') l.vendor='';
+        if(l.kind==='contact' && l.parent && !l.vendor){ var pl=_mmFind(l.parent); if(pl&&pl.vendor) l.vendor=pl.vendor; }
+        _mmSave();
+      }
+      renderMemoPage(true);
+    }
+    inp.addEventListener('keydown', function(e){ if(e.isComposing||e.keyCode===229) return; if(e.key==='Enter'){ e.preventDefault(); finish(true); } else if(e.key==='Escape'){ e.preventDefault(); finish(false); } });
+    inp.addEventListener('blur', function(){ setTimeout(function(){ finish(true); }, 80); });
+  };
+  window.mmDelete = function(id){
+    var l=_mmFind(id); if(!l) return;
+    if(typeof _guardW==='function' && !_guardW()) return;
+    var kids=_mmChildren(id);
+    showConfirmModal('메모 삭제', '"'+l.text+'"'+(kids.length?(' 와 하위 '+kids.length+'줄'):'')+' 을 지울까요?', function(){
+      memoLines = memoLines.filter(function(x){ return x.id!==id && x.parent!==id; });
+      _mmSave(); renderMemoPage(true);
+    }, '삭제', '#dc2626');
+  };
+
+  // ── 업체 지정/변경 ──
+  window.mmVendorPick = function(id){
+    var l=_mmFind(id); if(!l) return;
+    if(l.owner!==_mmMe()) return;
+    if(typeof _guardW==='function' && !_guardW()) return;
+    showPromptModal('업체 지정', '업체명을 적으세요 (일부만 적어도 찾습니다).', l.vendor||'', function(v){
+      v=String(v||'').trim(); if(!v){ l.vendor=''; _mmSave(); renderMemoPage(true); return; }
+      var mv=_mmMatchVendor(v.split(/\s+/));
+      if(!mv){ showInfoModal('업체 지정', '"'+v+'" 에 맞는 업체가 없습니다. 업체 탭에서 먼저 등록해 주세요.'); return; }
+      l.vendor=mv.vendor; _mmChildren(id).forEach(function(c){ if(c.kind==='contact') c.vendor=mv.vendor; });
+      _mmSave(); renderMemoPage(true);
+      if(mv.ambiguous) showInfoModal('업체 확인', '"'+mv.vendor+'" 로 잡았습니다. 다른 업체면 다시 눌러 바꿔 주세요.');
+    }, '지정');
+  };
+
+  // ── 명함 사진 첨부 (640px JPEG 로 줄여 저장) ──
+  var _mmCardTarget=null;
+  window.mmCardAttach = function(id){
+    if(typeof _guardW==='function' && !_guardW()) return;
+    _mmCardTarget=id;
+    var f=document.getElementById('mmCardFile');
+    if(!f){ f=document.createElement('input'); f.type='file'; f.id='mmCardFile'; f.accept='image/*'; f.style.display='none'; document.body.appendChild(f);
+      f.addEventListener('change', function(){ var file=f.files&&f.files[0]; f.value=''; if(file) _mmCardRead(file); }); }
+    f.click();
+  };
+  function _mmCardRead(file){
+    var id=_mmCardTarget; var l=_mmFind(id); if(!l) return;
+    var rd=new FileReader();
+    rd.onload=function(){
+      var img=new Image();
+      img.onload=function(){
+        var MAX=640, w=img.width, h=img.height; var sc=Math.min(1, MAX/Math.max(w,h));
+        var cv=document.createElement('canvas'); cv.width=Math.round(w*sc); cv.height=Math.round(h*sc);
+        cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+        var url=cv.toDataURL('image/jpeg',0.72);
+        _mmCardStore(l, url);
+      };
+      img.onerror=function(){ showInfoModal('명함','이미지를 읽을 수 없습니다.'); };
+      img.src=rd.result;
+    };
+    rd.readAsDataURL(file);
+  }
+  function _mmCardStore(l, url){
+    var cid='mc'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+    memoCards[cid]=url; l.card=cid;
+    if(l.kind==='memo'){ l.kind='contact'; if(!l.name) l.name=l.text; }
+    if(l.kind==='contact' && l.parent && !l.vendor){ var pl=_mmFind(l.parent); if(pl&&pl.vendor) l.vendor=pl.vendor; }
+    _mmSave(); renderMemoPage(true);
+  }
+  window.mmCardView = function(cid){
+    var url=memoCards[cid]; if(!url) return;
+    var ov=document.getElementById('mmCardOv');
+    if(!ov){ ov=document.createElement('div'); ov.id='mmCardOv'; ov.style.cssText='position:fixed;inset:0;z-index:2000120;background:rgba(15,23,42,.7);display:none;align-items:center;justify-content:center;padding:20px;cursor:zoom-out'; ov.onclick=function(){ ov.style.display='none'; }; document.body.appendChild(ov); }
+    ov.innerHTML='<img src="'+url+'" style="max-width:100%;max-height:100%;background:#fff;border:1px solid #fff">'; ov.style.display='flex';
+  };
+
+  // ── 피드백 (요청 줄) ──
+  window.mmFeedback = function(id){
+    var l=_mmFind(id); if(!l) return;
+    if(typeof _guardW==='function' && !_guardW()) return;
+    showPromptModal('피드백', '"'+l.text+'" 에 대한 피드백을 적으세요.', '', function(v){
+      v=String(v||'').trim(); if(!v) return;
+      l.feedback=l.feedback||[]; l.feedback.push({ by:_mmMe(), text:v, ts:Date.now() });
+      _mmSave(); renderMemoPage(true);
+    }, '남기기');
+  };
+
+  // ── 완료 / 완료 취소 ──
+  window.mmToggleDone = function(id){
+    var l=_mmFind(id); if(!l) return;
+    if(typeof _guardW==='function' && !_guardW()) return;
+    var me=_mmMe();
+    if(l.done){
+      if(l.owner!==me && !(l.kind==='request'&&l.to===me)) return;
+      l.done=false; l.doneAt=0; _mmSave(); renderMemoPage(true); return;
+    }
+    if(l.parent){ l.done=true; l.doneAt=Date.now(); _mmSave(); renderMemoPage(true); return; }   // 하위 줄은 바로 완료
+    if(l.kind==='request' && l.to===me && l.owner!==me){
+      // 받은 요청: 피드백을 남기고 완료 — 요청한 사람 메모장에 그대로 보인다
+      showPromptModal('요청 완료', '"'+l.text+'"\n완료하면서 남길 말이 있으면 적으세요(없으면 비워 두세요).', '', function(v){
+        v=String(v||'').trim(); if(v){ l.feedback=l.feedback||[]; l.feedback.push({ by:me, text:v, ts:Date.now() }); }
+        _mmMarkDone(l); _mmSave(); renderMemoPage(true);
+      }, '완료');
+      return;
+    }
+    if(l.owner!==me) return;
+    _mmCompleteOpen(l);
+  };
+  function _mmMarkDone(l){ var t=Date.now(); l.done=true; l.doneAt=t; _mmChildren(l.id).forEach(function(c){ if(!c.done){ c.done=true; c.doneAt=t; } }); }
+
+  function _mmContactsOf(l){
+    var out=[];
+    _mmChildren(l.id).forEach(function(c){ if(c.kind==='contact' || c.card) out.push({ name:c.name||c.text||'', phone:c.phone||'', card:c.card||'', line:c }); });
+    if(l.kind==='contact' || (l.card && !l.parent)) out.unshift({ name:l.name||l.text||'', phone:l.phone||'', card:l.card||'', line:l });
+    return out;
+  }
+  function _mmCompleteOpen(l){
+    var ov=document.getElementById('mmDoneOv');
+    if(!ov){ ov=document.createElement('div'); ov.id='mmDoneOv'; ov.className='mm-ov'; document.body.appendChild(ov); ov.addEventListener('click', function(e){ if(e.target===ov) ov.style.display='none'; }); }
+    var isSched = l.kind==='meeting'||l.kind==='delivery';
+    var isProj  = l.kind==='project';
+    var contacts=_mmContactsOf(l);
+    var today=_mmToday();
+    var kids=_mmChildren(l.id).filter(function(c){ return c.kind!=='contact' && !c.card; });
+    var vendOpts='<datalist id="mmVendDl">'+allClients().slice(0,3000).map(function(c){ return '<option value="'+_mmEsc(c[0])+'">'; }).join('')+'</datalist>';
+    var h='<div class="mm-dlg"><div class="mm-dlg-h"><span class="bar"></span>메모 완료</div><div class="mm-dlg-b">';
+    h+='<div style="margin-bottom:10px;color:#1a1a1a;font-weight:600;white-space:pre-wrap">'+_mmEsc(l.text)+'</div>';
+    h+='<div class="mm-opt"><label class="h"><input type="checkbox" id="mmoSched" '+(isSched?'checked':'')+' style="accent-color:#1B3A6B">일정으로 저장 <span style="font-weight:400;color:#6b7280;font-size:12px">— 주간 일정표에 보입니다</span></label>'
+      +'<div class="f">종류 <select id="mmoCat"><option value="미팅" '+(l.kind==='meeting'?'selected':'')+'>미팅</option><option value="납품" '+(l.kind==='delivery'?'selected':'')+'>납품</option><option value="기타" '+(!isSched?'selected':'')+'>기타</option></select>'
+      +' 날짜 <input type="date" id="mmoDate" value="'+_mmEsc((l.when&&l.when.date)||today)+'"> 시간 <input type="time" id="mmoTime" value="'+_mmEsc((l.when&&l.when.time)||'')+'"></div></div>';
+    h+='<div class="mm-opt"><label class="h"><input type="checkbox" id="mmoProj" '+(isProj?'checked':'')+' style="accent-color:#1B3A6B">프로젝트로 저장 <span style="font-weight:400;color:#6b7280;font-size:12px">— 시작 '+_mmFmtD(l.date)+' · 종료 '+_mmFmtD(today)+(kids.length?(' · 하위 '+kids.length+'줄은 기록으로'):'')+'</span></label>'
+      +'<div class="f">업체 <input type="text" id="mmoVend" list="mmVendDl" value="'+_mmEsc(l.vendor||'')+'" placeholder="업체명" style="width:180px">'+vendOpts+'</div></div>';
+    if(contacts.length){
+      h+='<div class="mm-opt"><label class="h"><input type="checkbox" id="mmoCont" '+(l.vendor?'checked':'')+' style="accent-color:#1B3A6B">담당자 등록 <span style="font-weight:400;color:#6b7280;font-size:12px">— '+contacts.map(function(c){ return _mmEsc(c.name||'명함')+(c.phone?(' '+c.phone):'')+(c.card?' 📇':''); }).join(', ')+'</span></label>'
+        +'<div class="f" style="color:#9ca3af">위 "업체" 칸의 업체에 담당자로 들어갑니다.</div></div>';
+    }
+    h+='</div><div class="mm-dlg-f"><button type="button" class="no" id="mmoNo">취소</button><button type="button" class="ok" id="mmoOk">완료</button></div></div>';
+    ov.innerHTML=h; ov.style.display='flex';
+    document.getElementById('mmoNo').onclick=function(){ ov.style.display='none'; };
+    document.getElementById('mmoOk').onclick=function(){
+      var doS=document.getElementById('mmoSched').checked, doP=document.getElementById('mmoProj').checked;
+      var cEl=document.getElementById('mmoCont'); var doC=cEl?cEl.checked:false;
+      var vend=String(document.getElementById('mmoVend').value||'').trim();
+      var cat=document.getElementById('mmoCat').value, d=document.getElementById('mmoDate').value, t=document.getElementById('mmoTime').value;
+      if((doP||doC) && !vend){ showInfoModal('메모 완료','프로젝트·담당자 저장에는 업체명이 필요합니다.'); return; }
+      if(doS && !d){ showInfoModal('메모 완료','일정 날짜를 골라 주세요.'); return; }
+      if(vend && vend!==l.vendor){ var mv=_mmMatchVendor(vend.split(/\s+/)); l.vendor = mv ? mv.vendor : vend; }
+      var msgs=[];
+      if(doS){ _mmSaveSched(l, cat, d, t); msgs.push('일정 저장'); }
+      if(doP){ _mmSaveProject(l, kids); msgs.push('프로젝트 저장'); }
+      if(doC){ var n=_mmSaveContacts(l, contacts); msgs.push('담당자 '+n+'명 등록'); }
+      _mmMarkDone(l); _mmSave(); ov.style.display='none'; renderMemoPage(true);
+      if(msgs.length) showInfoModal('메모 완료', msgs.join(' · ')+' 되었습니다.');
+    };
+    ov.onkeydown=function(e){ if(e.key==='Escape'){ e.preventDefault(); ov.style.display='none'; } };
+    setTimeout(function(){ try{ document.getElementById('mmoOk').focus(); }catch(_e){} },0);
+  }
+  function _mmSaveSched(l, cat, d, t){
+    var me=_mmMe();
+    var it={ id:uid(), memberId:myMemberId||'', ownerName:me, date:d, endDate:d, time:t||'종일', category:cat, bizName:l.vendor||'', title:l.text, note:'', done:false, src:'memo', memoId:l.id };
+    personalSchedules.push(it); l.linked=l.linked||{}; l.linked.sched=it.id;
+    save('sched_personal', personalSchedules); localStorage.setItem('sched_local_ts', Date.now().toString()); try{ debouncedFbSave(); }catch(_e){}
+  }
+  function _mmSaveProject(l, kids){
+    var me=_mmMe(); var now=Date.now(); var today=_mmToday();
+    var mem=(members||[]).find(function(x){ return x.id===myMemberId; });
+    var logs=kids.map(function(c){ return { id:'lg'+(c.createdAt||now)+'_'+Math.random().toString(36).slice(2,6), date:c.date||today, text:c.text, ts:c.createdAt||now, done:!!c.done }; });
+    logs.push({ id:'lg'+now+'_'+Math.random().toString(36).slice(2,6), date:today, text:'완료 (메모장에서 저장)', ts:now, done:true });
+    var conts=_mmContactsOf(l).map(function(c){ return { name:c.name||'', rank:'', phone:c.phone||'' }; });
+    var title=l.text.replace(/^프로젝트[:：]?\s*/,''); if(l.vendor && title.indexOf(l.vendor)===0) title=title.slice(l.vendor.length).trim(); if(!title) title=(l.vendor||'')+' 프로젝트';
+    var np={ id:'prj'+now+'_'+Math.random().toString(36).slice(2,6), memberId:myMemberId||'', authorName:(mem?mem.name:me), title:title, logs:logs, createdAt:(l.createdAt||now), updatedAt:now,
+             detail:{ vendors:(l.vendor?[{ name:l.vendor, contacts:conts }]:[]), parent:'', equip:'', note:'' }, startDate:l.date||today, endDate:today, src:'memo', memoId:l.id };
+    projectsList.push(np); l.linked=l.linked||{}; l.linked.proj=np.id;
+    _projSave();
+  }
+  function _mmSaveContacts(l, contacts){
+    if(!l.vendor) return 0;
+    var key=_clxInfoKey(l.vendor);
+    var info=clientInfo[key]||{}; info.contacts=info.contacts||[];
+    var n=0;
+    contacts.forEach(function(c){
+      var ph=String(c.phone||'').replace(/\D/g,'');
+      var dup=info.contacts.find(function(x){ return (ph && String(x.phone||'').replace(/\D/g,'')===ph) || (!ph && c.name && x.name===c.name); });
+      if(dup){ if(c.card && !dup.card) dup.card=c.card; return; }
+      info.contacts.push({ dept:'', rank:'', name:c.name||'', phone:c.phone||'', phone2:'', email:'', card:c.card||'' }); n++;
+    });
+    clientInfo[key]=info;
+    if(!_cliFind(l.vendor)){ clientList.push(_cliMake(l.vendor,'')); }
+    _clxPersist();
+    return n;
+  }
+  window.mmHelp = function(){
+    showInfoModal('메모장 적는 법',
+      '· 그냥 적으면 개인 메모.\n'+
+      '· 미팅 업체명 내용 (9/15 14:00) → 미팅. 완료 때 일정으로 저장.\n'+
+      '· 프로젝트 업체명 내용 → 완료 때 그 업체 프로젝트로 저장 (적은 날=시작, 완료 날=종료).\n'+
+      '· 납품 업체명 내용 → 완료 때 일정으로 저장.\n'+
+      '· 공지 내용 → 모든 사람 메모장 맨 위.\n'+
+      '· 요청 이름 내용 → 그 사람 메모장에 뜨고, 피드백·완료가 내 메모장에도 보임.\n'+
+      '· 홍길동 010-1234-5678 (하위 줄) → 담당자. 명함 사진(📇)도 첨부 가능. 완료 때 업체 담당자로 등록.\n'+
+      '· 하위 줄: 줄 앞에 - 또는 1. 을 치거나 Tab.  줄을 누르면 수정.\n'+
+      '· 완료(☐)하면 취소선+흐림, 24시간 뒤 사라짐. 다시 누르면 완료 취소.');
+  };
+
+  // ═══════════════ r179: 주간 일정표 (사람별 · 다같이 봄) ═══════════════
+  var _wkStart=null;
+  function _wkAddDays(d, n){ var x=new Date(d.getTime()); x.setDate(x.getDate()+n); return x; }
+  window.wkMove = function(n){
+    if(!_wkStart || n===0) _wkStart=getMonday(new Date());
+    if(n) _wkStart=_wkAddDays(_wkStart, 7*n);
+    renderWeeklyPage();
+  };
+  function _wkItemsFor(m, dStr){
+    var out=[];
+    (personalSchedules||[]).forEach(function(s){
+      if(s.memberId==='__ALL__') return;
+      var mineS = (s.memberId && s.memberId===m.id) || (!s.memberId && s.ownerName && s.ownerName===m.name);
+      if(!mineS) return;
+      var sd=s.date, ed=s.endDate||s.date; if(!(sd<=dStr && dStr<=ed)) return;
+      var k = s.category==='미팅'?'k-meeting':(s.category==='납품'?'k-delivery':'k-etc');
+      out.push({ cls:k+(s.done?' done':''), text:(s.time&&s.time!=='종일'?(s.time+' '):'')+(s.bizName?(s.bizName+' · '):'')+(s.title||''), ts:(s.time||'') });
+    });
+    (projectsList||[]).forEach(function(p){
+      if(p.memberId!==m.id) return;
+      if(p.endDate===dStr) out.push({ cls:'k-project', text:'완료 · '+(p.title||''), ts:'zz' });
+    });
+    var en=entries&&entries[m.id+'_'+dStr];
+    if(en && en.status==='휴가' && en.vacation) out.push({ cls:'k-vac', text:(en.vacation.type||'휴가'), ts:'' });
+    out.sort(function(a,b){ return a.ts<b.ts?-1:(a.ts>b.ts?1:0); });
+    return out;
+  }
+  window.renderWeeklyPage = function(){
+    var tb=document.getElementById('wkTable'); if(!tb) return;
+    if(!_wkStart) _wkStart=getMonday(new Date());
+    var days=[]; for(var i=0;i<7;i++) days.push(_wkAddDays(_wkStart,i));
+    var today=_mmToday();
+    var tt=document.getElementById('wkTitle'); if(tt) tt.textContent=(_wkStart.getFullYear())+'년 '+_mmFmtD(dk(days[0]))+' ~ '+_mmFmtD(dk(days[6]));
+    var DN=['월','화','수','목','금','토','일'];
+    var h='<thead><tr><th style="width:88px">이름</th>';
+    days.forEach(function(d,i){ var ds=dk(d); var hol=(typeof getHoliday==='function')?getHoliday(ds):''; h+='<th class="'+(ds===today?'wk-today':'')+'" style="'+(i>=5||hol?'color:#dc2626':'')+'">'+_mmFmtD(ds)+' ('+DN[i]+')'+(hol?'<div style="font-size:10.5px;font-weight:600">'+_mmEsc(hol)+'</div>':'')+'</th>'; });
+    h+='</tr></thead><tbody>';
+    var ms=(members||[]).slice();
+    ms.forEach(function(m){
+      h+='<tr><td class="wk-name">'+_mmEsc(m.name)+'<div style="font-size:10.5px;color:#6b7280;font-weight:500">'+_mmEsc(m.group||'')+'</div></td>';
+      days.forEach(function(d){ var ds=dk(d); var its=_wkItemsFor(m, ds); h+='<td class="'+(ds===today?'wk-today':'')+'" style="min-height:44px">'+its.map(function(it){ return '<span class="wk-it '+it.cls+'" title="'+_mmEsc(it.text)+'">'+_mmEsc(it.text)+'</span>'; }).join('')+'</td>'; });
+      h+='</tr>';
+    });
+    h+='</tbody>';
+    tb.innerHTML=h;
+  };
+  // 달력(달력 탭)은 휴가만 — 공지 체크박스 숨김
+  (function(){ try{ var b=document.getElementById('psShowBcast'); if(b && b.parentNode) b.parentNode.style.display='none'; }catch(_e){} })();
