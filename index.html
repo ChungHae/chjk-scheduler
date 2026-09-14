@@ -1800,6 +1800,12 @@
     .mt-btn { padding:5px 11px; border:1px solid #d1d5db; border-radius:6px; background:#fff; font-size:12.5px; cursor:pointer; font-family:inherit; color:#374151; }
     .mt-btn.pri { background:#1B3A6B; color:#fff; border-color:#1B3A6B; }
     .mt-btn.danger { color:#dc2626; border-color:#fecaca; }
+    .mt-tools { display:flex; gap:8px; align-items:center; margin:0 auto 10px; max-width:960px; flex-wrap:wrap; }   /* r191 */
+    .mt-badge { display:inline-block; padding:2px 9px; border-radius:11px; font-size:11.5px; font-weight:700; }
+    .mt-badge.draft { background:#fef3c7; color:#92400e; }
+    .mt-badge.fin { background:#dcfce7; color:#166534; }
+    .mt-saved { font-size:11.5px; color:#9ca3af; }
+    .mt-saved.ok { color:#166534; font-weight:700; }
     #mtBody { padding:12px 16px 60px; }
     .mt-list table { border-collapse:collapse; width:100%; font-size:13px; }
     .mt-list th, .mt-list td { border:1px solid #e5e7eb; padding:7px 9px; white-space:nowrap; }
@@ -13773,6 +13779,37 @@ function reloadState() {
     return { place:pl, room:'충해전기㈜ '+pl+'영업소 회의실', title:'충해전기㈜ '+pl+'영업소 주간 업무회의', attendees:att };
   }
   function _mtEditingInside(){ var a=document.activeElement; return !!(a && a.closest && a.closest('#mtBody') && (a.tagName==='INPUT'||a.tagName==='SELECT'||a.tagName==='TEXTAREA')); }
+  // ── r191: 저장 버튼 / 확정(발행) / 작성 중 임시보관 ──
+  function _mtFmtTime(ts){ if(!ts) return ''; var d=new Date(ts); var p=function(x){ return String(x).padStart(2,'0'); }; return (d.getMonth()+1)+'/'+d.getDate()+' '+p(d.getHours())+':'+p(d.getMinutes()); }
+  function _mtLocked(m){ if(m && m.status==='final'){ try{ showInfoModal('회의록','확정된 회의록입니다.\n수정하려면 위의 [확정 해제] 를 누르세요.'); }catch(_e){} return true; } return false; }
+  window.mtSaveNow = function(id){
+    var m=_mtFind(id); if(!m) return; if(typeof _guardW==='function' && !_guardW()) return;
+    m.savedAt=Date.now(); m.updatedAt=m.savedAt; _mtSave();
+    try{ doFbSave(); }catch(_e){}
+    var el=document.getElementById('mtSaved');
+    if(el){ el.textContent='저장됨 '+_mtFmtTime(m.savedAt); el.classList.add('ok'); setTimeout(function(){ try{ el.classList.remove('ok'); }catch(_e2){} }, 2500); }
+  };
+  window.mtFinal = function(id){
+    var m=_mtFind(id); if(!m) return; if(typeof _guardW==='function' && !_guardW()) return;
+    showConfirmModal('회의록 확정', _mtEsc(_mtFmtD(m.date))+' '+_mtEsc(m.title||'')+' 회의록을 확정할까요?<br><span style="font-size:12px;color:#6b7280">확정하면 내용이 잠깁니다. 업무 완료 체크는 계속 할 수 있고, [확정 해제] 로 다시 열 수 있습니다.</span>', function(){
+      m.status='final'; m.finalAt=Date.now(); m.finalBy=_mtMe(); m.savedAt=m.finalAt; m.updatedAt=m.finalAt; _mtSave(); try{ doFbSave(); }catch(_e){} renderMeetingPage(true);
+    }, '확정', '#1B3A6B');
+  };
+  window.mtUnfinal = function(id){
+    var m=_mtFind(id); if(!m) return; if(typeof _guardW==='function' && !_guardW()) return;
+    var me=_mtMe(); var admin=(typeof _isAdmin==='function')?_isAdmin():false;
+    if(!(admin || m.finalBy===me || m.createdBy===me || m.author===me)){ showInfoModal('회의록','확정한 사람 또는 작성자·관리자만 확정을 해제할 수 있습니다.'); return; }
+    showConfirmModal('확정 해제', '다시 수정할 수 있게 확정을 해제할까요?', function(){ m.status='draft'; m.updatedAt=Date.now(); _mtSave(); try{ doFbSave(); }catch(_e){} renderMeetingPage(true); }, '해제', '#1B3A6B');
+  };
+  function _mtDraftAll(){ try{ return JSON.parse(localStorage.getItem('sched_mt_draft')||'{}')||{}; }catch(_e){ return {}; } }
+  window.mtDraftKeep = function(el, mid){ try{ var a=_mtDraftAll(); var k=mid+'|'+(el.getAttribute('data-dk')||''); var v=String(el.value||''); if(v) a[k]=v; else delete a[k]; localStorage.setItem('sched_mt_draft', JSON.stringify(a)); }catch(_e){} };
+  function _mtDraftRestore(mid){
+    try{ var a=_mtDraftAll();
+      Array.prototype.forEach.call(document.querySelectorAll('#mtBody .mt-add input[data-dk]'), function(el){
+        var v=a[mid+'|'+(el.getAttribute('data-dk')||'')]; if(v && !el.value) el.value=v;
+      });
+    }catch(_e){}
+  }
   window.mtNew = function(){
     if(typeof _guardW==='function' && !_guardW()) return;
     var me=_mtMe(); var mem=(members||[]).find(function(x){ return x.name===me; });
@@ -13803,7 +13840,7 @@ function reloadState() {
     showConfirmModal('회의록 삭제', _mtEsc(_mtFmtD(m.date))+' '+_mtEsc(m.title)+' 회의록을 삭제할까요?', function(){ meetings=meetings.filter(function(x){ return x.id!==id; }); _mtSave(); _mtOpen=null; renderMeetingPage(true); }, '삭제', '#dc2626');
   };
   window.mtField = function(id, k, v){
-    var m=_mtFind(id); if(!m) return; if(typeof _guardW==='function' && !_guardW()) return;
+    var m=_mtFind(id); if(!m) return; if(typeof _guardW==='function' && !_guardW()) return; if(_mtLocked(m)) return;   // r191
     v=String(v==null?'':v);
     if(k==='place'){ var d=_mtDefaults(v); var old=_mtDefaults(m.place); m.place=d.place; if(m.room===old.room) m.room=d.room; if(m.title===old.title) m.title=d.title; }
     else m[k]=v;
@@ -13818,7 +13855,7 @@ function reloadState() {
   function _mtParseAgenda(t){ var s=String(t||'').trim(); var i=s.search(/[:：]/); if(i>0 && i<40) return { title:s.slice(0,i).trim(), text:s.slice(i+1).trim() }; return { title:'', text:s }; }
   // ── r190: 한글(IME) 입력 중에도 Enter 한 번이면 등록 (조합 중 Enter는 조합만 끝내고 삼켜지던 문제) ──
   window.mtKeyEnter = function(ev, el, kind, id, name){
-    var run=function(){ try{ if(kind==='ag') mtAddAgenda(id, el); else mtAddRep(id, name, el); }catch(_e){} };
+    var run=function(){ try{ if(kind==='ag') mtAddAgenda(id, el); else mtAddRep(id, name, el); }catch(_e){} try{ mtDraftKeep(el, id); }catch(_e2){} };   // r191: 등록되면 임시보관 삭제
     var t=ev.type;
     if(t==='keydown'){
       if(ev.key!=='Enter') return;
@@ -13830,13 +13867,13 @@ function reloadState() {
     if(t==='keyup'){ if(ev.key==='Enter' && el._mtPend){ el._mtPend=0; run(); } return; }
   };
   window.mtAddAgenda = function(id, inp){
-    var m=_mtFind(id); if(!m) return; var t=String(inp.value||'').trim(); if(!t) return; if(typeof _guardW==='function' && !_guardW()) return;
+    var m=_mtFind(id); if(!m) return; var t=String(inp.value||'').trim(); if(!t) return; if(typeof _guardW==='function' && !_guardW()) return; if(_mtLocked(m)) return;   // r191
     var p=_mtParseAgenda(t); m.agenda.push({ id:_mtId('ma'), title:p.title, text:p.text, done:false, by:_mtMe(), at:Date.now() });
     m.updatedAt=Date.now(); _mtSave(); inp.value=''; renderMeetingPage(true);
     setTimeout(function(){ var el=document.getElementById('mtAgIn'); if(el) el.focus(); }, 30);
   };
   window.mtAddRep = function(id, name, inp){
-    var m=_mtFind(id); if(!m) return; var t=String(inp.value||'').trim(); if(!t) return; if(typeof _guardW==='function' && !_guardW()) return;
+    var m=_mtFind(id); if(!m) return; var t=String(inp.value||'').trim(); if(!t) return; if(typeof _guardW==='function' && !_guardW()) return; if(_mtLocked(m)) return;   // r191
     var r=m.reports.find(function(x){ return x.name===name; }); if(!r){ r={ name:name, items:[] }; m.reports.push(r); }
     var _it={ id:_mtId('mi'), text:t, done:false, by:_mtMe(), at:Date.now() };
     r.items.push(_it);
@@ -13852,7 +13889,7 @@ function reloadState() {
     m.updatedAt=Date.now(); _mtSave(); renderMeetingPage(true);
   };
   window.mtEditItem = function(id, iid){
-    var m=_mtFind(id); if(!m) return; var it=_mtItem(m, iid); if(!it || it.done) return; if(typeof _guardW==='function' && !_guardW()) return;
+    var m=_mtFind(id); if(!m) return; var it=_mtItem(m, iid); if(!it || it.done) return; if(typeof _guardW==='function' && !_guardW()) return; if(_mtLocked(m)) return;   // r191
     var cur=(it.title!=null && it.title!=='')?(it.title+': '+(it.text||'')):(it.text||'');
     showPromptModal('항목 수정', (it.title!=null?'제목: 내용 형식으로 적을 수 있습니다.':''), cur, function(v){
       v=String(v||'').trim(); if(!v) return;
@@ -13861,7 +13898,7 @@ function reloadState() {
     }, '저장');
   };
   window.mtDelItem = function(id, iid){
-    var m=_mtFind(id); if(!m) return; if(typeof _guardW==='function' && !_guardW()) return;
+    var m=_mtFind(id); if(!m) return; if(typeof _guardW==='function' && !_guardW()) return; if(_mtLocked(m)) return;   // r191
     try{ var _di=_mtItem(m, iid); if(_di && _di.memoId){ var _dl=(memoLines||[]).find(function(x){ return x.id===_di.memoId; }); if(_dl){ delete _dl.mtRef; _mmSave(); } } }catch(_e){}   // r189: 일정 줄은 남기고 연결만 해제
     m.agenda=(m.agenda||[]).filter(function(x){ return x.id!==iid; });
     (m.reports||[]).forEach(function(r){ r.items=(r.items||[]).filter(function(i){ return i.id!==iid; }); });
@@ -13871,15 +13908,16 @@ function reloadState() {
     var by=it.done?('✓ '+_mtEsc(it.doneBy||'')+' '+_mtFmtShort(it.doneAt)):'';
     var tx=(isAgenda && it.title)?('<b>'+_mtEsc(it.title)+':</b> '+_mtEsc(it.text||'')):_mtEsc(it.text||'');
     if(print) return '<div class="mt-it'+(it.done?' done':'')+'"><span class="mt-chk">'+(it.done?'✓':'')+'</span><span class="mt-tx">'+tx+'</span>'+(by?'<span class="mt-by">'+by+'</span>':'')+'</div>';
+    var _lk=(m.status==='final');   // r191: 확정되면 글 수정·삭제 잠금 (완료 체크는 계속 가능)
     return '<div class="mt-it'+(it.done?' done':'')+'"><span class="mt-chk" onclick="mtToggle(\''+m.id+'\',\''+it.id+'\')" title="'+(it.done?'완료 취소':'완료')+'">'+(it.done?'✓':'')+'</span>'
-      +'<span class="mt-tx" onclick="mtEditItem(\''+m.id+'\',\''+it.id+'\')" title="클릭하면 수정">'+tx+'</span>'
+      +'<span class="mt-tx"'+(_lk?'':' onclick="mtEditItem(\''+m.id+'\',\''+it.id+'\')" title="클릭하면 수정"')+'>'+tx+'</span>'
       +(by?'<span class="mt-by">'+by+'</span>':'')+(it.memoId?'<span class="mt-by" title="담당자 일정에 등록됨">일정</span>':'')+(it.from?'<span class="mt-by" title="이전 회의에서 가져옴">↻</span>':'')
-      +'<button class="mt-del" onclick="mtDelItem(\''+m.id+'\',\''+it.id+'\')" title="삭제">✕</button></div>';
+      +(_lk?'':'<button class="mt-del" onclick="mtDelItem(\''+m.id+'\',\''+it.id+'\')" title="삭제">✕</button>')+'</div>';
   }
   function _mtDocHtml(m, print){
     var id=m.id;
     var h='<div class="mt-doc"><h2 class="mt-h">회 의 록</h2>';
-    if(print){
+    if(print || m.status==='final'){   // r191: 확정되면 머리글도 읽기 전용
       h+='<div class="mt-head"><div class="k">일 시</div><div>'+_mtEsc(_mtFmtD(m.date))+' '+_mtEsc(m.time||'')+'</div><div class="k">장 소</div><div>'+_mtEsc(m.room||m.place||'')+'</div>'
         +'<div class="k">회의명</div><div>'+_mtEsc(m.title||'')+'</div><div class="k">작성자</div><div>'+_mtEsc(m.author||'')+'</div>'
         +'<div class="k">참석자</div><div class="w">'+_mtEsc((m.attendees||[]).join(', '))+'</div></div>';
@@ -13895,8 +13933,8 @@ function reloadState() {
     h+='<div class="mt-sec"><h3>1. 공통 추진 사항 및 협의 안건</h3>';
     if(!(m.agenda||[]).length) h+='<div style="font-size:12.5px;color:#9ca3af;padding:6px">'+(print?'-':'아직 안건이 없습니다. 아래 칸에 "제목: 내용" 으로 적고 Enter.')+'</div>';
     (m.agenda||[]).forEach(function(a){ h+=_mtItemHtml(m, a, true, print); });
-    if(!print){ var _agh='mtKeyEnter(event,this,\'ag\',\''+id+'\',\'\')';   // r190
-      h+='<div class="mt-add"><input id="mtAgIn" placeholder="제목: 내용  (예: 신규 거래처 발굴: 담당자별 업종 분류에 따른 방문 영업 실시)  Enter" onkeydown="'+_agh+'" onkeyup="'+_agh+'" oncompositionend="'+_agh+'"></div>'; }
+    if(!print && m.status!=='final'){ var _agh='mtKeyEnter(event,this,\'ag\',\''+id+'\',\'\')';   // r190·r191
+      h+='<div class="mt-add"><input id="mtAgIn" data-dk="ag" oninput="mtDraftKeep(this,\''+id+'\')" placeholder="제목: 내용  (예: 신규 거래처 발굴: 담당자별 업종 분류에 따른 방문 영업 실시)  Enter" onkeydown="'+_agh+'" onkeyup="'+_agh+'" oncompositionend="'+_agh+'"></div>'; }
     h+='</div>';
     h+='<div class="mt-sec"><h3>2. 담당자별 업무 보고</h3>';
     var names=(m.attendees||[]).slice(); (m.reports||[]).forEach(function(r){ if(names.indexOf(r.name)<0 && (r.items||[]).length) names.push(r.name); });
@@ -13906,8 +13944,8 @@ function reloadState() {
       h+='<div class="mt-rep"><div class="nm">'+_mtEsc(n)+'</div><div>';
       if(!(r.items||[]).length && print) h+='<div style="font-size:12.5px;color:#9ca3af">-</div>';
       (r.items||[]).forEach(function(i){ h+=_mtItemHtml(m, i, false, print); });
-      if(!print){ var _rph='mtKeyEnter(event,this,\'rep\',\''+id+'\',\''+_mtEsc(n)+'\')';   // r190
-        h+='<div class="mt-add"><input data-rep="'+_mtEsc(n)+'" placeholder="'+_mtEsc(n)+' 업무 내용 · Enter" onkeydown="'+_rph+'" onkeyup="'+_rph+'" oncompositionend="'+_rph+'"></div>'; }
+      if(!print && m.status!=='final'){ var _rph='mtKeyEnter(event,this,\'rep\',\''+id+'\',\''+_mtEsc(n)+'\')';   // r190·r191
+        h+='<div class="mt-add"><input data-rep="'+_mtEsc(n)+'" data-dk="rep:'+_mtEsc(n)+'" oninput="mtDraftKeep(this,\''+id+'\')" placeholder="'+_mtEsc(n)+' 업무 내용 · Enter" onkeydown="'+_rph+'" onkeyup="'+_rph+'" oncompositionend="'+_rph+'"></div>'; }
       h+='</div></div>';
     });
     h+='</div><div class="mt-foot">충해전기(주) '+_mtEsc(m.place||'')+'영업소</div></div>';
@@ -13952,7 +13990,15 @@ function reloadState() {
       else {
         var p=_mtProg(m);
         if(cnt) cnt.textContent = p.t ? ('항목 '+p.d+'/'+p.t+' 완료') : '';
-        host.innerHTML='<div style="display:flex;gap:8px;align-items:center;margin:0 auto 10px;max-width:960px"><button class="mt-btn" onclick="mtBack()">← 목차</button><span style="flex:1"></span><button class="mt-btn" onclick="mtPrint(\''+m.id+'\')">인쇄 / PDF</button><button class="mt-btn danger" onclick="mtDelete(\''+m.id+'\')">삭제</button></div>'+_mtDocHtml(m, false);
+        var _lk=(m.status==='final'); var _sv=m.savedAt||m.updatedAt||0;   // r191
+        host.innerHTML='<div class="mt-tools"><button class="mt-btn" onclick="mtBack()">← 목차</button>'
+          +'<span class="mt-badge '+(_lk?'fin':'draft')+'">'+(_lk?('확정 · '+_mtEsc(m.finalBy||'')+' '+_mtFmtShort(m.finalAt)):'작성중')+'</span>'
+          +'<span class="mt-saved" id="mtSaved">'+(_sv?('저장됨 '+_mtFmtTime(_sv)):'')+'</span>'
+          +'<span style="flex:1"></span>'
+          +(_lk?'':'<button class="mt-btn pri" onclick="mtSaveNow(\''+m.id+'\')">저장</button>')
+          +(_lk?('<button class="mt-btn" onclick="mtUnfinal(\''+m.id+'\')">확정 해제</button>'):('<button class="mt-btn" onclick="mtFinal(\''+m.id+'\')">회의록 확정</button>'))
+          +'<button class="mt-btn" onclick="mtPrint(\''+m.id+'\')">인쇄 / PDF</button><button class="mt-btn danger" onclick="mtDelete(\''+m.id+'\')">삭제</button></div>'+_mtDocHtml(m, false);
+        try{ _mtDraftRestore(m.id); }catch(_e){}
         return;
       }
     }
@@ -13964,7 +14010,7 @@ function reloadState() {
     if(!list.length){ host.innerHTML='<div class="mt-empty">'+(q||plf?'해당하는 회의록이 없습니다.':'아직 회의록이 없습니다. [+ 새 회의록] 으로 시작하세요.')+'</div>'; return; }
     var h='<div class="mt-list"><table><thead><tr><th>No.</th><th>일시</th><th>장소</th><th>회의명</th><th>작성자</th><th>참석자</th><th>진행</th></tr></thead><tbody>';
     list.forEach(function(m, i){ var p=_mtProg(m);
-      h+='<tr class="mt-row" onclick="mtOpen(\''+m.id+'\')"><td>'+(list.length-i)+'</td><td>'+_mtEsc(_mtFmtD(m.date))+' '+_mtEsc(m.time||'')+'</td><td>'+_mtEsc(m.place||'')+'</td><td class="mt-t">'+_mtEsc(m.title||'')+'</td><td>'+_mtEsc(m.author||'')+'</td><td>'+_mtEsc((m.attendees||[]).join(', '))+'</td><td><span class="mt-prog'+(p.t&&p.d===p.t?' all':'')+'">'+(p.t?(p.d+' / '+p.t):'-')+'</span></td></tr>';
+      h+='<tr class="mt-row" onclick="mtOpen(\''+m.id+'\')"><td>'+(list.length-i)+'</td><td>'+_mtEsc(_mtFmtD(m.date))+' '+_mtEsc(m.time||'')+'</td><td>'+_mtEsc(m.place||'')+'</td><td class="mt-t">'+_mtEsc(m.title||'')+(m.status==='final'?' <span class="mt-badge fin">확정</span>':' <span class="mt-badge draft">작성중</span>')+'</td><td>'+_mtEsc(m.author||'')+'</td><td>'+_mtEsc((m.attendees||[]).join(', '))+'</td><td><span class="mt-prog'+(p.t&&p.d===p.t?' all':'')+'">'+(p.t?(p.d+' / '+p.t):'-')+'</span></td></tr>';
     });
     h+='</tbody></table></div>';
     host.innerHTML=h;
