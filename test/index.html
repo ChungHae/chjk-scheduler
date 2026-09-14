@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r186 2026-09-11 -->
+<!-- test build r187 2026-09-14 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -1793,6 +1793,60 @@
     .dn-empty { padding:40px; text-align:center; color:#9ca3af; font-size:13px; }
     .dn-row .mm-chip { margin-right:4px; }
     .mm-k-newbiz { background:#fce7f3; color:#9d174d; }   /* r184 신규 */
+    /* ── r187 회의록 ── */
+    #pageMeeting .mt-tb { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:10px 16px; border-bottom:1px solid #e5e7eb; background:#fff; position:sticky; top:0; z-index:3; }
+    #pageMeeting .mt-tb .mt-title { font-size:14px; font-weight:700; color:#1f2937; }
+    #pageMeeting .mt-tb select, #pageMeeting .mt-tb input { padding:5px 9px; border:1px solid #d1d5db; border-radius:6px; font-size:12.5px; font-family:inherit; background:#fff; }
+    .mt-btn { padding:5px 11px; border:1px solid #d1d5db; border-radius:6px; background:#fff; font-size:12.5px; cursor:pointer; font-family:inherit; color:#374151; }
+    .mt-btn.pri { background:#1B3A6B; color:#fff; border-color:#1B3A6B; }
+    .mt-btn.danger { color:#dc2626; border-color:#fecaca; }
+    #mtBody { padding:12px 16px 60px; }
+    .mt-list table { border-collapse:collapse; width:100%; font-size:13px; }
+    .mt-list th, .mt-list td { border:1px solid #e5e7eb; padding:7px 9px; white-space:nowrap; }
+    .mt-list th { background:#f8fafc; font-weight:700; color:#374151; }
+    .mt-list tr.mt-row { cursor:pointer; } .mt-list tr.mt-row:hover td { background:#f4f6f9; }
+    .mt-list td.mt-t { white-space:normal; font-weight:600; color:#1B3A6B; }
+    .mt-prog { display:inline-block; min-width:56px; padding:1px 7px; border-radius:10px; font-size:11.5px; font-weight:700; background:#fef3c7; color:#92400e; }
+    .mt-prog.all { background:#dcfce7; color:#166534; }
+    .mt-empty { padding:40px; text-align:center; color:#9ca3af; font-size:13px; }
+    .mt-doc { max-width:960px; margin:0 auto; background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:20px 26px 30px; }
+    .mt-doc h2.mt-h { text-align:center; font-size:22px; letter-spacing:10px; color:#1B3A6B; margin:4px 0 16px; }
+    .mt-head { display:grid; grid-template-columns:78px 1fr 78px 1fr; border:1px solid #cbd5e1; font-size:12.5px; }
+    .mt-head > div { padding:6px 10px; border-bottom:1px solid #e5e7eb; border-right:1px solid #e5e7eb; display:flex; align-items:center; gap:6px; min-height:34px; flex-wrap:wrap; }
+    .mt-head > div.k { background:#eef2f7; font-weight:700; color:#1B3A6B; justify-content:center; }
+    .mt-head > div.w { grid-column:span 3; }
+    .mt-head input, .mt-head select { padding:3px 6px; border:1px solid #d1d5db; border-radius:4px; font-size:12.5px; font-family:inherit; background:#fff; }
+    .mt-head input.wide { flex:1; min-width:120px; }
+    .mt-att { display:inline-flex; align-items:center; padding:2px 9px; border-radius:12px; border:1px solid #cbd5e1; font-size:12px; cursor:pointer; color:#6b7280; background:#fff; }
+    .mt-att.on { background:#1B3A6B; color:#fff; border-color:#1B3A6B; }
+    .mt-sec { margin-top:18px; }
+    .mt-sec h3 { font-size:14px; color:#1f2937; margin:0 0 8px; padding-bottom:5px; border-bottom:2px solid #1B3A6B; }
+    .mt-it { display:flex; align-items:flex-start; gap:8px; padding:5px 6px; border-bottom:1px dashed #e5e7eb; font-size:13px; color:#1f2937; }
+    .mt-it:hover { background:#f8fafc; }
+    .mt-it .mt-chk { flex:0 0 16px; width:16px; height:16px; border:1.5px solid #94a3b8; border-radius:3px; margin-top:2px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:11px; color:#fff; }
+    .mt-it.done .mt-chk { background:#64748b; border-color:#64748b; }
+    .mt-it .mt-tx { flex:1; min-width:0; cursor:text; line-height:1.5; white-space:pre-wrap; }
+    .mt-it .mt-tx b { color:#1B3A6B; }
+    .mt-it.done .mt-tx { text-decoration:line-through; color:#9ca3af; }
+    .mt-it .mt-by { font-size:11px; color:#9ca3af; white-space:nowrap; }
+    .mt-it .mt-del { border:none; background:none; color:#dc2626; cursor:pointer; opacity:.35; padding:0 4px; font-size:13px; }
+    .mt-it:hover .mt-del { opacity:1; }
+    .mt-add { display:flex; gap:6px; margin-top:6px; }
+    .mt-add input { flex:1; padding:6px 9px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; font-family:inherit; }
+    .mt-rep { display:grid; grid-template-columns:110px 1fr; border:1px solid #cbd5e1; margin-top:6px; }
+    .mt-rep > div { padding:6px 10px; border-bottom:1px solid #e5e7eb; }
+    .mt-rep > div.nm { background:#eef2f7; font-weight:700; color:#1B3A6B; display:flex; align-items:flex-start; justify-content:center; padding-top:10px; border-right:1px solid #e5e7eb; }
+    .mt-foot { text-align:center; color:#9ca3af; font-size:11.5px; margin-top:24px; }
+    #mtPrint { display:none; }
+    @media print {
+      body.mt-printing > *:not(#mtPrint) { display:none !important; }
+      body.mt-printing #mtPrint { display:block !important; }
+      #mtPrint .mt-doc { border:none; max-width:none; padding:0; }
+      #mtPrint .mt-it { border-bottom:1px dotted #cbd5e1; page-break-inside:avoid; }
+      #mtPrint .mt-it.done .mt-tx { color:#6b7280; }
+      #mtPrint .mt-chk { border-color:#64748b; }
+    }
+    @media (max-width:640px){ .mt-head { grid-template-columns:64px 1fr; } .mt-head > div.w { grid-column:span 1; } .mt-rep { grid-template-columns:80px 1fr; } }
     .page-section { display: none; }
     .page-section.active { display: block; }
 
@@ -2612,6 +2666,7 @@
   <button class="sub-tab" data-page="weekly">주간</button>
   <button class="sub-tab" data-page="personal">달력</button>
   <button class="sub-tab" data-page="clients">업체</button>
+  <button class="sub-tab" data-page="meeting">회의</button><!-- r187 -->
   <button class="sub-tab" data-page="project">프로젝트</button>
 </nav>
 <nav class="sub-nav" id="fileGroupTabs" style="display:none">
@@ -2663,6 +2718,17 @@
       <span class="dn-cnt" id="dnCnt"></span>
     </div>
     <div id="dnList"></div>
+  </section>
+  <section class="page-section" id="pageMeeting"><!-- r187 회의록 -->
+    <div class="mt-tb">
+      <span class="mt-title">회의록</span>
+      <button class="mt-btn pri" onclick="mtNew()">+ 새 회의록</button>
+      <select id="mtPlaceF" onchange="renderMeetingPage()"><option value="">전체</option><option value="서울">서울</option><option value="화성">화성</option></select>
+      <input id="mtQ" placeholder="회의명·안건·내용 검색" oninput="renderMeetingPage()">
+      <span style="flex:1"></span>
+      <span id="mtCnt" style="font-size:12px;color:#6b7280"></span>
+    </div>
+    <div id="mtBody"></div>
   </section>
   <section class="page-section" id="pageMemo">
     <div class="q-toolbar inv-toolbar">
@@ -3663,6 +3729,7 @@
   let projectsList = load('sched_projects') ?? [];
   let memoLines = load('sched_memos') ?? [];        // r179 메모장 줄 [{id,owner,text,parent,kind,vendor,to,name,phone,when,date,createdAt,done,doneAt,feedback,card,linked}]
   let memoCards = load('sched_memo_cards') ?? {};   // r179 명함 사진 {cardId: dataURL}
+  let meetings = load('sched_meetings') ?? [];     // r187 회의록 [{id,date,time,place,room,title,author,attendees,agenda:[{id,title,text,done,doneAt,doneBy}],reports:[{name,items:[...]}]}]
   let smcQueue = load('sched_smc_queue') ?? [];     // r181 SMC 가격 확인 대기열 [{id,spec,name,e,buy,vid,vname,by,at,quoteNo,status:wait|ok|skip,okE,okHp,okSm,okBy,okAt}]
   // 프로젝트 노트 [{id, memberId, authorName, title, content, createdAt, updatedAt}]
 
@@ -3807,6 +3874,7 @@
     save('sched_memos', memoLines);   // r179
     save('sched_memo_cards', memoCards);
     save('sched_smc_queue', smcQueue);   // r181
+    save('sched_meetings', meetings);   // r187
     localStorage.setItem('sched_local_ts', Date.now().toString()); // 로컬 변경 시각 기록
     debouncedFbSave();
   }
@@ -4515,6 +4583,7 @@
         sched_memos: memoLines,   // r179
         sched_memo_cards: memoCards,
         sched_smc_queue: smcQueue,   // r181
+        sched_meetings: meetings,   // r187
         sched_comments: schedComments,
         sched_categories: schedCategories,
         sched_files: filesList,
@@ -4561,6 +4630,7 @@
       else if(_id==='pageClients' && typeof renderClientsPage==='function') renderClientsPage();
       else if(_id==='pageMemo' && typeof renderMemoPage==='function') renderMemoPage();   // r179 (편집 중이면 건너뜀)
       else if(_id==='pageDone' && typeof renderDonePage==='function') renderDonePage();   // r184
+      else if(_id==='pageMeeting' && typeof renderMeetingPage==='function') renderMeetingPage();   // r187 (입력 중이면 건너뜀)
       else if(_id==='pageWeekly' && typeof renderWeeklyPage==='function') renderWeeklyPage();
       // 견적/가격 페이지는 작성 중 방해 방지를 위해 자동 재렌더 제외
     }catch(e){}
@@ -4588,7 +4658,7 @@
       const d = await _syncGet();
       if (!d || (d._updatedAt || 0) <= _fbLastUpdatedAt) return;
       _fbLastUpdatedAt = d._updatedAt || 0;
-      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
+      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_meetings','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
       KEYS.forEach(k => { if (d[k] !== undefined) save(k, d[k]); });
       // ── 바로가기(sched_links) 보호 ──
       // 키가 없을 때: sched_links_ts가 있으면 신버전 클라이언트의 정상 저장(목록이 비어서
@@ -4691,7 +4761,7 @@
       const d = await _syncGet();
       const fbTs    = (d && d._updatedAt) || 0;
       const localTs = parseInt(localStorage.getItem('sched_local_ts') || '0');
-      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
+      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_meetings','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
 
       // ── 올바른 팀원 ID 목록 (하드코딩) ──────────────────────
       const _VALID_MEMBER_IDS = defaultMembers().map(m => m.id);
@@ -4815,6 +4885,7 @@ function reloadState() {
     memoLines        = load('sched_memos') ?? [];   // r179
     memoCards        = load('sched_memo_cards') ?? {};
     smcQueue         = load('sched_smc_queue') ?? [];   // r181
+    meetings         = load('sched_meetings') ?? [];   // r187
     clientInfo       = _ciMigrate(_cliDecMap(load('sched_client_info') ?? {}));   // r161
     _ciVer++;
     projMemos        = _pmNormList(load('sched_proj_memos') ?? []);
@@ -8495,7 +8566,7 @@ function reloadState() {
 
           // 복사한 상태를 화면에 즉시 반영 (_pollSync 와 동일한 적용 경로 + sched_links 포함)
           _lmStatus('화면 반영 중…','#9ca3af');
-          var KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue'];
+          var KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_meetings'];
           KEYS.forEach(function(k){ if(prod[k]!==undefined) save(k, prod[k]); });
           // r134: 매입매출 규칙은 정식에 없으면 빈 값으로 리셋 (스테이지 로컬 잔재 제거)
           ['sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'].forEach(function(k){
@@ -10651,6 +10722,7 @@ function reloadState() {
       sched_projects: projectsList, sched_client_info: clientInfo, sched_proj_memos: projMemos,
       sched_memos: memoLines, sched_memo_cards: memoCards,   // r179
       sched_smc_queue: smcQueue,   // r181
+      sched_meetings: meetings,   // r187
       // r157: 매입매출 설정 5종 — 빠져 있어서 복원 시 미배정 매칭 작업이 통째로 사라졌다
       sched_fx_alias: fxAlias, sched_fx_openings: fxOpenings, sched_fx_adjusts: fxAdjusts,
       sched_fx_terms: fxTerms, sched_fx_excluded: fxExcluded, sched_fx_keepas: fxKeepAs
@@ -13425,7 +13497,7 @@ function reloadState() {
     if(!page) return;   // 실제 페이지가 없는 바로가기 버튼 등의 오작동 방지
     // 견적 작성 중 다른 카테고리로 이동 → 저장 여부 확인 (저장 안 하면 비움)
     try{ if(typeof _qLeaveGuard==='function' && _qLeaveGuard(page)) return; }catch(_e){}
-    var _SCHED=['personal','weekly','biz','project','clients','memo','done'];   // r179·r184
+    var _SCHED=['personal','weekly','biz','project','clients','memo','done','meeting'];   // r179·r184·r187
     var _ETC=['links'];
     var _ACCT=['armatch','fx','cardsales'];
     document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
@@ -13441,7 +13513,7 @@ function reloadState() {
     var _fxnav=document.getElementById('fxSubNav'); if(_fxnav) _fxnav.style.display = (page==='fx') ? 'flex' : 'none';
     document.querySelectorAll('.sub-tab').forEach(t => t.classList.toggle('active', t.dataset.page === page));
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-    const pageMap = { memo:'pageMemo', done:'pageDone', weekly:'pageWeekly', biz:'pageBiz', project:'pageProject', clients:'pageClients', assign:'pageAssign', personal:'pagePersonal', finance:'pageFinance', ar:'pageAr', inventory:'pageInventory', purchase:'pagePurchase', files:'pageFiles', estimate:'pageEstimate', armatch:'pageArmatch', fx:'pageFx', links:'pageLinks', cardsales:'pageCardSales' };
+    const pageMap = { memo:'pageMemo', done:'pageDone', meeting:'pageMeeting', weekly:'pageWeekly', biz:'pageBiz', project:'pageProject', clients:'pageClients', assign:'pageAssign', personal:'pagePersonal', finance:'pageFinance', ar:'pageAr', inventory:'pageInventory', purchase:'pagePurchase', files:'pageFiles', estimate:'pageEstimate', armatch:'pageArmatch', fx:'pageFx', links:'pageLinks', cardsales:'pageCardSales' };
     document.getElementById(pageMap[page] || 'pageWeekly').classList.add('active');
     // 견적 화면에서만 .main 의 가로 스크롤을 풀어 툴바 sticky 가 화면 기준으로 붙게 한다
     var _mn=document.querySelector('.main'); if(_mn) _mn.classList.toggle('main-estimate', page==='estimate' || page==='clients');
@@ -13453,6 +13525,7 @@ function reloadState() {
     if (page === 'clients'){ _clxExp=null; _clxQ=''; _clxPage=1; _clxBr='all'; _clxMigOpen=false; _clxSbOpen=false; var _cx8=document.getElementById('clxSearch'); if(_cx8) _cx8.value=''; renderClientsPage(); }
     if (page === 'weekly') { _wkStart = getMonday(new Date()); renderWeeklyPage(); }   // r179 주간 일정표
     if (page === 'done') { renderDonePage(); }   // r184
+    if (page === 'meeting') { renderMeetingPage(true); }   // r187
     if (page === 'memo') { _mmEditing=null; _mmInDate=null; renderMemoPage(true); setTimeout(function(){ try{ var _mi=document.getElementById('mmInput'); if(_mi && window.innerWidth>640) _mi.focus(); }catch(_e){} }, 60); }
     if (page === 'personal') {
       _psMobSel = null;   // 탭 진입 시 항상 오늘부터 (모바일 하루 이동 상태 초기화)
@@ -13856,6 +13929,179 @@ function reloadState() {
     h+='</div><div style="padding:10px 16px;border-top:1px solid #eef1f4;display:flex;justify-content:flex-end;gap:8px"><button class="btn" onclick="mmVendChoose(-1)">연결 안 함</button></div></div>';
     ov.innerHTML=h; ov.style.display='flex';
     window.mmVendChoose=function(i){ ov.style.display='none'; if(i<0) return; var r=rows[i]; if(!r) return; ln.vendor=r[0]; ln.vendorBr=(r[2]==='화성'?'화성':''); _mmChildren(ln.id).forEach(function(c){ if(c.kind==='contact') c.vendor=r[0]; }); _mmSave(); renderMemoPage(true); };
+  };
+
+  // ─── r187: 회의록 ───────────────────────────────────────
+  var _mtOpen=null;   // 열려 있는 회의록 id (null=목차)
+  function _mtMe(){ return (typeof _authUser!=='undefined'&&_authUser&&_authUser.name)?_authUser.name:(typeof _mmMe==='function'?_mmMe():''); }
+  function _mtSave(){ save('sched_meetings', meetings); localStorage.setItem('sched_local_ts', Date.now().toString()); try{ debouncedFbSave(); }catch(_e){} }
+  function _mtFind(id){ return (meetings||[]).find(function(m){ return m.id===id; }); }
+  function _mtId(p){ return p+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+  function _mtEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function _mtFmtD(ds){ if(!ds) return ''; var p=String(ds).split('-'); if(p.length!==3) return ds; var d=new Date(+p[0],+p[1]-1,+p[2]); var w=['일','월','화','수','목','금','토'][d.getDay()]||''; return p[0]+'. '+String(+p[1]).padStart(2,'0')+'. '+String(+p[2]).padStart(2,'0')+' ('+w+')'; }
+  function _mtFmtShort(ts){ if(!ts) return ''; var d=new Date(ts); return (d.getMonth()+1)+'/'+d.getDate(); }
+  function _mtProg(m){ var t=0, d=0; (m.agenda||[]).forEach(function(a){ t++; if(a.done) d++; }); (m.reports||[]).forEach(function(r){ (r.items||[]).forEach(function(i){ t++; if(i.done) d++; }); }); return {t:t, d:d}; }
+  function _mtDefaults(place){
+    var pl=(place==='화성')?'화성':'서울';
+    var att=(members||[]).filter(function(x){ return (x.group||'서울')===pl; }).map(function(x){ return x.name; });
+    return { place:pl, room:'충해전기㈜ '+pl+'영업소 회의실', title:'충해전기㈜ '+pl+'영업소 주간 업무회의', attendees:att };
+  }
+  function _mtEditingInside(){ var a=document.activeElement; return !!(a && a.closest && a.closest('#mtBody') && (a.tagName==='INPUT'||a.tagName==='SELECT'||a.tagName==='TEXTAREA')); }
+  window.mtNew = function(){
+    if(typeof _guardW==='function' && !_guardW()) return;
+    var me=_mtMe(); var mem=(members||[]).find(function(x){ return x.name===me; });
+    var pl=(mem&&mem.group)?mem.group:'서울';
+    var d=_mtDefaults(pl); var now=Date.now();
+    var m={ id:_mtId('mt'), date:_mmToday(), time:'09:30 ~ 10:30', place:d.place, room:d.room, title:d.title, author:me, attendees:d.attendees.slice(), agenda:[], reports:d.attendees.map(function(n){ return { name:n, items:[] }; }), createdAt:now, createdBy:me, updatedAt:now };
+    // 직전 회의(같은 장소)의 미완료 항목 가져오기
+    var prev=(meetings||[]).filter(function(x){ return x.place===m.place; }).sort(function(a,b){ return (b.date||'')<(a.date||'')?-1:1; })[0];
+    var carry=[];
+    if(prev){ (prev.agenda||[]).forEach(function(a){ if(!a.done) carry.push({sec:'agenda', a:a}); }); (prev.reports||[]).forEach(function(r){ (r.items||[]).forEach(function(i){ if(!i.done) carry.push({sec:'rep', name:r.name, a:i}); }); }); }
+    var finish=function(withCarry){
+      if(withCarry){ carry.forEach(function(c){ if(c.sec==='agenda'){ m.agenda.push({ id:_mtId('ma'), title:c.a.title||'', text:c.a.text||'', done:false, from:prev.id }); } else { var r=m.reports.find(function(x){ return x.name===c.name; }); if(!r){ r={ name:c.name, items:[] }; m.reports.push(r); if(m.attendees.indexOf(c.name)<0) m.attendees.push(c.name); } r.items.push({ id:_mtId('mi'), text:c.a.text||'', done:false, from:prev.id }); } }); }
+      meetings.push(m); _mtSave(); _mtOpen=m.id; renderMeetingPage(true);
+    };
+    if(carry.length){ showConfirmModal('이전 회의 항목', '직전 '+_mtEsc(prev.place)+' 회의('+_mtEsc(_mtFmtD(prev.date))+')의 미완료 항목 '+carry.length+'건을 새 회의록에 가져올까요?', function(){ finish(true); }, '가져오기', '#1B3A6B');
+      var ov=document.getElementById('confirmOverlay'); var cb=ov&&ov.querySelector('button.btn:not([style*="background"])');
+      // 취소 시에도 새 회의록은 만든다
+      window._mtCarrySkip=function(){ finish(false); };
+      setTimeout(function(){ var ov2=document.getElementById('confirmOverlay'); if(!ov2) return; var bs=Array.from(ov2.querySelectorAll('button')); var cancel=bs.find(function(b){ return /취소|닫기/.test(b.textContent); }); if(cancel && !cancel._mtHooked){ cancel._mtHooked=true; cancel.addEventListener('click', function(){ if(window._mtCarrySkip){ var f=window._mtCarrySkip; window._mtCarrySkip=null; f(); } }); } }, 30);
+    } else finish(false);
+  };
+  window.mtOpen = function(id){ _mtOpen=id; renderMeetingPage(true); try{ window.scrollTo(0,0); }catch(_e){} };
+  window.mtBack = function(){ _mtOpen=null; renderMeetingPage(true); };
+  window.mtDelete = function(id){
+    var m=_mtFind(id); if(!m) return; if(typeof _guardW==='function' && !_guardW()) return;
+    var me=_mtMe(); var admin=(typeof _isAdmin==='function')?_isAdmin():false;
+    if(!(admin || m.createdBy===me || m.author===me)){ showInfoModal('회의록', '작성자 또는 관리자만 삭제할 수 있습니다.'); return; }
+    showConfirmModal('회의록 삭제', _mtEsc(_mtFmtD(m.date))+' '+_mtEsc(m.title)+' 회의록을 삭제할까요?', function(){ meetings=meetings.filter(function(x){ return x.id!==id; }); _mtSave(); _mtOpen=null; renderMeetingPage(true); }, '삭제', '#dc2626');
+  };
+  window.mtField = function(id, k, v){
+    var m=_mtFind(id); if(!m) return; if(typeof _guardW==='function' && !_guardW()) return;
+    v=String(v==null?'':v);
+    if(k==='place'){ var d=_mtDefaults(v); var old=_mtDefaults(m.place); m.place=d.place; if(m.room===old.room) m.room=d.room; if(m.title===old.title) m.title=d.title; }
+    else m[k]=v;
+    m.updatedAt=Date.now(); _mtSave(); renderMeetingPage(true);
+  };
+  window.mtAttToggle = function(id, name){
+    var m=_mtFind(id); if(!m) return; if(typeof _guardW==='function' && !_guardW()) return;
+    var i=m.attendees.indexOf(name);
+    if(i>=0){ m.attendees.splice(i,1); } else { m.attendees.push(name); if(!m.reports.some(function(r){ return r.name===name; })) m.reports.push({ name:name, items:[] }); }
+    m.updatedAt=Date.now(); _mtSave(); renderMeetingPage(true);
+  };
+  function _mtParseAgenda(t){ var s=String(t||'').trim(); var i=s.search(/[:：]/); if(i>0 && i<40) return { title:s.slice(0,i).trim(), text:s.slice(i+1).trim() }; return { title:'', text:s }; }
+  window.mtAddAgenda = function(id, inp){
+    var m=_mtFind(id); if(!m) return; var t=String(inp.value||'').trim(); if(!t) return; if(typeof _guardW==='function' && !_guardW()) return;
+    var p=_mtParseAgenda(t); m.agenda.push({ id:_mtId('ma'), title:p.title, text:p.text, done:false, by:_mtMe(), at:Date.now() });
+    m.updatedAt=Date.now(); _mtSave(); inp.value=''; renderMeetingPage(true);
+    setTimeout(function(){ var el=document.getElementById('mtAgIn'); if(el) el.focus(); }, 30);
+  };
+  window.mtAddRep = function(id, name, inp){
+    var m=_mtFind(id); if(!m) return; var t=String(inp.value||'').trim(); if(!t) return; if(typeof _guardW==='function' && !_guardW()) return;
+    var r=m.reports.find(function(x){ return x.name===name; }); if(!r){ r={ name:name, items:[] }; m.reports.push(r); }
+    r.items.push({ id:_mtId('mi'), text:t, done:false, by:_mtMe(), at:Date.now() });
+    m.updatedAt=Date.now(); _mtSave(); inp.value=''; renderMeetingPage(true);
+    setTimeout(function(){ var el=document.querySelector('#mtBody input[data-rep="'+CSS.escape(name)+'"]'); if(el) el.focus(); }, 30);
+  };
+  function _mtItem(m, iid){ var a=(m.agenda||[]).find(function(x){ return x.id===iid; }); if(a) return a; var out=null; (m.reports||[]).forEach(function(r){ (r.items||[]).forEach(function(i){ if(i.id===iid) out=i; }); }); return out; }
+  window.mtToggle = function(id, iid){
+    var m=_mtFind(id); if(!m) return; var it=_mtItem(m, iid); if(!it) return; if(typeof _guardW==='function' && !_guardW()) return;
+    if(it.done){ it.done=false; it.doneAt=0; it.doneBy=''; } else { it.done=true; it.doneAt=Date.now(); it.doneBy=_mtMe(); }
+    m.updatedAt=Date.now(); _mtSave(); renderMeetingPage(true);
+  };
+  window.mtEditItem = function(id, iid){
+    var m=_mtFind(id); if(!m) return; var it=_mtItem(m, iid); if(!it || it.done) return; if(typeof _guardW==='function' && !_guardW()) return;
+    var cur=(it.title!=null && it.title!=='')?(it.title+': '+(it.text||'')):(it.text||'');
+    showPromptModal('항목 수정', (it.title!=null?'제목: 내용 형식으로 적을 수 있습니다.':''), cur, function(v){
+      v=String(v||'').trim(); if(!v) return;
+      if(it.title!=null){ var p=_mtParseAgenda(v); it.title=p.title; it.text=p.text; } else it.text=v;
+      m.updatedAt=Date.now(); _mtSave(); renderMeetingPage(true);
+    }, '저장');
+  };
+  window.mtDelItem = function(id, iid){
+    var m=_mtFind(id); if(!m) return; if(typeof _guardW==='function' && !_guardW()) return;
+    m.agenda=(m.agenda||[]).filter(function(x){ return x.id!==iid; });
+    (m.reports||[]).forEach(function(r){ r.items=(r.items||[]).filter(function(i){ return i.id!==iid; }); });
+    m.updatedAt=Date.now(); _mtSave(); renderMeetingPage(true);
+  };
+  function _mtItemHtml(m, it, isAgenda, print){
+    var by=it.done?('✓ '+_mtEsc(it.doneBy||'')+' '+_mtFmtShort(it.doneAt)):'';
+    var tx=(isAgenda && it.title)?('<b>'+_mtEsc(it.title)+':</b> '+_mtEsc(it.text||'')):_mtEsc(it.text||'');
+    if(print) return '<div class="mt-it'+(it.done?' done':'')+'"><span class="mt-chk">'+(it.done?'✓':'')+'</span><span class="mt-tx">'+tx+'</span>'+(by?'<span class="mt-by">'+by+'</span>':'')+'</div>';
+    return '<div class="mt-it'+(it.done?' done':'')+'"><span class="mt-chk" onclick="mtToggle(\''+m.id+'\',\''+it.id+'\')" title="'+(it.done?'완료 취소':'완료')+'">'+(it.done?'✓':'')+'</span>'
+      +'<span class="mt-tx" onclick="mtEditItem(\''+m.id+'\',\''+it.id+'\')" title="클릭하면 수정">'+tx+'</span>'
+      +(by?'<span class="mt-by">'+by+'</span>':'')+(it.from?'<span class="mt-by" title="이전 회의에서 가져옴">↻</span>':'')
+      +'<button class="mt-del" onclick="mtDelItem(\''+m.id+'\',\''+it.id+'\')" title="삭제">✕</button></div>';
+  }
+  function _mtDocHtml(m, print){
+    var id=m.id;
+    var h='<div class="mt-doc"><h2 class="mt-h">회 의 록</h2>';
+    if(print){
+      h+='<div class="mt-head"><div class="k">일 시</div><div>'+_mtEsc(_mtFmtD(m.date))+' '+_mtEsc(m.time||'')+'</div><div class="k">장 소</div><div>'+_mtEsc(m.room||m.place||'')+'</div>'
+        +'<div class="k">회의명</div><div>'+_mtEsc(m.title||'')+'</div><div class="k">작성자</div><div>'+_mtEsc(m.author||'')+'</div>'
+        +'<div class="k">참석자</div><div class="w">'+_mtEsc((m.attendees||[]).join(', '))+'</div></div>';
+    } else {
+      h+='<div class="mt-head">'
+        +'<div class="k">일 시</div><div><input type="date" value="'+_mtEsc(m.date||'')+'" onchange="mtField(\''+id+'\',\'date\',this.value)"><input value="'+_mtEsc(m.time||'')+'" placeholder="09:30 ~ 10:30" style="width:110px" onchange="mtField(\''+id+'\',\'time\',this.value)"></div>'
+        +'<div class="k">장 소</div><div><select onchange="mtField(\''+id+'\',\'place\',this.value)"><option value="서울"'+(m.place==='서울'?' selected':'')+'>서울</option><option value="화성"'+(m.place==='화성'?' selected':'')+'>화성</option></select><input class="wide" value="'+_mtEsc(m.room||'')+'" onchange="mtField(\''+id+'\',\'room\',this.value)"></div>'
+        +'<div class="k">회의명</div><div><input class="wide" value="'+_mtEsc(m.title||'')+'" onchange="mtField(\''+id+'\',\'title\',this.value)"></div>'
+        +'<div class="k">작성자</div><div><input class="wide" value="'+_mtEsc(m.author||'')+'" onchange="mtField(\''+id+'\',\'author\',this.value)"></div>'
+        +'<div class="k">참석자</div><div class="w">'+(members||[]).map(function(x){ var on=(m.attendees||[]).indexOf(x.name)>=0; return '<span class="mt-att'+(on?' on':'')+'" onclick="mtAttToggle(\''+id+'\',\''+_mtEsc(x.name)+'\')">'+_mtEsc(x.name)+'</span>'; }).join(' ')+'</div>'
+        +'</div>';
+    }
+    h+='<div class="mt-sec"><h3>1. 공통 추진 사항 및 협의 안건</h3>';
+    if(!(m.agenda||[]).length) h+='<div style="font-size:12.5px;color:#9ca3af;padding:6px">'+(print?'-':'아직 안건이 없습니다. 아래 칸에 "제목: 내용" 으로 적고 Enter.')+'</div>';
+    (m.agenda||[]).forEach(function(a){ h+=_mtItemHtml(m, a, true, print); });
+    if(!print) h+='<div class="mt-add"><input id="mtAgIn" placeholder="제목: 내용  (예: 신규 거래처 발굴: 담당자별 업종 분류에 따른 방문 영업 실시)  Enter" onkeydown="if(event.key===\'Enter\'&&!event.isComposing){event.preventDefault();mtAddAgenda(\''+id+'\',this);}"></div>';
+    h+='</div>';
+    h+='<div class="mt-sec"><h3>2. 담당자별 업무 보고</h3>';
+    var names=(m.attendees||[]).slice(); (m.reports||[]).forEach(function(r){ if(names.indexOf(r.name)<0 && (r.items||[]).length) names.push(r.name); });
+    if(!names.length) h+='<div style="font-size:12.5px;color:#9ca3af;padding:6px">참석자를 지정하면 담당자별 칸이 생깁니다.</div>';
+    names.forEach(function(n){
+      var r=(m.reports||[]).find(function(x){ return x.name===n; })||{ name:n, items:[] };
+      h+='<div class="mt-rep"><div class="nm">'+_mtEsc(n)+'</div><div>';
+      if(!(r.items||[]).length && print) h+='<div style="font-size:12.5px;color:#9ca3af">-</div>';
+      (r.items||[]).forEach(function(i){ h+=_mtItemHtml(m, i, false, print); });
+      if(!print) h+='<div class="mt-add"><input data-rep="'+_mtEsc(n)+'" placeholder="'+_mtEsc(n)+' 업무 내용 · Enter" onkeydown="if(event.key===\'Enter\'&&!event.isComposing){event.preventDefault();mtAddRep(\''+id+'\',\''+_mtEsc(n)+'\',this);}"></div>';
+      h+='</div></div>';
+    });
+    h+='</div><div class="mt-foot">충해전기(주) '+_mtEsc(m.place||'')+'영업소</div></div>';
+    return h;
+  }
+  window.renderMeetingPage = function(force){
+    var host=document.getElementById('mtBody'); if(!host) return;
+    if(!force && _mtEditingInside()) return;   // 입력 중이면 폴링 재렌더 건너뜀
+    var cnt=document.getElementById('mtCnt');
+    if(_mtOpen){
+      var m=_mtFind(_mtOpen); if(!m){ _mtOpen=null; }
+      else {
+        var p=_mtProg(m);
+        if(cnt) cnt.textContent = p.t ? ('항목 '+p.d+'/'+p.t+' 완료') : '';
+        host.innerHTML='<div style="display:flex;gap:8px;align-items:center;margin:0 auto 10px;max-width:960px"><button class="mt-btn" onclick="mtBack()">← 목차</button><span style="flex:1"></span><button class="mt-btn" onclick="mtPrint(\''+m.id+'\')">인쇄 / PDF</button><button class="mt-btn danger" onclick="mtDelete(\''+m.id+'\')">삭제</button></div>'+_mtDocHtml(m, false);
+        return;
+      }
+    }
+    var pf=document.getElementById('mtPlaceF'); var plf=pf?pf.value:'';
+    var qEl=document.getElementById('mtQ'); var q=_qNorm(qEl?qEl.value:'');
+    var list=(meetings||[]).filter(function(m){ if(plf && m.place!==plf) return false; if(q){ var all=[m.title,m.room].concat((m.agenda||[]).map(function(a){ return (a.title||'')+' '+(a.text||''); })).concat([].concat.apply([], (m.reports||[]).map(function(r){ return (r.items||[]).map(function(i){ return i.text||''; }); }))).join(' '); if(_qNorm(all).indexOf(q)<0) return false; } return true; })
+      .sort(function(a,b){ return (b.date||'')<(a.date||'')?-1:((b.date||'')>(a.date||'')?1:(b.createdAt||0)-(a.createdAt||0)); });
+    if(cnt) cnt.textContent = list.length ? (list.length+'건') : '';
+    if(!list.length){ host.innerHTML='<div class="mt-empty">'+(q||plf?'해당하는 회의록이 없습니다.':'아직 회의록이 없습니다. [+ 새 회의록] 으로 시작하세요.')+'</div>'; return; }
+    var h='<div class="mt-list"><table><thead><tr><th>No.</th><th>일시</th><th>장소</th><th>회의명</th><th>작성자</th><th>참석자</th><th>진행</th></tr></thead><tbody>';
+    list.forEach(function(m, i){ var p=_mtProg(m);
+      h+='<tr class="mt-row" onclick="mtOpen(\''+m.id+'\')"><td>'+(list.length-i)+'</td><td>'+_mtEsc(_mtFmtD(m.date))+' '+_mtEsc(m.time||'')+'</td><td>'+_mtEsc(m.place||'')+'</td><td class="mt-t">'+_mtEsc(m.title||'')+'</td><td>'+_mtEsc(m.author||'')+'</td><td>'+_mtEsc((m.attendees||[]).join(', '))+'</td><td><span class="mt-prog'+(p.t&&p.d===p.t?' all':'')+'">'+(p.t?(p.d+' / '+p.t):'-')+'</span></td></tr>';
+    });
+    h+='</tbody></table></div>';
+    host.innerHTML=h;
+  };
+  window.mtPrint = function(id){
+    var m=_mtFind(id); if(!m) return;
+    var pr=document.getElementById('mtPrint'); if(!pr){ pr=document.createElement('div'); pr.id='mtPrint'; document.body.appendChild(pr); }
+    pr.innerHTML=_mtDocHtml(m, true);
+    document.body.classList.add('mt-printing');
+    var done=false; var end=function(){ if(done) return; done=true; document.body.classList.remove('mt-printing'); };
+    window.addEventListener('afterprint', end, { once:true });
+    setTimeout(function(){ try{ window.print(); }catch(_e){} setTimeout(end, 1500); }, 60);
   };
   // ── 줄 수정 (그 줄에만 input 을 끼운다) ──
   window.mmEditStart = function(id){
