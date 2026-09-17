@@ -19064,6 +19064,25 @@ function reloadState() {
   };
   // ── 미배정 입금 패널 (거래처 지정 → 별칭 학습 / 제외 → 복원 가능) ──
   var _fxUnList=[], _fxExList=[], _fxHeldList=[], _fxShowExcl=false, _fxHeldOpen=false;
+  // r192: 보류·제외를 '누른 시각' 내림차순으로. 시각이 없는 옛 자료는 뒤에 입금일 순으로 둔다.
+  function _fxByActed(key){
+    return function(a,b){
+      var ta=(a&&a[key])||0, tb=(b&&b[key])||0;
+      if(ta!==tb) return tb-ta;                       // 최근에 누른 것이 위
+      var da=(a&&a.date)||'', db=(b&&b.date)||'';
+      return da<db?1:da>db?-1:0;                      // 같으면 입금일 최신순
+    };
+  }
+  // r192: 언제 눌렀는지 — 방금 / N분 전 / N시간 전 / MM-DD HH:mm
+  function _fxActedHtml(ts, label){
+    if(!ts) return '';
+    var d=new Date(ts), m=Math.floor((Date.now()-ts)/60000), t;
+    if(m<1) t='방금';
+    else if(m<60) t=m+'분 전';
+    else if(m<24*60) t=Math.floor(m/60)+'시간 전';
+    else t=('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+    return '<span title="'+label+' '+d.toLocaleString()+'" style="font-size:11px;color:#9ca3af;white-space:nowrap">'+t+'</span>';
+  }
   // r169: 미배정·제외 목록 검색어 (목록이 300건에서 잘려 과거 건이 안 보이던 문제)
   var _fxUnQ='', _fxUnQTimer=null;
   var _FX_UN_CAP=300;
@@ -19262,7 +19281,8 @@ function reloadState() {
     showConfirmModal('카드·결제 정산 자동 제외',
       '카드·결제 정산 형식(카드 / 카드사명+숫자 / 결+숫자)의 미배정·보류 입금 '+targets.length+'건을 제외 처리합니다.\n(제외 목록에서 언제든 복원할 수 있습니다)\n\n계속할까요?',
       function(){
-        targets.forEach(function(e){ e.excluded=true; delete e.held; });
+        var _now=Date.now();
+        targets.forEach(function(e){ e.excluded=true; e.exAt=_now; delete e.held; delete e.heldAt; });   // r192
         _fxSaveBig().catch(function(_e){});
         _fxMetaRefresh();
         _fxRenderUnasg();
@@ -19442,8 +19462,9 @@ function reloadState() {
     var host=document.getElementById('fxUnasg'); if(!host) return;
     _fxUnList = fxDeposits.filter(function(e){ return !e.vendor && !e.excluded && !e.held; });
     _fxHeldList = fxDeposits.filter(function(e){ return !e.vendor && !e.excluded && e.held; });
-    _fxHeldList.sort(function(a,b){ return a.date<b.date?1:a.date>b.date?-1:0; });
+    _fxHeldList.sort(_fxByActed('heldAt'));   // r192: 최근에 보류한 것이 위
     _fxExList = fxDeposits.filter(function(e){ return e.excluded; });
+    _fxExList.sort(_fxByActed('exAt'));       // r192: 최근에 제외한 것이 위 (종전에는 정렬이 없었다)
     if(!_fxUnList.length && !_fxHeldList.length && !_fxExList.length && !Object.keys(fxAlias).length && !_fxAsgBatches().length && !_fxNoBizAssigned().length){
       if(!_fxUnQ){ host.innerHTML=''; }   // 검색 중이면 껍데기(검색창)를 남겨 둔다
       return;
@@ -19505,6 +19526,7 @@ function reloadState() {
             + '<td style="'+TD+';text-align:center;color:#6b7280">'+esc(e.bank||'')+(e.kind==='note'?' <span style="font-size:10.5px;font-weight:700;color:#7c3aed;border:1px solid #7c3aed;padding:0 5px">어음</span>':'')+'</td>'
             + '<td style="'+TD+';font-weight:700;color:#14305c">'+_fxPayerHtml(e)+'</td>'
             + '<td style="'+TD+';text-align:right;font-weight:700">'+_fxFmt(e.amount)+'</td>'
+            + '<td style="'+TD+';text-align:right">'+_fxActedHtml(e.heldAt,'보류한 시각')+'</td>'   // r192
             + '<td style="'+TD+'"><div style="display:flex;gap:6px;align-items:center">'
             +   '<button type="button" class="btn" onclick="fxUnholdDep('+i+')" style="font-size:11.5px;padding:3px 12px;border:1px solid #1B3A6B;color:#14305c;background:#f4f8fe">다시 확인</button>'
             +   '<button type="button" class="btn" onclick="fxExcludeHeld('+i+')" style="font-size:11.5px;padding:3px 12px;border:1px solid #dc2626;color:#dc2626;background:#fff">제외</button>'
@@ -19527,6 +19549,7 @@ function reloadState() {
             + '<td style="'+TD+';text-align:center;color:#9ca3af">'+esc(e.bank||'')+'</td>'
             + '<td style="'+TD+';color:#9ca3af">'+_fxPayerHtml(e, true)+'</td>'
             + '<td style="'+TD+';text-align:right;color:#9ca3af">'+_fxFmt(e.amount)+'</td>'
+            + '<td style="'+TD+';text-align:right">'+_fxActedHtml(e.exAt,'제외한 시각')+'</td>'   // r192
             + '<td style="'+TD+'"><button type="button" class="btn" onclick="fxRestoreDep('+i+')" style="font-size:11.5px;padding:3px 12px;border:1px solid #5b7ba6;color:#5b7ba6;background:#fff">복원</button></td></tr>';
         }).join('');
         html += '<div style="margin-top:6px;background:#fff;border:1px solid #e3e9f0">'
@@ -19878,40 +19901,40 @@ function reloadState() {
   window.fxHoldDep = function(i){
     if(_isViewer()){ showInfoModal('매입매출','조회 전용 계정은 사용할 수 없습니다.'); return; }
     var d=_fxUnList[i]; if(!d) return;
-    d.held=true;
+    d.held=true; d.heldAt=Date.now();   // r192: 누른 시각 (되돌릴 때 찾기 쉽게)
     _fxSaveBig().catch(function(_e){});
     _fxRenderUnasg();
   };
   window.fxHeldToggle = function(){ _fxHeldOpen=!_fxHeldOpen; _fxRenderUnasg(); };
   window.fxUnholdDep = function(i){
     var d=_fxHeldList[i]; if(!d) return;
-    delete d.held;
+    delete d.held; delete d.heldAt;   // r192
     _fxSaveBig().catch(function(_e){});
     _fxRenderUnasg();
   };
   window.fxUnholdAll = function(){
-    _fxHeldList.forEach(function(e){ delete e.held; });
+    _fxHeldList.forEach(function(e){ delete e.held; delete e.heldAt; });   // r192
     _fxSaveBig().catch(function(_e){});
     _fxRenderUnasg();
   };
   window.fxExcludeHeld = function(i){
     if(_isViewer()){ showInfoModal('매입매출','조회 전용 계정은 제외할 수 없습니다.'); return; }
     var d=_fxHeldList[i]; if(!d) return;
-    d.excluded=true; delete d.held;
+    d.excluded=true; d.exAt=Date.now(); delete d.held; delete d.heldAt;   // r192
     _fxSaveBig().catch(function(_e){});
     _fxRenderUnasg();
   };
   window.fxExcludeDep = function(i){
     if(_isViewer()){ showInfoModal('매입매출','조회 전용 계정은 제외할 수 없습니다.'); return; }
     var d=_fxUnList[i]; if(!d) return;
-    d.excluded=true;
+    d.excluded=true; d.exAt=Date.now();   // r192
     _fxSaveBig().catch(function(_e){});
     _fxRenderUnasg();
   };
   window.fxRestoreDep = function(i){
     if(_isViewer()){ showInfoModal('매입매출','조회 전용 계정은 복원할 수 없습니다.'); return; }
     var d=_fxExList[i]; if(!d) return;
-    d.excluded=false;
+    d.excluded=false; delete d.exAt;   // r192
     _fxSaveBig().catch(function(_e){});
     _fxRenderUnasg();
   };
