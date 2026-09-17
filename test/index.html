@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r190 2026-09-17 -->
+<!-- test build r191 2026-09-17 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -18938,6 +18938,16 @@ function reloadState() {
   // ── r126: 홈택스 세금계산서 / 은행·어음 업로드 파서 ──────────
   var _FX_BIZREG = { '113-81-14978':'서울', '406-85-02616':'화성' };
   function _fxCell(v){ return v==null ? '' : String(v).trim(); }
+  // r191: 입금자명 표시 — 적요에서 가져온 이름이면 옆에 '적요' 를 붙인다.
+  //  적요에는 상대방 이름이 아닌 것(계좌번호·수수료 설명 등)이 들어오기도 해서,
+  //  배정 전에 이 이름을 믿어도 되는지 바로 알 수 있게 출처를 남긴다.
+  function _fxPayerHtml(e, muted){
+    var t = esc((e&&e.payer)||'');
+    if(!e || !e.pRem) return t;
+    var c = muted ? '#b6bec9' : '#8a94a6';
+    return t + ' <span title="의뢰인/수취인 칸이 비어 있어 적요의 내용을 표시합니다"'
+      + ' style="font-size:10.5px;font-weight:600;color:'+c+';border:1px solid #cdd8e6;padding:0 4px;margin-left:4px;vertical-align:1px;white-space:nowrap">적요</span>';
+  }
   // r189: 같은 뜻의 열 이름이 은행·화면마다 달라서, 후보를 순서대로 찾는다 (앞쪽이 우선).
   function _fxCol(H, names){ for(var i=0;i<names.length;i++){ var k=H.indexOf(names[i]); if(k>=0) return k; } return -1; }
   // r164: 계산서에 나타난 그 거래처의 종사업장번호 전부 (중복 제거·오름차순)
@@ -19195,7 +19205,8 @@ function reloadState() {
             var row6=rows[r6]||[];
             var rawDt=_fxCell(row6[iDate]);
             var d6=_fxD(row6[iDate]), amt6=_fxN(row6[iIn]), payer=_fxCell(row6[iPay]);
-            if(!payer && iRem>=0) payer=_fxCell(row6[iRem]);   // r190
+            var _fromRem=false;                                   // r191: 이름의 출처를 기억해 둔다
+            if(!payer && iRem>=0){ payer=_fxCell(row6[iRem]); _fromRem=!!payer; }   // r190
             // r172: 날짜를 못 읽어 버려지는 행을 센다. 단 완전히 빈 줄(파일 끝 여백)은 제외.
             if(!d6){
               // r189: 파일 맨 끝의 합계/소계 줄은 원래 자료가 아니다. 경고로 세면
@@ -19214,7 +19225,7 @@ function reloadState() {
             var ax6=(!v6 && _fxAutoExclPayer(payer));
             fxDeposits.push({ id:id6, biz:biz, date:d6, amount:amt6, payer:payer,
                               vendor:v6||'', vbiz:v6?_fxClientVbiz(v6,biz):'', kind:'bank', bank:bank,
-                              excluded:ax6||undefined, src:'upload' });
+                              excluded:ax6||undefined, pRem:(_fromRem?1:undefined), src:'upload' });   // r191: pRem = 적요에서 가져온 이름
             nDep++; fN3++;
             if(v6){ nAuto++; } else if(ax6){ nAx++; } else { nUn++; fU3++; }
           }
@@ -19657,7 +19668,7 @@ function reloadState() {
           + '<td style="'+TD+';text-align:center;color:#6b7280">'+e.biz+'</td>'
           + '<td style="'+TD+';color:#6b7280">'+e.date+'</td>'
           + '<td style="'+TD+';text-align:center;color:#6b7280">'+esc(e.bank||'')+(e.kind==='note'?' <span style="font-size:10.5px;font-weight:700;color:#7c3aed;border:1px solid #7c3aed;padding:0 5px">어음</span>':'')+'</td>'
-          + '<td style="'+TD+';font-weight:700;color:#14305c">'+esc(e.payer||'')+'</td>'
+          + '<td style="'+TD+';font-weight:700;color:#14305c">'+_fxPayerHtml(e)+'</td>'
           + '<td style="'+TD+';text-align:right;font-weight:700">'+_fxFmt(e.amount)+'</td>'
           + '<td style="'+TD+'"><div style="display:flex;gap:6px;align-items:center">'
           +   '<input id="fxUnV'+i+'" class="q-flat" placeholder="거래처 검색…" autocomplete="off" style="width:190px;border:1px solid #d6deea !important;background:#fff" oninput="fxUnDdRender('+i+')" onfocus="fxUnDdRender('+i+')" onblur="fxUnDdHide()" onkeydown="if(event.key===\'Enter\'){event.preventDefault();fxAssignDep('+i+');}else if(event.key===\'Escape\'){fxUnDdHide();}">'
@@ -19692,7 +19703,7 @@ function reloadState() {
             + '<td style="'+TD+';text-align:center;color:#6b7280">'+e.biz+'</td>'
             + '<td style="'+TD+';color:#6b7280">'+e.date+'</td>'
             + '<td style="'+TD+';text-align:center;color:#6b7280">'+esc(e.bank||'')+(e.kind==='note'?' <span style="font-size:10.5px;font-weight:700;color:#7c3aed;border:1px solid #7c3aed;padding:0 5px">어음</span>':'')+'</td>'
-            + '<td style="'+TD+';font-weight:700;color:#14305c">'+esc(e.payer||'')+'</td>'
+            + '<td style="'+TD+';font-weight:700;color:#14305c">'+_fxPayerHtml(e)+'</td>'
             + '<td style="'+TD+';text-align:right;font-weight:700">'+_fxFmt(e.amount)+'</td>'
             + '<td style="'+TD+'"><div style="display:flex;gap:6px;align-items:center">'
             +   '<button type="button" class="btn" onclick="fxUnholdDep('+i+')" style="font-size:11.5px;padding:3px 12px;border:1px solid #1B3A6B;color:#14305c;background:#f4f8fe">다시 확인</button>'
@@ -19714,7 +19725,7 @@ function reloadState() {
             + '<td style="'+TD+';text-align:center;color:#9ca3af">'+e.biz+'</td>'
             + '<td style="'+TD+';color:#9ca3af">'+e.date+'</td>'
             + '<td style="'+TD+';text-align:center;color:#9ca3af">'+esc(e.bank||'')+'</td>'
-            + '<td style="'+TD+';color:#9ca3af">'+esc(e.payer||'')+'</td>'
+            + '<td style="'+TD+';color:#9ca3af">'+_fxPayerHtml(e, true)+'</td>'
             + '<td style="'+TD+';text-align:right;color:#9ca3af">'+_fxFmt(e.amount)+'</td>'
             + '<td style="'+TD+'"><button type="button" class="btn" onclick="fxRestoreDep('+i+')" style="font-size:11.5px;padding:3px 12px;border:1px solid #5b7ba6;color:#5b7ba6;background:#fff">복원</button></td></tr>';
         }).join('');
@@ -19867,7 +19878,7 @@ function reloadState() {
       return '<tr>'
         + '<td style="'+TD+';text-align:center;color:#6b7280">'+e.biz+'</td>'
         + '<td style="'+TD+';color:#6b7280">'+e.date+'</td>'
-        + '<td style="'+TD+';color:#374151">'+esc(e.payer||'')+'</td>'
+        + '<td style="'+TD+';color:#374151">'+_fxPayerHtml(e)+'</td>'
         + '<td style="'+TD+';text-align:right;font-weight:700">'+_fxFmt(e.amount)+'</td>'
         + '<td style="'+TD+';font-weight:700;color:#14305c">'+esc(e.vendor||'')+'</td>'
         + '<td style="'+TD+';color:'+(x.fix?'#15803d':'#b45309')+'">'+(x.fix?('찾음 '+x.fix):'번호 없음')+'</td>'
