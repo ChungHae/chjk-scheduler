@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r191 2026-09-14 -->
+<!-- test build r192 2026-09-16 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -13746,10 +13746,13 @@ function reloadState() {
   function _mmSetChildUI(){ var r=document.getElementById('mmInRow'); if(r) r.classList.toggle('mm-in-child', _mmChildMode); if(!_mmChildMode) _mmChildTarget=null; _mmTargetLabel(); }
   function _mmBindInput(){
     var inp=document.getElementById('mmInput'); if(!inp || inp._mmBound) return; inp._mmBound=true;
-    inp.addEventListener('compositionend', function(){ if(inp._mmPend){ inp._mmPend=0; setTimeout(function(){ _mmCommit(); },0); } });   // r190: 한글 입력 중 Enter 한 번으로 등록
-    inp.addEventListener('keyup', function(e){ if(e.key==='Enter' && inp._mmPend){ inp._mmPend=0; _mmCommit(); } });   // r190
+    var _mmGo=function(){ if(inp._mmT){ try{ clearTimeout(inp._mmT); }catch(_e0){} inp._mmT=0; } inp._mmPend=0; if(!String(inp.value||'').trim()) return; _mmCommit(); };   // r192
+    inp.addEventListener('compositionend', function(){ if(inp._mmPend) setTimeout(_mmGo, 0); });   // r190·r192: 한글 입력 중 Enter 한 번으로 등록
+    inp.addEventListener('keyup', function(e){ if(_mtIsEnter(e) && inp._mmPend) _mmGo(); });   // r192
     inp.addEventListener('keydown', function(e){
-      if(e.key==='Enter'){ e.preventDefault(); if(e.isComposing || e.keyCode===229){ inp._mmPend=1; return; } inp._mmPend=0; _mmCommit(); return; }   // r190
+      if(_mtIsEnter(e)){ e.preventDefault();   // r190·r192: 조합 중 Enter 는 key 가 'Process' 로 오므로 code 로 판별
+        if(e.isComposing || e.keyCode===229 || e.key==='Process'){ inp._mmPend=1; if(inp._mmT){ try{ clearTimeout(inp._mmT); }catch(_e3){} } inp._mmT=setTimeout(_mmGo, 100); return; }
+        _mmGo(); return; }
       if(e.isComposing || e.keyCode===229) return;
       if(e.key==='Tab'){ e.preventDefault(); _mmChildMode=!e.shiftKey; _mmSetChildUI(); return; }
       if(e.key==='Escape'){ _mmChildMode=false; _mmSetChildUI(); }
@@ -14053,18 +14056,29 @@ function reloadState() {
     m.updatedAt=Date.now(); _mtSave(); renderMeetingPage(true);
   };
   function _mtParseAgenda(t){ var s=String(t||'').trim(); var i=s.search(/[:：]/); if(i>0 && i<40) return { title:s.slice(0,i).trim(), text:s.slice(i+1).trim() }; return { title:'', text:s }; }
-  // ── r190: 한글(IME) 입력 중에도 Enter 한 번이면 등록 (조합 중 Enter는 조합만 끝내고 삼켜지던 문제) ──
+  // ── r190·r192: 한글(IME) 입력 중에도 Enter 한 번이면 등록 ──
+  //  r192 원인: 한글 조합 중 Enter 는 keydown 의 key 가 'Enter' 가 아니라 'Process'(keyCode 229) 로 와서 r190 판별을 못 빠져나갔고,
+  //  인라인 oncompositionend 속성은 브라우저가 지원하지 않는 이벤트 핸들러 속성이라 아예 붙지 않았다. → code('Enter') 로 판별 + 진짜 리스너 등록 + 타이머 보강.
+  function _mtIsEnter(ev){ return ev.key==='Enter' || ev.code==='Enter' || ev.code==='NumpadEnter' || ev.keyCode===13 || ev.which===13; }
   window.mtKeyEnter = function(ev, el, kind, id, name){
-    var run=function(){ try{ if(kind==='ag') mtAddAgenda(id, el); else mtAddRep(id, name, el); }catch(_e){} try{ mtDraftKeep(el, id); }catch(_e2){} };   // r191: 등록되면 임시보관 삭제
+    var run=function(){
+      if(el._mtT){ try{ clearTimeout(el._mtT); }catch(_e0){} el._mtT=0; }
+      el._mtPend=0;
+      if(!String(el.value||'').trim()) return;   // 이미 등록됐으면(값 비었으면) 중복 실행 안 함
+      try{ if(kind==='ag') mtAddAgenda(id, el); else mtAddRep(id, name, el); }catch(_e){}
+      try{ mtDraftKeep(el, id); }catch(_e2){}   // r191: 등록되면 임시보관 삭제
+    };
+    if(!el._mtCe){ el._mtCe=1; el.addEventListener('compositionend', function(){ if(el._mtPend) setTimeout(run, 0); }); }
     var t=ev.type;
     if(t==='keydown'){
-      if(ev.key!=='Enter') return;
+      if(!_mtIsEnter(ev)) return;
       ev.preventDefault();
-      if(ev.isComposing || ev.keyCode===229){ el._mtPend=1; return; }
-      el._mtPend=0; run(); return;
+      if(ev.isComposing || ev.keyCode===229 || ev.key==='Process'){   // 조합 확정 Enter — 조합이 끝난 뒤(또는 100ms 뒤) 등록
+        el._mtPend=1; if(el._mtT){ try{ clearTimeout(el._mtT); }catch(_e3){} } el._mtT=setTimeout(run, 100); return;
+      }
+      run(); return;
     }
-    if(t==='compositionend'){ if(el._mtPend){ el._mtPend=0; setTimeout(run,0); } return; }
-    if(t==='keyup'){ if(ev.key==='Enter' && el._mtPend){ el._mtPend=0; run(); } return; }
+    if(t==='keyup'){ if(_mtIsEnter(ev) && el._mtPend) run(); return; }
   };
   window.mtAddAgenda = function(id, inp){
     var m=_mtFind(id); if(!m) return; var t=String(inp.value||'').trim(); if(!t) return; if(typeof _guardW==='function' && !_guardW()) return; if(_mtLocked(m)) return;   // r191
