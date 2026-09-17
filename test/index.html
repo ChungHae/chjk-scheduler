@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r194 2026-09-17 -->
+<!-- test build r195 2026-09-17 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -9325,6 +9325,32 @@ function reloadState() {
     }
     return false;
   }
+  function _qCartSyncSameSpec(){   // r195: 같은 규격 줄끼리 값이 비어 있는 칸을 채운다 (엑셀 붙여넣기 · E가 직접 입력 모두)
+    var byKey={};
+    for(var i=0;i<_qCart.length;i++){
+      var c=_qCart[i]; if(!c || c.disc) continue;
+      var k=_qRowKey(c.spec||''); if(!k) continue;
+      if(!byKey[k]) byKey[k]=[]; byKey[k].push(i);
+    }
+    var has=function(v){ return v!=null && v!==''; };
+    var n=0;
+    Object.keys(byKey).forEach(function(k){
+      var idx=byKey[k]; if(idx.length<2) return;
+      var src=null;
+      for(var z=0;z<idx.length;z++){ var s=_qCart[idx[z]]; if(has(s.e)||has(s.buy)||has(s.sell)){ src=s; break; } }
+      if(!src) return;
+      idx.forEach(function(j){
+        var p=_qCart[j]; if(p===src) return;
+        if(!has(p.e) && has(src.e)){ p.e=src.e; n++; }
+        if(!has(p.buy) && has(src.buy)){ p.buy=src.buy; n++; }
+        if(!has(p.sell) && has(src.sell)){ p.sell=src.sell; n++; }
+        if(!has(p.small) && has(src.small)) p.small=src.small;
+        if(!p.name && src.name) p.name=src.name;
+        if(!p.eta && src.eta) p.eta=src.eta;
+      });
+    });
+    return n;
+  }
   function _qCartSpreadTargets(i){
     var c=_qCart[i]; if(!c) return [];
     var key=_qRowKey(c.spec||''); if(!key) return [];
@@ -9339,6 +9365,7 @@ function reloadState() {
   }
   function _qCartAskSpread(i){   // 가격을 수정하면: 같은 규격 다른 줄에도 적용할지 묻는다
     var c=_qCart[i]; if(!c) return;
+    try{ if(_qCartSyncSameSpec()){ _qCartSave(); renderQCart(); } }catch(_e){}   // r195: 비어 있는 같은 규격 줄은 묻지 않고 먼저 채운다
     var tgt=_qCartSpreadTargets(i); if(!tgt.length) return;
     if(window._qSpreadBusy) return; window._qSpreadBusy=1;
     setTimeout(function(){ window._qSpreadBusy=0; }, 500);
@@ -9666,6 +9693,7 @@ function reloadState() {
       for(var rj=0;rj<rows.length;rj++){ var gj=start.r+rj; for(var cj=0;cj<(rows[rj]||[]).length;cj++){ var in2=(g[gj]||[])[start.c+cj]; if(!in2) continue; if(in2.getAttribute && in2.getAttribute('data-mf')==='spec') continue; _qgSetInput(in2, rows[rj][cj]); } }
     } finally { _qgSuspend=false; }
     try{ _qcsHide(); }catch(e){}
+    try{ _qCartSyncSameSpec(); }catch(e){}   // r195: 붙여넣은 규격과 같은 줄에 E가·구매가·판매가를 이어준다
     _qgPasting=true;
     _qCartSave(); renderQCart(); _qgPaint();
     _qgPasting=false;
@@ -9680,6 +9708,7 @@ function reloadState() {
             if(c2.e!=null || c2.buy!=null || c2.sell!=null) return;   // 이미 값이 있으면 덮지 않는다
             if(_qgFillFromLedger(ri)) _n++;
           });
+          try{ if(_qCartSyncSameSpec()) _n++; }catch(e){}   // r195
           if(_n){ _qgPasting=true; _qCartSave(); renderQCart(); _qgPaint(); _qgPasting=false; }
         }).catch(function(){});
       }
