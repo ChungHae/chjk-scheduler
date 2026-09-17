@@ -18983,6 +18983,10 @@ function reloadState() {
           }
           if(!bank){ errs.push(f.name+': 은행/어음 형식을 인식하지 못했습니다'); continue; }
           var iDate=H.indexOf('거래일시'); if(iDate<0) iDate=H.indexOf('거래일자');
+          // r190: 하나은행은 '의뢰인/수취인'이 대부분 비어 있고 실제 이름이 '적요'에 있다.
+          //  (실측 채움 비율 — 의뢰인/수취인 4~32% vs 적요 95%)
+          //  다른 은행의 적요에는 '타행IB' 같은 값이 들어가므로 하나에서만 보조로 쓴다.
+          var iRem = (bank==='하나') ? H.indexOf('적요') : -1;
           var iIn=-1;
           ['입금액(원)','입금금액(원)','입금(원)','입금액','입금'].some(function(kk){ iIn=H.indexOf(kk); return iIn>=0; });
           if(iDate<0 || iIn<0){ errs.push(f.name+': '+bank+' 헤더 열을 찾지 못했습니다'); continue; }
@@ -18991,11 +18995,14 @@ function reloadState() {
             var row6=rows[r6]||[];
             var rawDt=_fxCell(row6[iDate]);
             var d6=_fxD(row6[iDate]), amt6=_fxN(row6[iIn]), payer=_fxCell(row6[iPay]);
+            if(!payer && iRem>=0) payer=_fxCell(row6[iRem]);   // r190
             // r172: 날짜를 못 읽어 버려지는 행을 센다. 단 완전히 빈 줄(파일 끝 여백)은 제외.
             if(!d6){
               // r189: 파일 맨 끝의 합계/소계 줄은 원래 자료가 아니다. 경고로 세면
               //  '1행을 건너뛰었습니다'가 파일마다 떠서 실제로 빠진 게 있는 것처럼 보인다.
-              var _sumRow = /^(합계|소계|총계|계)$/.test(rawDt) || /^(합계|소계|총계)$/.test(_fxCell(row6[0]));
+              // r190: 하나은행 2025·2026 형식은 '합계' 글자가 의뢰인/수취인 칸에 있다.
+              //  (,,,합계,765350090,766199791,,,,) → 어느 칸이든 합계면 합계 줄로 본다.
+              var _sumRow = (row6||[]).some(function(c){ return /^(합계|소계|총계|계)$/.test(_fxCell(c)); });
               if(!_sumRow && (rawDt || payer || _fxCell(row6[iIn]))){ fSkipD++; if(skipRows.length<5) skipRows.push(r6+1); }
               continue;
             }
@@ -19232,6 +19239,9 @@ function reloadState() {
     if(/결[\s:\-]?\d{4,}/.test(p)) return true; // 결+숫자 나열 (결:12345678, 결20260821 등)
     // 카드사명 접두 + 숫자 나열 (신한12341231, 삼성 124534234, KB1234567 등)
     if(/^(신한|삼성|현대|롯데|국민|하나|우리|비씨|농협|씨티|카카오|KB|BC|NH)[\s\-\.]?\d{4,}/.test(p)) return true;
+    // r190: 카드사 표기가 '뒤'에 오는 형태 (730827312BC 등 — 하나은행 BC카드 정산)
+    //  순수 계좌번호(13291001654519)는 걸리지 않게, 카드사 표기가 붙은 것만 본다.
+    if(/^\d{6,}[\s\-\.]?(BC|NH|KB|비씨|카드)$/i.test(p)) return true;
     return false;
   }
   window.fxAutoExclRun = function(){
