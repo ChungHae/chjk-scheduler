@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r197 2026-09-22 -->
+<!-- test build r198 2026-09-22 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -19360,17 +19360,18 @@ function reloadState() {
             //   하나 : 통장에 「채권입금」으로 기록 (2021년 14건 전수 대조)
             //   기업 : 통장에 거래처명으로 그대로 입금 (유효 2건 전수 대조, 만기일 일치)
             //  신한은 통장에 어음번호로 찍혀 제외로 빠지므로 겹치지 않는다 → 신한어음은 받는다.
-            //  iM뱅크(r197)는 대금이 업로드하지 않는 iM 계좌로 들어가므로 이 파일이 유일한 기록 → 받는다.
-            //   (나중에 iM 입출금 내역까지 올리게 되면 그때는 하나·기업처럼 막아야 한다.)
-            if(noteKind==='하나채권' || noteKind==='기업어음'){
-              var _bkNm = (noteKind==='하나채권') ? '하나은행 어음(전자채권)' : '기업은행 어음(전자매출채권)';
-              var _bkWhy = (noteKind==='하나채권')
-                ? '하나은행은 어음 결제대금이 입출금 내역에 「채권입금」으로 그대로 들어옵니다. '
-                : '기업은행은 어음이 만기결제되면 입출금 내역에 거래처명으로 그대로 입금됩니다. ';
-              var _bkNm2 = (noteKind==='하나채권') ? '하나은행' : '기업은행';
-              warns.push(esc(f.name)+': <b>'+_bkNm+' 파일은 올리지 않습니다 — 0건 등록하고 건너뛰었습니다.</b><br>'
-                + _bkWhy
-                + '이 파일을 올리면 같은 돈이 두 번 잡히므로, '+_bkNm2+'은 <b>입출금 내역만</b> 올려주세요.');
+            //   iM   : (r198) 통장에 「자동이체 · 거래처명」으로 입금 (10건 전수 대조, 통장이 2건 더 많음)
+            //  → r197 에서 받던 iM 어음도 r198 부터 차단. iM 은 입출금 내역으로 받는다.
+            var _BLK = {
+              '하나채권': ['하나은행 어음(전자채권)', '하나은행은', '하나은행은 어음 결제대금이 입출금 내역에 「채권입금」으로 그대로 들어옵니다. '],
+              '기업어음': ['기업은행 어음(전자매출채권)', '기업은행은', '기업은행은 어음이 만기결제되면 입출금 내역에 거래처명으로 그대로 입금됩니다. '],
+              'iM어음':   ['iM뱅크 어음(채권명세)', 'iM뱅크는', 'iM뱅크는 어음이 결제되면 입출금 내역에 「자동이체」로 거래처명과 함께 그대로 입금됩니다. ']
+            };
+            if(_BLK[noteKind]){
+              var _bk=_BLK[noteKind];
+              warns.push(esc(f.name)+': <b>'+_bk[0]+' 파일은 올리지 않습니다 — 0건 등록하고 건너뛰었습니다.</b><br>'
+                + _bk[2]
+                + '이 파일을 올리면 같은 돈이 두 번 잡히므로, '+_bk[1]+' <b>입출금 내역만</b> 올려주세요.');
               continue;
             }
             var iNo, iVen, iAmt, iDt, iSt, iCxl=-1, iDue=-1;
@@ -19431,6 +19432,10 @@ function reloadState() {
           var bank=null, iPay=-1;
           for(var r5=0;r5<Math.min(rows.length,14);r5++){
             var rr5=(rows[r5]||[]).map(_fxCell);
+            // r198: iM뱅크 — 입금자는 '비고' 열. 비고는 흔한 열 이름이라 거래종류·입금금액과 함께 있을 때만.
+            if(rr5.indexOf('거래종류')>=0 && rr5.indexOf('입금금액')>=0 && rr5.indexOf('비고')>=0){
+              bank='iM'; iPay=rr5.indexOf('비고'); hIdx=r5; H=rr5; break;
+            }
             for(var k=0;k<_FX_PAYKEY.length;k++){
               var ii=rr5.indexOf(_FX_PAYKEY[k][0]);
               if(ii>=0){ bank=_FX_PAYKEY[k][1]; iPay=ii; hIdx=r5; H=rr5; break; }
@@ -19443,8 +19448,9 @@ function reloadState() {
           //  (실측 채움 비율 — 의뢰인/수취인 4~32% vs 적요 95%)
           //  다른 은행의 적요에는 '타행IB' 같은 값이 들어가므로 하나에서만 보조로 쓴다.
           var iRem = (bank==='하나') ? H.indexOf('적요') : -1;
+          var iKind = (bank==='iM') ? H.indexOf('거래종류') : -1;   // r198
           var iIn=-1;
-          ['입금액(원)','입금금액(원)','입금(원)','입금액','입금'].some(function(kk){ iIn=H.indexOf(kk); return iIn>=0; });
+          ['입금액(원)','입금금액(원)','입금(원)','입금액','입금금액','입금'].some(function(kk){ iIn=H.indexOf(kk); return iIn>=0; });
           if(iDate<0 || iIn<0){ errs.push(f.name+': '+bank+' 헤더 열을 찾지 못했습니다'); continue; }
           var fN3=0, fU3=0, fD3=0, fSkipD=0, skipRows=[], dupRows=[];
           for(var r6=hIdx+1;r6<rows.length;r6++){
@@ -19453,6 +19459,7 @@ function reloadState() {
             var d6=_fxD(row6[iDate]), amt6=_fxN(row6[iIn]), payer=_fxCell(row6[iPay]);
             var _fromRem=false;                                   // r191: 이름의 출처를 기억해 둔다
             if(!payer && iRem>=0){ payer=_fxCell(row6[iRem]); _fromRem=!!payer; }   // r190
+            if(iKind>=0 && _fxCell(row6[iKind])==='예금이자') payer='예금이자';   // r198: '**이자 30 법인세 0…' 정리
             // r172: 날짜를 못 읽어 버려지는 행을 센다. 단 완전히 빈 줄(파일 끝 여백)은 제외.
             if(!d6){
               // r189: 파일 맨 끝의 합계/소계 줄은 원래 자료가 아니다. 경고로 세면
@@ -19712,6 +19719,7 @@ function reloadState() {
   function _fxAutoExclPayer(p){
     p=String(p||'').trim();
     if(/카드/.test(p)) return true;             // 카드사 정산 (신한카드1234, 비씨카드(주) 등)
+    if(/^(예금)?이자$/.test(p)) return true;     // r198: 예금이자 (거래처 수금 아님)
     if(/결[\s:\-]?\d{4,}/.test(p)) return true; // 결+숫자 나열 (결:12345678, 결20260821 등)
     // 카드사명 접두 + 숫자 나열 (신한12341231, 삼성 124534234, KB1234567 등)
     if(/^(신한|삼성|현대|롯데|국민|하나|우리|비씨|농협|씨티|카카오|KB|BC|NH)[\s\-\.]?\d{4,}/.test(p)) return true;
