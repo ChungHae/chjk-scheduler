@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r196 2026-09-18 (r195 + 어음차단 병합) -->
+<!-- test build r197 2026-09-22 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -19349,6 +19349,8 @@ function reloadState() {
             var rr=(rows[r]||[]).map(_fxCell);
             if(rr.indexOf('전자어음번호')>=0){ noteKind='신한어음'; hIdx=r; H=rr; break; }
             if(rr.indexOf('어음번호')>=0 && rr.indexOf('구매기업명')>=0){ noteKind='기업어음'; hIdx=r; H=rr; break; }
+            // r197: iM뱅크 채권명세조회 — 구매'업체'명 + 채권번호 + 매출채권금액
+            if(rr.indexOf('채권번호')>=0 && rr.indexOf('구매업체명')>=0 && rr.indexOf('매출채권금액')>=0){ noteKind='iM어음'; hIdx=r; H=rr; break; }
             if(rr.indexOf('채권번호')>=0 && rr.indexOf('구매기업명')>=0){ noteKind='하나채권'; hIdx=r; H=rr; break; }
           }
           if(noteKind){
@@ -19357,7 +19359,9 @@ function reloadState() {
             //  어음 파일까지 올리면 같은 돈이 두 번 잡힌다. 확인 절차 없이 차단한다.
             //   하나 : 통장에 「채권입금」으로 기록 (2021년 14건 전수 대조)
             //   기업 : 통장에 거래처명으로 그대로 입금 (유효 2건 전수 대조, 만기일 일치)
-            //  신한은 통장에 어음번호로 찍혀 제외로 빠지므로 겹치지 않는다 → 신한어음만 받는다.
+            //  신한은 통장에 어음번호로 찍혀 제외로 빠지므로 겹치지 않는다 → 신한어음은 받는다.
+            //  iM뱅크(r197)는 대금이 업로드하지 않는 iM 계좌로 들어가므로 이 파일이 유일한 기록 → 받는다.
+            //   (나중에 iM 입출금 내역까지 올리게 되면 그때는 하나·기업처럼 막아야 한다.)
             if(noteKind==='하나채권' || noteKind==='기업어음'){
               var _bkNm = (noteKind==='하나채권') ? '하나은행 어음(전자채권)' : '기업은행 어음(전자매출채권)';
               var _bkWhy = (noteKind==='하나채권')
@@ -19383,6 +19387,12 @@ function reloadState() {
               iDt =_fxCol(H, ['채권등록일','등록년월일','발행년월일']);
               iSt =H.indexOf('상태');
               iDue=_fxCol(H, ['채권만기일','만기년월일']);
+            } else if(noteKind==='iM어음'){
+              // r197: 상태 열이 없다(목록 전체가 유효 채권). 등록일=수취일, 결제일=만기일.
+              iNo=H.indexOf('채권번호'); iVen=H.indexOf('구매업체명');
+              iAmt=H.indexOf('매출채권금액');
+              iDt=H.indexOf('등록일'); iSt=-1;
+              iDue=H.indexOf('결제일');
             } else {
               iNo=H.indexOf('채권번호'); iVen=H.indexOf('구매기업명');
               iAmt=H.indexOf('채권금액(원)'); if(iAmt<0) iAmt=H.indexOf('채권금액');
