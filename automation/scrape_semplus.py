@@ -286,6 +286,110 @@ async def _login_once(page):
         raise RuntimeError(msg)
 
 
+async def _dismiss_popups(page, max_rounds=5):
+    """로그인 직후 화면을 덮는 SemPlus 공지 팝업을 닫는다.
+
+    (2026-09-22 추가) 2026-09-11 께부터 SemPlus 가 로그인 직후
+    "[2026.09.11] 당사 웹 서비스 보안성 강화 및 취약점 조치 작업 안내" 공지를
+    WebSquare 팝업(div.ui-dialog.ws-popup 안의 iframe, SP12060_P01.xml)으로
+    띄운다. 이 팝업이 화면 전체를 덮어 상단 '거래내역' 메뉴 클릭을 가로채서
+    ("... subtree intercepts pointer events") 2026-09-14 부터 매일 실패했다.
+    새 브라우저로 실행하므로 '오늘 하루 보지 않기' 쿠키가 남지 않아 매번 뜬다.
+
+    공지는 앞으로도 바뀌어 뜰 수 있으므로 특정 팝업 이름에 묶지 않고
+    '보이는 ws-popup 대화상자'면 모두 닫는다. 닫는 순서:
+      1) 팝업 안 iframe 의 '오늘 하루 보지 않기' 류 체크 후 '닫기'/'확인'
+      2) 대화상자 제목줄의 X(.ui-dialog-titlebar-close)
+      3) 그래도 남아 있으면 대화상자와 회색 덮개를 DOM 에서 제거
+         (공지일 뿐이라 제거해도 조회 기능에는 영향 없음)
+    닫은 개수를 돌려준다. 팝업이 없으면 아무것도 하지 않는다."""
+    closed = 0
+    for _ in range(max_rounds):
+        target = None
+        for f in page.frames:
+            try:
+                dlg = f.locator("div.ui-dialog.ws-popup:visible")
+                if await dlg.count():
+                    target = (f, dlg.first)
+                    break
+            except Exception:
+                continue
+        if not target:
+            break
+        f, d = target
+        title = ""
+        try:
+            title = (await d.locator(".ui-dialog-title").first.inner_text(timeout=500)).strip()
+        except Exception:
+            pass
+        if not title:
+            try:
+                fe = await d.locator("iframe").first.element_handle(timeout=500)
+                fr = await fe.content_frame() if fe else None
+                if fr:
+                    title = (await fr.locator("body").inner_text(timeout=1000)).strip().splitlines()[0][:60]
+            except Exception:
+                pass
+
+        done = False
+        # 1) 팝업 안(iframe)의 버튼
+        try:
+            fe = await d.locator("iframe").first.element_handle(timeout=1000)
+            fr = await fe.content_frame() if fe else None
+            if fr:
+                for t in ("오늘 하루 보지 않기", "오늘하루 보지않기", "오늘 하루 열지 않기",
+                          "하루 동안 보지 않기", "다시 보지 않기", "다시보지않기"):
+                    c = fr.get_by_text(t, exact=False)
+                    if await c.count():
+                        try:
+                            await c.first.click(timeout=1500)
+                        except Exception:
+                            pass
+                        break
+                for t in ("닫기", "확인", "Close"):
+                    b = fr.locator(f'text="{t}"')
+                    if await b.count():
+                        try:
+                            await b.first.click(timeout=1500)
+                            done = True
+                            break
+                        except Exception:
+                            pass
+        except Exception:
+            pass
+        # 2) 제목줄 X
+        if not done:
+            try:
+                x = d.locator(".ui-dialog-titlebar-close")
+                if await x.count():
+                    await x.first.click(timeout=1500)
+                    done = True
+            except Exception:
+                pass
+        await page.wait_for_timeout(500)
+        # 3) 그래도 남아 있으면 DOM 에서 제거
+        still = False
+        try:
+            still = await d.is_visible()
+        except Exception:
+            still = False
+        how = "버튼" if done else "제거"
+        if still:
+            how = "제거"
+            try:
+                await f.evaluate(
+                    "() => {"
+                    " document.querySelectorAll('div.ui-dialog.ws-popup').forEach(e => { if (e.offsetParent !== null || getComputedStyle(e).display !== 'none') e.remove(); });"
+                    " document.querySelectorAll('.ui-widget-overlay').forEach(e => e.remove());"
+                    "}"
+                )
+            except Exception:
+                pass
+        closed += 1
+        print(f"[안내] SemPlus 공지 팝업을 닫았습니다({how}): {title!r}")
+    return closed
+
+
 async def open_credit_transaction_list(page):
     # 상단 메뉴 "거래내역" 클릭 → 드롭다운의 "신용거래" 클릭.
     # "신용거래"는 정확히 일치(text="...")하는 것만, 그리고 그 중에서도
@@ -294,10 +398,21 @@ async def open_credit_transaction_list(page):
     # 재발 방지하기 위함. frame이 여러 개일 수 있어(탭마다 별도 iframe),
     # "텍스트가 존재하는 frame"이 아니라 "실제로 보이는 frame"을 페이지
     # 전체에서 찾는 _first_visible_anywhere를 쓴다.
+    # (2026-09-22) 로그인 직후 공지 팝업이 메뉴를 덮는다 - 먼저 닫는다.
+    await _dismiss_popups(page)
     top_item = await _first_visible_anywhere(page, 'text="거래내역"')
     if not top_item:
         raise RuntimeError("'거래내역' 메뉴가 화면에 보이지 않습니다.")
-    await top_item.click()
+    try:
+        await top_item.click(timeout=10000)
+    except Exception as e:
+        # 팝업이 늦게 떴거나 하나 더 떴을 수 있다 - 한 번 더 닫고 재시도.
+        print(f"[경고] '거래내역' 클릭 실패({str(e).splitlines()[0][:120]}) - 팝업을 다시 닫고 재시도합니다.")
+        await _dismiss_popups(page)
+        top_item = await _first_visible_anywhere(page, 'text="거래내역"')
+        if not top_item:
+            raise RuntimeError("'거래내역' 메뉴가 화면에 보이지 않습니다.")
+        await top_item.click(timeout=10000)
     await page.wait_for_timeout(500)
 
     sub_item = await _first_visible_anywhere(page, 'text="신용거래"', timeout=5000)
