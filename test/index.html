@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r199 2026-09-22 -->
+<!-- test build r200 2026-09-23 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -6733,7 +6733,7 @@ function reloadState() {
   }
   function _qPushCartNew(r){
     if(_qCart.length===1 && !_qCartHasContent()) _qCart=[];   // 빈 첫 줄이면 이 항목으로 대체
-    _qCart.push({vid:_qCurId, vname:_qVName(_qCurId), spec:r.spec, name:r.name||'', e:r.e, buy:r.buy, small:(r.small!=null?r.small:null), pl:r.pl?true:false, sell:r.sell, disc:r.disc||'', eta:r.eta||'', qty:1});
+    _qCart.push({vid:_qCurId, vname:_qVName(_qCurId), spec:r.spec, name:r.name||'', e:r.e, buy:r.buy, small:(r.small!=null?r.small:null), pl:r.pl?true:false, sell:r.sell, disc:r.disc||'', eta:r.eta||'', qty:1, psrc:_qNorm(r.spec||'')});   // r200
     try{ _qCartCopyAbove(_qCart.length-1); }catch(_e){}   // r194: 위에 같은 규격이 있으면 그 가격으로
     _qCartSave(); renderQCart();
   }
@@ -9309,6 +9309,32 @@ function reloadState() {
   };
   window.qCartFieldNoRender = function(i, field, val){ if(!_qCart[i]) return; _qCart[i][field]=String(val==null?'':val); _qCartSaveSoon(); };   // 타이핑(oninput) 경로: 200행 이상이면 저장만 250ms 디바운스 (데이터는 즉시 반영)
   // ── r194: 같은 규격이 이 견적에 또 있으면 가격을 같게 한다 (판매가·구매가가 같으면 DC율·마진율도 같아진다) ──
+  // ── r200: 가격의 출처 규격(psrc)을 기록해, 규격이 바뀌면 옛 가격이 남지 않게 한다 ──
+  function _qMarkPriceSrc(c){ if(c) c.psrc=_qNorm(c.spec||''); }
+  function _qHasAnyPrice(c){
+    if(!c) return false;
+    return (c.e!=null&&c.e!=='') || (c.buy!=null&&c.buy!=='') || (c.sell!=null&&c.sell!=='') || (c.small!=null&&c.small!=='');
+  }
+  function _qClearRowPrices(c){
+    if(!c) return;
+    c.e=null; c.buy=null; c.sell=null; c.small=null; c.pl=false;
+    c.name=''; c.disc=''; c.eta=''; c.psrc='';
+    if('dc' in c) delete c.dc;
+  }
+  // 규격이 바뀐 줄을 정리한다. 반환: '' | 'filled' | 'cleared'
+  function _qCartOnSpecChanged(i){
+    var c=_qCart[i]; if(!c) return '';
+    var key=_qNorm(c.spec||'');
+    if(key && key===String(c.psrc==null?'':c.psrc)) return '';   // 가격이 온 규격 그대로면 건드리지 않는다
+    if(!key){   // 규격을 지운 줄 — 자동으로 채워졌던 가격만 지운다
+      if(c.psrc && _qHasAnyPrice(c)){ _qClearRowPrices(c); return 'cleared'; }
+      return '';
+    }
+    try{ if(_qgFillFromLedger(i)){ _qMarkPriceSrc(c); return 'filled'; } }catch(_e){}
+    try{ if(_qCartCopyAbove(i)){ _qMarkPriceSrc(c); return 'filled'; } }catch(_e){}
+    if(_qHasAnyPrice(c)){ _qClearRowPrices(c); return 'cleared'; }   // 이전 규격 값은 남기지 않는다
+    return '';
+  }
   function _qCartCopyAbove(i){   // 새로 적은 줄: 위에 같은 규격이 있으면 그 줄의 E가·구매가·판매가를 그대로 가져온다
     var c=_qCart[i]; if(!c) return false;
     var key=_qRowKey(c.spec||''); if(!key) return false;
@@ -9323,6 +9349,7 @@ function reloadState() {
       if(p.small!=null && p.small!=='' && (c.small==null||c.small==='')) c.small=p.small;
       if(p.eta && !c.eta) c.eta=p.eta;
       if(p.name && !c.name) c.name=p.name;
+      if(ch) _qMarkPriceSrc(c);   // r200
       return ch;
     }
     return false;
@@ -9349,6 +9376,7 @@ function reloadState() {
         if(!has(p.small) && has(src.small)) p.small=src.small;
         if(!p.name && src.name) p.name=src.name;
         if(!p.eta && src.eta) p.eta=src.eta;
+        _qMarkPriceSrc(p);   // r200
       });
     });
     return n;
@@ -9376,7 +9404,15 @@ function reloadState() {
       _qCartSave(); renderQCart();
     }, '적용', '#1B3A6B');
   }
-  window.qCartSpecChanged = function(i, el){ qCartCommit(i); try{ if(_qCartCopyAbove(i)){ _qCartSave(); renderQCart(); } }catch(_e){} };
+  window.qCartSpecChanged = function(i, el){
+    qCartCommit(i);
+    var act='';
+    try{ act=_qCartOnSpecChanged(i); }catch(_e){}
+    if(act){ _qCartSave(); renderQCart(); }
+    if(act==='cleared') showInfoModal('규격 변경',
+      '규격이 바뀌어서 이전 규격의 가격을 지웠습니다.\n'
+      + '새 규격은 원장·가격표에 없어 자동으로 채울 값이 없습니다 — 가격을 직접 입력해 주세요.');
+  };
   window.qCartField = function(i, field, val){
     var c=_qCart[i]; if(!c) return;
     // ── DC율 ↔ 구매가, 마진율 ↔ 판매가 연동 ──
@@ -9661,6 +9697,7 @@ function reloadState() {
     c.pl  =r.pl?true:false;
     c.sell=(r.sell!=null&&r.sell!=='')?Number(r.sell):null;
     c.disc=r.disc||''; c.eta=r.eta||'';
+    _qMarkPriceSrc(c);   // r200
     return true;
   }
   var _QPASTE_MAX=2000;   // r177: 한 번에 만들 수 있는 최대 행수
@@ -9691,7 +9728,7 @@ function reloadState() {
     _qgSuspend=true; var specRows={};
     try{
       for(var ri=0;ri<rows.length;ri++){ var gi=start.r+ri; for(var ci=0;ci<(rows[ri]||[]).length;ci++){ var inp=(g[gi]||[])[start.c+ci]; if(!inp) continue; if(inp.getAttribute && inp.getAttribute('data-mf')==='spec'){ inp.value=rows[ri][ci]; try{ qCartFieldNoRender(gi,'spec',rows[ri][ci]); }catch(e){} specRows[gi]=1; } } }
-      Object.keys(specRows).forEach(function(rk){ _qgFillFromLedger(+rk); });
+      Object.keys(specRows).forEach(function(rk){ try{ _qCartOnSpecChanged(+rk); }catch(_e){ _qgFillFromLedger(+rk); } });   // r200
       for(var rj=0;rj<rows.length;rj++){ var gj=start.r+rj; for(var cj=0;cj<(rows[rj]||[]).length;cj++){ var in2=(g[gj]||[])[start.c+cj]; if(!in2) continue; if(in2.getAttribute && in2.getAttribute('data-mf')==='spec') continue; _qgSetInput(in2, rows[rj][cj]); } }
     } finally { _qgSuspend=false; }
     try{ _qcsHide(); }catch(e){}
@@ -9953,6 +9990,7 @@ function reloadState() {
     c.pl  =r.pl?true:false;
     c.sell=(r.sell!=null&&r.sell!=='')?Number(r.sell):null;
     c.disc=r.disc||''; c.eta=r.eta||'';
+    _qMarkPriceSrc(c);   // r200
     try{ _qCartCopyAbove(i); }catch(_e){}   // r194: 위에 같은 규격이 있으면 그 가격으로
     _qCartSave(); _qcsHide(); renderQCart();
     if(advance) _qCartNextRow(i);
