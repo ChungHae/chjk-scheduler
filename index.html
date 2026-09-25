@@ -7821,6 +7821,8 @@ function reloadState() {
     if(_isExisting){ _qShowSaveChoiceModal(); return; }
     _qFinishSaveQuote();
   };
+    // r201(2026-09-25): 아래 '기간 검색 + 페이지 넘기기'는 r179(5b94fbe, 2026-09-11)에서 만든 것인데
+  //  두 작업 흐름이 서로 덮어쓰던 시기에 사라져 있었다. 그 커밋의 구현을 그대로 되살린 것.
   window.qOpenLoad = function(){
     var ov=document.getElementById('qLoadOverlay');
     if(!ov){ ov=document.createElement('div'); ov.id='qLoadOverlay'; ov.style.cssText='position:fixed;inset:0;z-index:100072;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px'; document.body.appendChild(ov); }
@@ -7836,37 +7838,72 @@ function reloadState() {
     ov.innerHTML='<div style="width:100%;max-width:860px;max-height:88vh;background:#fff;border:1px solid #e0e4ea;border-radius:10px;overflow:hidden;display:flex;flex-direction:column">'
       +'<div style="padding:11px 16px;border-bottom:1px solid #eef1f4;background:#f8fafc;display:flex;align-items:center;gap:9px"><span style="width:4px;height:16px;background:#334155;border-radius:2px"></span><span style="font-size:14px;font-weight:700;color:#1f2937">견적 불러오기</span><button class="btn" onclick="document.getElementById(\'qLoadOverlay\').style.display=\'none\'" style="padding:4px 12px;margin-left:auto">닫기</button></div>'
       +'<div style="padding:12px 16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;border-bottom:1px solid #eef1f4">'
-        +'<input id="qLoadSearch" value="'+esc(_defVn)+'" placeholder="거래처 · 이름 · 작성자 · 메모 검색" oninput="_qRenderLoadList()" style="'+INP+';flex:1;min-width:150px">'
-        +'<select id="qLoadWriter" onchange="_qRenderLoadList()" style="'+INP+'">'+_wopts2+'</select>'
-        +'<input type="date" id="qLoadDate" value="" onchange="_qRenderLoadList()" style="'+INP+'">'
+        +'<input id="qLoadSearch" value="'+esc(_defVn)+'" placeholder="거래처 · 이름 · 작성자 · 메모 검색" oninput="_qLoadFilterChanged()" style="'+INP+';flex:1;min-width:150px">'
+        +'<select id="qLoadWriter" onchange="_qLoadFilterChanged()" style="'+INP+'">'+_wopts2+'</select>'
+        // r179: 날짜 한 칸 → 기간(시작~종료). 한쪽만 넣어도 된다.
+        +'<span style="display:inline-flex;align-items:center;gap:5px">'
+          +'<input type="date" id="qLoadFrom" value="" title="시작일 (이 날짜부터)" onchange="_qLoadFilterChanged()" style="'+INP+'">'
+          +'<span style="color:#9ca3af;font-size:12px">~</span>'
+          +'<input type="date" id="qLoadTo" value="" title="종료일 (이 날짜까지)" onchange="_qLoadFilterChanged()" style="'+INP+'">'
+        +'</span>'
         +'<button class="btn" onclick="qLoadResetFilters()" style="font-size:12px;padding:6px 10px">초기화</button>'
       +'</div>'
       +'<div id="qLoadList" style="overflow:auto;flex:1;min-height:0"></div></div>';
     ov.style.display='flex';
+    _qLoadPage=1;   // r179
     _qRenderLoadList();
+  };
+  // ── r179: 목록 페이지 ──
+  var _qLoadPage=1, _QLOAD_PER=10;
+  window._qLoadFilterChanged = function(){ _qLoadPage=1; _qRenderLoadList(); };   // 필터가 바뀌면 첫 쪽부터
+  window.qLoadPageDelta = function(d){
+    _qLoadPage += d; if(_qLoadPage<1) _qLoadPage=1;
+    _qRenderLoadList();
+    var box=document.getElementById('qLoadList'); if(box) box.scrollTop=0;
   };
   window.qLoadResetFilters = function(){   // 필터 모두 비우기 → 전체 표시
     var s=document.getElementById('qLoadSearch'); if(s) s.value='';
     var w=document.getElementById('qLoadWriter'); if(w) w.value='';
-    var d=document.getElementById('qLoadDate'); if(d) d.value='';
+    var f=document.getElementById('qLoadFrom'); if(f) f.value='';
+    var t=document.getElementById('qLoadTo'); if(t) t.value='';
+    _qLoadPage=1;
     _qRenderLoadList();
   };
   window._qRenderLoadList = function(){
     var box=document.getElementById('qLoadList'); if(!box) return;
     var q=((document.getElementById('qLoadSearch')||{}).value||'').trim().toLowerCase();
-    var dv=((document.getElementById('qLoadDate')||{}).value||'');
-    var dnum=dv?dv.replace(/-/g,''):'';
+    // r179: 기간 필터 — 한쪽만 넣어도 되고, 거꾸로 넣으면 바꿔서 적용한다
+    var _f=((document.getElementById('qLoadFrom')||{}).value||'').replace(/-/g,'');
+    var _t=((document.getElementById('qLoadTo')||{}).value||'').replace(/-/g,'');
+    if(_f && _t && _f>_t){ var _sw=_f; _f=_t; _t=_sw; }
     // 견적 날짜(견적번호에 박힌 YYYYMMDD) 기준 최신순, 같으면 저장시각순
     var _qd=function(x){ var m=String(x&&x.title||'').match(/(\d{8})/); return m?m[1]:'00000000'; };
     var list=quoteSaved.slice().sort(function(a,b){ var da=_qd(a), db=_qd(b); if(da!==db) return db<da?-1:1; return (b.savedAt||0)-(a.savedAt||0); });
     list=list.filter(function(qq){
       if(q && (String(qq.vname||'').toLowerCase().indexOf(q)<0) && (String(qq.title||'').toLowerCase().indexOf(q)<0) && (String(qq.savedBy||'').toLowerCase().indexOf(q)<0) && (String(qq.note||'').toLowerCase().indexOf(q)<0)) return false;
       var _wf=((document.getElementById('qLoadWriter')||{}).value||''); if(_wf && (qq.savedBy||'')!==_wf) return false;
-      if(dnum){ var d=qq.savedAt?new Date(qq.savedAt):null; var ds=d?(d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')):''; if(ds!==dnum) return false; }
+      if(_f || _t){
+        var d=qq.savedAt?new Date(qq.savedAt):null;
+        var ds=d?(d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')):'';
+        if(!ds) return false;                 // 저장 시각이 없으면 기간 판정을 할 수 없다
+        if(_f && ds<_f) return false;
+        if(_t && ds>_t) return false;
+      }
       return true;
     });
-    var _moreN='';
-    if(!dnum && list.length>10){ _moreN='<div style="padding:8px 14px;text-align:center;font-size:11px;color:#9ca3af">최신 10개만 표시됩니다 · 날짜/거래처로 좁혀주세요</div>'; list=list.slice(0,10); }
+    // r179: 잘라서 감추지 않고 쪽을 나눈다 — 11번째부터는 볼 방법이 아예 없었다
+    var _total=list.length;
+    var _pages=Math.max(1, Math.ceil(_total/_QLOAD_PER));
+    if(_qLoadPage>_pages) _qLoadPage=_pages;   // 삭제 등으로 줄었으면 마지막 쪽으로
+    if(_qLoadPage<1) _qLoadPage=1;
+    list=list.slice((_qLoadPage-1)*_QLOAD_PER, _qLoadPage*_QLOAD_PER);
+    var _moreN = (_total>_QLOAD_PER)
+      ? ('<div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 14px;border-top:1px solid #eef2f7;background:#fafbfc">'
+         + '<button type="button" class="btn" onclick="qLoadPageDelta(-1)"'+(_qLoadPage<=1?' disabled':'')+' style="font-size:11.5px;padding:3px 12px;border:1px solid #c8d2de;border-radius:0;background:#fff;color:'+(_qLoadPage<=1?'#c9d0da':'#374151')+';cursor:'+(_qLoadPage<=1?'default':'pointer')+'">&lsaquo; 이전</button>'
+         + '<span style="font-size:12px;color:#6b7280">'+_qLoadPage+' / '+_pages+' 페이지 &middot; 조건에 맞는 견적 '+_total+'건</span>'
+         + '<button type="button" class="btn" onclick="qLoadPageDelta(1)"'+(_qLoadPage>=_pages?' disabled':'')+' style="font-size:11.5px;padding:3px 12px;border:1px solid #c8d2de;border-radius:0;background:#fff;color:'+(_qLoadPage>=_pages?'#c9d0da':'#374151')+';cursor:'+(_qLoadPage>=_pages?'default':'pointer')+'">다음 &rsaquo;</button>'
+         + '</div>')
+      : '';
     box.innerHTML = (list.length ? list.map(function(qq){
       var dd=qq.savedAt?new Date(qq.savedAt):null;
       var ds=dd?(dd.getFullYear()+'.'+String(dd.getMonth()+1).padStart(2,'0')+'.'+String(dd.getDate()).padStart(2,'0')):'';
