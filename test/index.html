@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r205 2026-09-28 -->
+<!-- test build r206 2026-09-28 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -19761,8 +19761,10 @@ function reloadState() {
     fxSalesInv.forEach(function(e){
       if(e.biz!==biz || !e.vendor) return;
       var digits=String(e.vbiz||'').replace(/[^0-9]/g,'');
-      if(digits && byBiz[digits]) return;
-      if(byName[e.vendor]) return;
+      // r206: 사업자번호가 있으면 번호로만 판단한다.
+      //  상호까지 보면 '같은 상호·다른 사업자번호'인 거래처가 통째로 숨어 검색되지 않았다.
+      if(digits){ if(byBiz[digits]) return; }
+      else if(byName[e.vendor]) return;
       var k=digits || ('N|'+e.vendor);
       if(!m[k] || (e.date||'') > m[k].date) m[k]={name:e.vendor, vbiz:e.vbiz||'', date:e.date||''};
     });
@@ -19775,18 +19777,27 @@ function reloadState() {
     // 같은 사업자번호가 이미 다른 이름으로 등록돼 있으면 그 업체로 바로 배정 (중복 등록 방지)
     var dup = (typeof _findClientByBiz==='function' && vbiz) ? _findClientByBiz(vbiz, null) : null;
     if(dup){ fxPickVend(i, dup); return; }
-    if((allClients()||[]).some(function(c){ return c && c[0]===name; })){ fxPickVend(i, name); return; }
+    // r206: 상호가 같아도 사업자번호가 다르면 다른 업체다.
+    //  거래처 목록·검색·배정이 모두 '상호' 키로 동작하므로,
+    //  이름이 겹치면 상호 뒤에 사업자번호를 붙여 등록한다.
+    //  (미수현황 원장 키는 사업자번호가 우선이라 이름이 달라도 같은 원장으로 묶인다)
+    var _sameNm=(allClients()||[]).some(function(c){ return c && c[0]===name; });
+    if(_sameNm && !vbiz){ fxPickVend(i, name); return; }
+    var _reg = _sameNm ? (name+' ('+vbiz+')') : name;
+    if(_sameNm && (allClients()||[]).some(function(c){ return c && c[0]===_reg; })){ fxPickVend(i, _reg); return; }
     showConfirmModal('업체 등록 + 배정',
-      '"'+esc(name)+'"'+(vbiz?' ('+vbiz+')':'')+' 업체가 일정 > 업체에 없습니다.\n일정 > 업체에 등록하고 이 입금을 배정할까요?',
+      '"'+esc(name)+'"'+(vbiz?' ('+vbiz+')':'')+' 업체가 일정 > 업체에 없습니다.\n'
+      + (_sameNm ? '같은 상호가 다른 사업자번호로 이미 있어, 구분하려고 "'+esc(_reg)+'" 로 등록합니다.\n' : '')
+      + '일정 > 업체에 등록하고 이 입금을 배정할까요?',
       function(){
         try{ ensureClientList(); }catch(_e){}
         // r158: 이 입금이 들어온 사업장을 업체의 지점으로 기록
         var _d0=_fxUnList[i];
         var _d0b=(_d0&&_d0.biz)||'서울';
         // r163: 계산서에 종사업장번호가 있으면 함께 등록
-        clientList.push(_cliMake(name, vbiz||'', _d0b, _fxVsbOf(_d0b, name, vbiz)));
+        clientList.push(_cliMake(_reg, vbiz||'', _d0b, _fxVsbOf(_d0b, name, vbiz)));   // r206
         _saveClients();
-        fxPickVend(i, name);
+        fxPickVend(i, _reg);
       }, '등록 + 배정', '#1B3A6B');
   };
   // r139: 검색 결과가 없을 때의 원인 진단
