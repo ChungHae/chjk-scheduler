@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r202 2026-09-28 -->
+<!-- test build r203 2026-09-28 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -19241,8 +19241,10 @@ function reloadState() {
     var t = esc((e&&e.payer)||'');
     if(!e || !e.pRem) return t;
     var c = muted ? '#b6bec9' : '#8a94a6';
-    return t + ' <span title="의뢰인/수취인 칸이 비어 있어 적요의 내용을 표시합니다"'
-      + ' style="font-size:10.5px;font-weight:600;color:'+c+';border:1px solid #cdd8e6;padding:0 4px;margin-left:4px;vertical-align:1px;white-space:nowrap">적요</span>';
+    var lb = (e.pRem===2) ? '거래내용' : '적요';   // r203
+    var tip = (e.pRem===2) ? '거래기록사항 칸이 비어 있어 거래내용을 표시합니다' : '의뢰인/수취인 칸이 비어 있어 적요의 내용을 표시합니다';
+    return t + ' <span title="'+tip+'"'
+      + ' style="font-size:10.5px;font-weight:600;color:'+c+';border:1px solid #cdd8e6;padding:0 4px;margin-left:4px;vertical-align:1px;white-space:nowrap">'+lb+'</span>';
   }
   // r189: 같은 뜻의 열 이름이 은행·화면마다 달라서, 후보를 순서대로 찾는다 (앞쪽이 우선).
   function _fxCol(H, names){ for(var i=0;i<names.length;i++){ var k=H.indexOf(names[i]); if(k>=0) return k; } return -1; }
@@ -19524,7 +19526,9 @@ function reloadState() {
           // r190: 하나은행은 '의뢰인/수취인'이 대부분 비어 있고 실제 이름이 '적요'에 있다.
           //  (실측 채움 비율 — 의뢰인/수취인 4~32% vs 적요 95%)
           //  다른 은행의 적요에는 '타행IB' 같은 값이 들어가므로 하나에서만 보조로 쓴다.
-          var iRem = (bank==='하나') ? H.indexOf('적요') : -1;
+          // r203: 농협은 '거래기록사항'이 비는 행(예금이자 등)이 있어 '거래내용'으로 보완한다.
+          var iRem = (bank==='하나') ? H.indexOf('적요') : (bank==='농협' ? H.indexOf('거래내용') : -1);
+          var _remKind = (bank==='농협') ? 2 : 1;   // 배지 문구 구분 (1=적요 / 2=거래내용)
           var iKind = (bank==='iM') ? H.indexOf('거래종류') : -1;   // r198
           var iIn=-1;
           ['입금액(원)','입금금액(원)','입금(원)','입금액','입금금액','입금'].some(function(kk){ iIn=H.indexOf(kk); return iIn>=0; });
@@ -19555,7 +19559,7 @@ function reloadState() {
             var ax6=(!v6 && _fxAutoExclPayer(payer));
             fxDeposits.push({ id:id6, biz:biz, date:d6, amount:amt6, payer:payer,
                               vendor:v6||'', vbiz:v6?_fxClientVbiz(v6,biz):'', kind:'bank', bank:bank,
-                              excluded:ax6||undefined, pRem:(_fromRem?1:undefined), src:'upload' });   // r191: pRem = 적요에서 가져온 이름
+                              excluded:ax6||undefined, pRem:(_fromRem?_remKind:undefined), src:'upload' });   // r191/r203: pRem = 보조 칸에서 가져온 이름(1=적요 2=거래내용)
             nDep++; fN3++;
             if(v6){ nAuto++; } else if(ax6){ nAx++; } else { nUn++; fU3++; }
           }
