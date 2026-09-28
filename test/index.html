@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r203 2026-09-28 -->
+<!-- test build r204 2026-09-28 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -19547,7 +19547,8 @@ function reloadState() {
               //  '1행을 건너뛰었습니다'가 파일마다 떠서 실제로 빠진 게 있는 것처럼 보인다.
               // r190: 하나은행 2025·2026 형식은 '합계' 글자가 의뢰인/수취인 칸에 있다.
               //  (,,,합계,765350090,766199791,,,,) → 어느 칸이든 합계면 합계 줄로 본다.
-              var _sumRow = (row6||[]).some(function(c){ return /^(합계|소계|총계|계)$/.test(_fxCell(c)); });
+              // r204: 우리은행은 마지막 줄이 '총 73건' 형태다 — 이것도 합계 줄로 본다.
+              var _sumRow = (row6||[]).some(function(c){ var _t=_fxCell(c); return /^(합계|소계|총계|계)$/.test(_t) || /^총\s*[\d,]+\s*건$/.test(_t); });
               if(!_sumRow && (rawDt || payer || _fxCell(row6[iIn]))){ fSkipD++; if(skipRows.length<5) skipRows.push(r6+1); }
               continue;
             }
