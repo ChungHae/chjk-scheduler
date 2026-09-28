@@ -19209,7 +19209,7 @@ function reloadState() {
       await _ensureXlsxLib(); await _fxEnsureData();
       var seen={};
       fxDeposits.forEach(function(e){ seen[e.id]=1; if(e.noteNo) seen['NN|'+e.biz+'|'+e.noteNo]=1; });
-      var nDep=0, nNote=0, nDup=0, nAuto=0, nUn=0, nAx=0, errs=[], lines=[];
+      var nDep=0, nNote=0, nDup=0, nAuto=0, nUn=0, nAx=0, nBad=0, errs=[], lines=[];   // r205: nBad = 부도 어음
       var nSkipD=0, warns=[];   // r172: 조용히 넘어가던 행을 눈에 보이게
       for(var fi=0; fi<files.length; fi++){
         var f=files[fi];
@@ -19246,6 +19246,8 @@ function reloadState() {
               '기업어음': ['기업은행 어음(전자매출채권)', '기업은행은', '기업은행은 어음이 만기결제되면 입출금 내역에 거래처명으로 그대로 입금됩니다. '],
               'iM어음':   ['iM뱅크 어음(채권명세)', 'iM뱅크는', 'iM뱅크는 어음이 결제되면 입출금 내역에 「자동이체」로 거래처명과 함께 그대로 입금됩니다. ']
             };
+            // r205: 어음 상태가 부도면 자동 제외로 넣는다 (받은 돈이 아니다)
+            var _BAD = /부도|지급거절|지급거부/;
             if(_BLK[noteKind]){
               var _bk=_BLK[noteKind];
               warns.push(esc(f.name)+': <b>'+_bk[0]+' 파일은 올리지 않습니다 — 0건 등록하고 건너뛰었습니다.</b><br>'
@@ -19280,7 +19282,7 @@ function reloadState() {
               iDue=H.indexOf('만기일');
             }
             if(iNo<0 || iVen<0 || iAmt<0 || iDt<0){ errs.push(f.name+': '+noteKind+' 헤더 열을 찾지 못했습니다'); continue; }
-            var fN2=0, fD2=0, fU2=0;
+            var fN2=0, fD2=0, fU2=0, fB2=0;   // r205: fB2 = 이 파일의 부도 건수
             for(var r4=hIdx+1;r4<rows.length;r4++){
               var row4=rows[r4]||[];
               var noteNo=_fxCell(row4[iNo]);
@@ -19294,17 +19296,31 @@ function reloadState() {
                   var nd0=_fxD(row4[iDue]);
                   if(nd0){ fxDeposits.forEach(function(e){ if(e.noteNo===noteNo && e.biz===biz && !e.due){ e.due=nd0; } }); }
                 }
+                // r205: 만기 전에 올려 둔 어음이 뒤에 부도로 바뀐 경우 — 다시 올리면 여기서 반영된다
+                if(_BAD.test(st)){
+                  var _bt=Date.now();
+                  fxDeposits.forEach(function(e){
+                    if(e.noteNo===noteNo && e.biz===biz && !e.excluded){
+                      e.excluded=true; e.exAt=_bt; delete e.held; delete e.heldAt; nBad++; fB2++;
+                    }
+                  });
+                }
                 nDup++; fD2++; continue;
               }
               seen['NN|'+biz+'|'+noteNo]=1;
               var v4=_fxResolveVendor(biz, ven4);
+              var _bad4=_BAD.test(st);   // r205
               fxDeposits.push({ id:'NT|'+biz+'|'+noteNo, biz:biz, date:d4, amount:amt4, payer:ven4,
                                 vendor:v4||'', vbiz:v4?_fxVbizOf(biz,v4):'', kind:'note', bank:noteKind,
-                                noteNo:noteNo, due:(iDue>=0?_fxD(row4[iDue]):null), src:'upload' });
+                                noteNo:noteNo, due:(iDue>=0?_fxD(row4[iDue]):null), src:'upload',
+                                excluded:_bad4||undefined, exAt:(_bad4?Date.now():undefined) });   // r205
               nNote++; fN2++;
-              if(v4){ nAuto++; } else { nUn++; fU2++; }
+              if(_bad4){ nBad++; fB2++; }        // r205: 부도는 배정/미배정으로 세지 않는다
+              else if(v4){ nAuto++; } else { nUn++; fU2++; }
             }
-            lines.push(esc(f.name)+' → '+noteKind+' · 수취 '+fN2+'건'+(fU2?(' · 미배정 '+fU2):'')+(fD2?(' · 중복 '+fD2):''));
+            lines.push(esc(f.name)+' → '+noteKind+' · 수취 '+fN2+'건'
+              + (fB2?(' · <b style="color:#dc2626">부도 '+fB2+'건 자동 제외</b>'):'')   // r205
+              + (fU2?(' · 미배정 '+fU2):'')+(fD2?(' · 중복 '+fD2):''));
             continue;
           }
           // 2) 은행 입금 형식 판별 (입금자명 열 키워드)
@@ -19386,6 +19402,7 @@ function reloadState() {
       _fxMetaRefresh();
       var html='<b style="color:#15803d">반영 완료</b> — '+biz+' · 입금 +'+nDep+'건 · 어음 +'+nNote+'건'
         + (nAuto?(' · 자동 배정 '+nAuto):'') + (nAx?(' · 카드·결제 자동 제외 '+nAx):'') + (nDup?(' · 중복 제외 '+nDup):'');
+      if(nBad) html+='<br><b style="color:#dc2626">부도 어음 '+nBad+'건을 자동 제외했습니다</b> — 받지 못한 돈이므로 수금에서 뺀습니다. 하단 "제외한 입금"에서 확인·복원할 수 있습니다.';   // r205
       if(nUn) html+='<br><b style="color:#d97706">미배정 '+nUn+'건</b> — 아래 미배정 입금 패널에서 거래처를 지정해 주세요.';
       if(nSkipD) html+='<br><b style="color:#dc2626">건너뛴 행 '+nSkipD+'행</b> — 아래 내용을 확인해 주세요.';
       if(lines.length) html+='<br><span style="color:#6b7280">'+lines.join('<br>')+'</span>';
