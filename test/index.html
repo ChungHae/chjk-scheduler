@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r206 2026-09-28 -->
+<!-- test build r207 2026-09-29 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -4257,12 +4257,16 @@
       }).filter(Boolean);
       metaEl.textContent = syncTexts.length ? ('마지막 동기화 · '+syncTexts.join(' / ')) : '';
     }
-    // r109: 오늘 수집 성공/실패 배너 (평일 09시 이후에만 판정 — 자동 수집은 평일 08시)
+    // r109: 오늘 수집 성공/실패 배너 (평일에만 판정)
+    // r207: 판정 시각을 09시 → 11시로 늦춘다.
+    //  예약은 08시지만 GitHub Actions 예약 실행이 실제로는 10시 전후에 시작한다
+    //  (최근 14회 실측 09:46~10:27). 그래서 정상인 날에도 아침내내 빨간 경고가 떴 있었다.
+    //  진짜로 안 된 날은 11시에도 그대로 뜨므로 놓치지 않는다.
     var stEl=document.getElementById('csSyncStatus');
     if(stEl){
       var _now=new Date();
       var _dow=_now.getDay();
-      var _checkable=(_dow>=1&&_dow<=5)&&(_now.getHours()>=9);
+      var _checkable=(_dow>=1&&_dow<=5)&&(_now.getHours()>=11);   // r207
       if(!_csMetaCache || !_checkable){ stEl.style.display='none'; }
       else{
         var _t0=new Date(_now.getFullYear(),_now.getMonth(),_now.getDate());
