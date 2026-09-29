@@ -18682,7 +18682,7 @@ function reloadState() {
     if(!host){ host=document.createElement('div'); host.id='nyWrap'; document.body.appendChild(host); }
     var F='width:100%;height:30px;box-sizing:border-box;padding:0 8px;border:1px solid #c8d2de;border-radius:0;font-size:12.5px;color:#374151;font-family:inherit;outline:none';
     var L='font-size:11.5px;font-weight:700;color:#14305c;display:block;margin-bottom:3px';
-    host.innerHTML='<div id="nyOv" style="position:fixed;inset:0;background:rgba(10,20,40,.45);z-index:100080;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:40px 16px">'
+    host.innerHTML='<div id="nyOv" style="position:fixed;inset:0;background:rgba(10,20,40,.45);z-index:100080;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:clamp(48px,12vh,150px) 16px 40px">'
       + '<div style="background:#fff;border:1px solid #1B3A6B;width:640px;max-width:100%">'
       +   '<div style="padding:12px 18px;background:#1B3A6B;color:#fff;font-size:13.5px;font-weight:700;display:flex;align-items:center">내용증명 작성'
       +     '<span style="flex:1"></span><button type="button" class="btn" onclick="fxNyClose()" style="font-size:11.5px;padding:2px 10px;border:1px solid #fff;background:transparent;color:#fff">닫기</button></div>'
@@ -18706,7 +18706,7 @@ function reloadState() {
       +     '</div>'
       +     '<div id="nyWarn" style="margin-top:10px;font-size:11.5px;color:#b45309;line-height:1.6"></div>'
       +     '<div style="margin-top:14px;display:flex;gap:6px;align-items:center">'
-      +       '<button type="button" class="btn" onclick="fxNyPrint()" style="font-size:12px;padding:6px 16px;border:1px solid #1B3A6B;color:#14305c;background:#fff;font-weight:700">미리보기 · 인쇄(PDF)</button>'
+      +       '<button type="button" class="btn" onclick="fxNyPrint()" style="font-size:12px;padding:6px 16px;border:1px solid #1B3A6B;color:#14305c;background:#fff;font-weight:700">인쇄 · PDF 저장</button>'
       +       '<button type="button" class="btn" onclick="fxNyDocx()" style="font-size:12px;padding:6px 16px;border:1px solid #1B3A6B;color:#fff;background:#1B3A6B;font-weight:700">워드(.docx) 저장</button>'
       +       '<span style="flex:1"></span>'
       +       '<span id="nyMsg" style="font-size:11.5px;color:#6b7280"></span>'
@@ -18728,7 +18728,11 @@ function reloadState() {
       if(k===b) el.classList.add('active'); else el.classList.remove('active');
     });
   };
-  window.fxNyClose = function(){ var h=document.getElementById('nyWrap'); if(h) h.innerHTML=''; _nyOpen=null; };
+  window.fxNyClose = function(){
+    var h=document.getElementById('nyWrap'); if(h) h.innerHTML='';
+    var f=document.getElementById('nyPrintFrame'); if(f && f.parentNode) f.parentNode.removeChild(f);   // r211
+    _nyOpen=null;
+  };
   window.fxNyAmtFmt = function(el){
     var v=String(el.value||'').replace(/[^0-9]/g,'');
     el.value = v ? Number(v).toLocaleString() : '';
@@ -18795,7 +18799,7 @@ function reloadState() {
     var p=String(d||'').split('-');
     return p.length===3 ? (Number(p[0])+'년 '+Number(p[1])+'월 '+Number(p[2])+'일') : String(d||'');
   }
-  // ── 미리보기 · 인쇄(PDF) ─────────────────────────────────────────────
+  // ── 인쇄 · PDF 저장 (r211: 바로 인쇄창) ─────────────────────────────────────────────
   window.fxNyPrint = async function(){
     var D=_nyData();
     if(!D.corp){ showInfoModal('내용증명','거래처명을 입력해 주세요.'); return; }
@@ -18821,11 +18825,7 @@ function reloadState() {
       + '.it{margin:0 0 3pt;text-indent:0;padding-left:1.1em;text-indent:-1.1em}'
       + '.dt{text-align:center;font-size:10.5pt;margin:15pt 0 14pt}'
       + '.hd{text-align:center;font-size:11.5pt;font-weight:700;margin:0 0 8pt}'
-      + '@media print{.noprint{display:none}}</style></head><body>'
-      + '<div class="noprint" style="position:fixed;top:0;left:0;right:0;background:#1B3A6B;color:#fff;padding:8px 14px;font-size:12px;z-index:9">'
-      +   '이 창에서 인쇄(Ctrl+P) → 대상을 “PDF로 저장”으로 고르면 PDF가 됩니다. '
-      +   '<button onclick="window.print()" style="margin-left:10px;padding:3px 12px;border:1px solid #fff;background:transparent;color:#fff;cursor:pointer">인쇄</button></div>'
-      + '<div class="noprint" style="height:38px"></div>'
+      + '</style></head><body>'
       + '<div class="t">내 용 증 명 서</div>'
       + '<div class="lb">수신자</div>' + info('수신인',recv,'전화번호',esc(D.tel),'주소',esc(D.addr))
       + '<div class="lb">발신자</div>' + info('발신인',send,'전화번호',esc(K.tel),'주소',esc(K.addr))
@@ -18846,10 +18846,37 @@ function reloadState() {
       +   '<td style="text-align:center;vertical-align:middle">'+(st?('<img src="data:image/png;base64,'+st.b64+'" style="width:6cm">'):'')+'</td>'
       +   '<td style="text-align:center;vertical-align:middle">'+(sl?('<img src="data:image/png;base64,'+sl.b64+'" style="width:1.5cm">'):'')+'</td>'
       + '</tr></table></body></html>';
-    var w=window.open('', '_blank');
-    if(!w){ showInfoModal('내용증명','팝업이 차단되었습니다. 이 사이트의 팝업을 허용해 주세요.'); return; }
-    w.document.open(); w.document.write(html); w.document.close();
+    _nyPrintHtml(html);
   };
+  // r211: 화면 밖 iframe 에 그려서 바로 인쇄창을 띄운다 (새 탭 미리보기 없음 · 팝업 차단 영향 없음)
+  function _nyPrintHtml(html){
+    var old=document.getElementById('nyPrintFrame'); if(old) old.parentNode.removeChild(old);
+    var ifr=document.createElement('iframe');
+    ifr.id='nyPrintFrame';
+    //  visibility:hidden 으로 숨기면 빈 페이지가 인쇄되는 브라우저가 있어 화면 밖으로 보낸다.
+    ifr.setAttribute('style','position:fixed;left:-10000px;top:0;width:210mm;height:297mm;border:0;opacity:0');
+    document.body.appendChild(ifr);
+    var d=ifr.contentWindow.document;
+    d.open(); d.write(html); d.close();
+    var done=false;
+    var go=function(){
+      if(done) return; done=true;
+      try{
+        ifr.contentWindow.focus();
+        try{ ifr.contentWindow.onafterprint=function(){ setTimeout(function(){ try{ ifr.parentNode.removeChild(ifr); }catch(_e){} }, 300); }; }catch(_e2){}
+        ifr.contentWindow.print();
+      }catch(e){ try{ ifr.parentNode.removeChild(ifr); }catch(_e3){} }
+    };
+    //  그림(명판·인감)과 글꼴이 준비된 뒤에 인쇄창을 띄운다 — 안 그러면 도장이 빠진 채 인쇄된다.
+    var imgs=Array.prototype.slice.call(d.images||[]);
+    Promise.all(imgs.map(function(im){
+      return (im.complete && im.naturalWidth) ? Promise.resolve()
+           : new Promise(function(r){ im.onload=r; im.onerror=r; setTimeout(r, 1500); });
+    })).then(function(){
+      try{ return (d.fonts && d.fonts.ready) ? d.fonts.ready : null; }catch(_e){ return null; }
+    }).catch(function(){}).then(function(){ setTimeout(go, 120); });
+    setTimeout(go, 2500);   // 어떤 이유로든 준비 신호가 안 오면 그냥 인쇄한다
+  }
   // ── 워드(.docx) 저장 ────────────────────────────────────────────────
   var _NY_TW=567;   // 1cm = 567 twips
   function _nyRun(t,sz,bold){
