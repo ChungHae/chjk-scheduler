@@ -2491,11 +2491,11 @@
   <button class="page-tab" id="tabEtc">기타</button>
 </nav>
 <nav class="sub-nav" id="acctSubNav" style="display:none">
+  <button class="sub-tab" data-page="fxsum">집계</button>
   <button class="sub-tab" data-page="armatch">입출금</button>
   <button class="sub-tab" data-page="fx">미수현황</button>
-  <button class="sub-tab" data-page="fxsum">집계</button>
-  <button class="sub-tab" id="acctTabFxUp" data-page="fxup">자료 업로드</button>
   <button class="sub-tab" data-page="cardsales">카드매출</button>
+  <button class="sub-tab" id="acctTabFxUp" data-page="fxup">자료 업로드</button>
 </nav>
 <nav class="sub-nav" id="etcSubNav" style="display:none">
   <button class="sub-tab" data-page="links">바로가기</button>
@@ -18805,6 +18805,7 @@ function reloadState() {
   window.fxNyClose = function(){
     var h=document.getElementById('nyWrap'); if(h) h.innerHTML='';
     var f=document.getElementById('nyPrintFrame'); if(f && f.parentNode) f.parentNode.removeChild(f);   // r211
+    var f2=document.getElementById('nyFitFrame'); if(f2 && f2.parentNode) f2.parentNode.removeChild(f2);   // r215
     _nyOpen=null;
   };
   window.fxNyAmtFmt = function(el){
@@ -18903,7 +18904,7 @@ function reloadState() {
     var send=esc(K.holder)+' 대표 '+esc(K.rep);
     // r212: 수치를 docx 와 똑같게 맞춘다 (위 주석 참고)
     // r214: 계수를 박지 않고 이 브라우저에서 직접 재서 쓴다
-    var _nyLF=_nyLineFactor();
+    var _mk=function(_nyLF){   // r215: 계수를 바꿔가며 여러 번 만들 수 있게 함수로 감쌌
     var LH=function(pt){ return (Math.round(pt*_nyLF*100)/100)+'pt'; };   // 워드 줄높이
     var SP=function(pt){ return '<div style="height:'+pt+'pt;font-size:0;line-height:0"></div>'; };
     var TB='border-collapse:collapse;width:100%;table-layout:fixed;margin:0';
@@ -18945,11 +18946,47 @@ function reloadState() {
       + '<div class="hd">'+esc(K.holder)+'</div>' + SP(6)
       + '<table style="width:100%;table-layout:fixed;border-collapse:collapse"><colgroup><col><col style="width:6.7cm"><col style="width:2.0cm"></colgroup><tr>'
       +   '<td style="padding:0"></td>'
-      +   '<td style="padding:0;text-align:center;vertical-align:middle">'+(st?('<img src="data:image/png;base64,'+st.b64+'" style="width:6cm;display:inline-block">'):'')+'</td>'
-      +   '<td style="padding:0;text-align:center;vertical-align:middle">'+(sl?('<img src="data:image/png;base64,'+sl.b64+'" style="width:1.5cm;display:inline-block">'):'')+'</td>'
+      +   '<td style="padding:0;text-align:center;vertical-align:middle">'+(st?('<img src="data:image/png;base64,'+st.b64+'" style="width:6cm;height:'+(Math.round(600*st.h/st.w)/100)+'cm;display:inline-block">'):'')+'</td>'
+      +   '<td style="padding:0;text-align:center;vertical-align:middle">'+(sl?('<img src="data:image/png;base64,'+sl.b64+'" style="width:1.5cm;height:'+(Math.round(150*sl.h/sl.w)/100)+'cm;display:inline-block">'):'')+'</td>'
       + '</tr></table></body></html>';
-    _nyPrintHtml(html);
+    return html;
+    };
+    _nyPrintHtml(await _nyFitHtml(_mk));   // r215: A4 한 장에 꽉 차게 맞춘다
   };
+  // r215: 화면 밖 틀에 두 번 그려 높이를 재고, A4 본문 높이에 맞는 줄높이 계수를 역산한다.
+  //  높이 = 고정분(스페이서·표 최소높이·그림) + 가변분 × 계수  — 폭이 고정이라 줄바꿈 수가 안 변하며, 그래서 1차식이 정확히 성립한다.
+  var _NY_PAGE_PT = 785.2;   // A4 297mm - 위 11mm - 아래 9mm = 277mm
+  var _NY_TARGET_PT = 773;   // 꽉 채우되 두 장이 되지 않게 약간의 여유
+  async function _nyFitHtml(mk){
+    var f0=_nyLineFactor();
+    var probe=document.getElementById('nyFitFrame');
+    if(probe && probe.parentNode) probe.parentNode.removeChild(probe);
+    probe=document.createElement('iframe');
+    probe.id='nyFitFrame';
+    //  폭을 본문 폭(17cm)으로 맞춰야 줄바꿈이 인쇄본과 같다
+    probe.setAttribute('style','position:fixed;left:-10000px;top:0;width:170mm;height:2000mm;border:0;opacity:0');
+    document.body.appendChild(probe);
+    var measure=function(f){
+      try{
+        var d=probe.contentWindow.document;
+        d.open(); d.write(mk(f)); d.close();
+        return d.body.getBoundingClientRect().height*72/96;   // px → pt
+      }catch(_e){ return 0; }
+    };
+    var f=f0;
+    try{
+      var h0=measure(f0);
+      var f1=f0*1.35, h1=measure(f1);
+      if(h0>0 && h1>h0){
+        f = f0 + (f1-f0)*(_NY_TARGET_PT-h0)/(h1-h0);
+        if(!(f>0)) f=f0;
+        f = Math.max(f0, Math.min(f0*2.6, f));
+        for(var i=0;i<8 && measure(f)>_NY_PAGE_PT; i++) f*=0.97;   // 두 장이 되지 않게
+      }
+    }catch(_e2){ f=f0; }
+    try{ probe.parentNode.removeChild(probe); }catch(_e3){}
+    return mk(Math.round(f*10000)/10000);
+  }
   // r211: 화면 밖 iframe 에 그려서 바로 인쇄창을 띄운다 (새 탭 미리보기 없음 · 팝업 차단 영향 없음)
   function _nyPrintHtml(html){
     var old=document.getElementById('nyPrintFrame'); if(old) old.parentNode.removeChild(old);
