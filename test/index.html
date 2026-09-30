@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r213 2026-09-29 -->
+<!-- test build r214 2026-09-30 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -2669,13 +2669,10 @@
 </nav>
 <nav class="sub-nav" id="acctSubNav" style="display:none">
   <button class="sub-tab" data-page="armatch">입출금</button>
-  <button class="sub-tab" data-page="fx">매입매출</button>
+  <button class="sub-tab" data-page="fx">미수현황</button>
+  <button class="sub-tab" data-page="fxsum">집계</button>
+  <button class="sub-tab" id="acctTabFxUp" data-page="fxup">자료 업로드</button>
   <button class="sub-tab" data-page="cardsales">카드매출</button>
-</nav>
-<nav class="sub-nav" id="fxSubNav" style="display:none">
-  <button class="file-grp-tab active" data-fxtab="ar" onclick="fxSwitchTab('ar')">미수 현황</button>
-  <button class="file-grp-tab" data-fxtab="sum" onclick="fxSwitchTab('sum')">매입·매출 집계</button>
-  <button class="file-grp-tab" data-fxtab="up" onclick="fxSwitchTab('up')">자료 업로드</button>
 </nav>
 <nav class="sub-nav" id="etcSubNav" style="display:none">
   <button class="sub-tab" data-page="links">바로가기</button>
@@ -13673,7 +13670,7 @@ function reloadState() {
     try{ if(typeof _qLeaveGuard==='function' && _qLeaveGuard(page)) return; }catch(_e){}
     var _SCHED=['personal','weekly','biz','project','clients','memo','done','meeting'];   // r179·r184·r187
     var _ETC=['links'];
-    var _ACCT=['armatch','fx','cardsales'];
+    var _ACCT=['armatch','fx','fxsum','fxup','cardsales'];   // r214: 집계·자료 업로드를 상위 탭으로
     document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
     if(_SCHED.indexOf(page)>=0){ var _ts=document.getElementById('tabSchedule'); if(_ts) _ts.classList.add('active'); _lastSched=page; }
     else if(_ETC.indexOf(page)>=0){ var _te=document.getElementById('tabEtc'); if(_te) _te.classList.add('active'); }
@@ -13684,16 +13681,20 @@ function reloadState() {
     var _enav=document.getElementById('estimateSubNav'); if(_enav) _enav.style.display = (page==='estimate') ? 'flex' : 'none';
     var _etcnav=document.getElementById('etcSubNav'); if(_etcnav) _etcnav.style.display = _ETC.indexOf(page)>=0 ? 'flex' : 'none';
     var _acctnav=document.getElementById('acctSubNav'); if(_acctnav) _acctnav.style.display = _ACCT.indexOf(page)>=0 ? 'flex' : 'none';
-    var _fxnav=document.getElementById('fxSubNav'); if(_fxnav) _fxnav.style.display = (page==='fx') ? 'flex' : 'none';
+    try{ _fxSyncAcctNav(); }catch(_e){}   // r214: '자료 업로드' 는 마스터만
     document.querySelectorAll('.sub-tab').forEach(t => t.classList.toggle('active', t.dataset.page === page));
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-    const pageMap = { memo:'pageMemo', done:'pageDone', meeting:'pageMeeting', weekly:'pageWeekly', biz:'pageBiz', project:'pageProject', clients:'pageClients', assign:'pageAssign', personal:'pagePersonal', finance:'pageFinance', ar:'pageAr', inventory:'pageInventory', purchase:'pagePurchase', files:'pageFiles', estimate:'pageEstimate', armatch:'pageArmatch', fx:'pageFx', links:'pageLinks', cardsales:'pageCardSales' };
+    const pageMap = { memo:'pageMemo', done:'pageDone', meeting:'pageMeeting', weekly:'pageWeekly', biz:'pageBiz', project:'pageProject', clients:'pageClients', assign:'pageAssign', personal:'pagePersonal', finance:'pageFinance', ar:'pageAr', inventory:'pageInventory', purchase:'pagePurchase', files:'pageFiles', estimate:'pageEstimate', armatch:'pageArmatch', fx:'pageFx', fxsum:'pageFx', fxup:'pageFx', links:'pageLinks', cardsales:'pageCardSales' };
     document.getElementById(pageMap[page] || 'pageWeekly').classList.add('active');
     // 견적 화면에서만 .main 의 가로 스크롤을 풀어 툴바 sticky 가 화면 기준으로 붙게 한다
     var _mn=document.querySelector('.main'); if(_mn) _mn.classList.toggle('main-estimate', page==='estimate' || page==='clients');
     _syncTopFrozenH();   // 서브탭 노출 여부에 따라 고정 헤더 높이가 바뀐다
     if (page === 'armatch'){ if(typeof loadMisuSummary==='function') loadMisuSummary(); }
-    if (page === 'fx'){ if(typeof renderFxPage==='function') renderFxPage(); }
+    if (page === 'fx' || page === 'fxsum' || page === 'fxup'){   // r214: 한 화면을 세 탭이 나눠 쓴다
+      _fxTab = (page==='fxsum') ? 'sum' : (page==='fxup' ? 'up' : 'ar');
+      _fxArPage = 1;
+      if(typeof renderFxPage==='function') renderFxPage();
+    }
     if (page === 'assign' && typeof renderAssignPage==='function') renderAssignPage();
     if (page === 'project'){ _projMode={view:'list',id:null}; _projExpId=null; _projLogEditId=null; _projTitleEdit=false; _projDraft=null; _projDirty=false; _projSearchQ=''; var _ps8=document.getElementById('projSearch'); if(_ps8) _ps8.value=''; _projFilterMember = myMemberId || 'all'; var _pm8=document.getElementById('projMemberFilter'); if(_pm8){ try{ _pm8.blur(); }catch(_e8){} } renderProjectPage(); }
     if (page === 'clients'){ _clxExp=null; _clxQ=''; _clxPage=1; _clxBr='all'; _clxMigOpen=false; _clxSbOpen=false; var _cx8=document.getElementById('clxSearch'); if(_cx8) _cx8.value=''; renderClientsPage(); }
@@ -17897,9 +17898,15 @@ function reloadState() {
   }
   // r166: '자료 업로드' 탭은 마스터 관리자(chjk) 계정만 사용 (사용자 지시)
   function _fxUpAllowed(){ try{ return !!_vacIsMaster(); }catch(e){ return false; } }
+  // r214: 상위 탭 에서 '자료 업로드' 버튼은 마스터에게만 보인다
+  window._fxSyncAcctNav = function(){
+    var b=document.getElementById('acctTabFxUp');
+    if(b) b.style.display = _fxUpAllowed() ? '' : 'none';
+  };
+  // r214: 예전 호출이 남아 있어도 동작하도록 switchPage 로 넘긴다
   window.fxSwitchTab = function(t){
     if(t==='up' && !_fxUpAllowed()){ showInfoModal('권한','자료 업로드는 마스터 관리자(chjk) 계정만 사용할 수 있습니다.'); return; }
-    _fxTab = t; _fxArPage=1; renderFxPage();
+    switchPage(t==='sum' ? 'fxsum' : (t==='up' ? 'fxup' : 'fx'));
   };
   function _fxFmt(n){ return (Number(n)||0).toLocaleString(); }
   var _fxRegion='all', _fxQ='', _fxStatusF='all', _fxExp=null, _fxLdFrom='', _fxLdTo='', _fxNotesOpen=false, _fxAdjForm=false, _fxExclOpen=false, _fxArPage=1, _fxArPageSize=20;
@@ -19062,6 +19069,25 @@ function reloadState() {
       '원만한 해결을 진심으로 희망하오니, 기한 내에 성실히 이행하여 주시기 바랍니다.'
     ];
   }
+  // r214: 워드 줄높이 계수 = (글꼴 기본 줄높이) × 1.22917(docx w:line 295/240)
+  //  글꼴 기본 줄높이는 브라우저·PC 마다 다르므로 그때그때 재서 쓴다.
+  //  (사용자 PC 실측: 맑은 고딕 기본 줄높이 = 1.3421em → 계수 1.6497)
+  var _nyLFCache=null;
+  function _nyLineFactor(){
+    if(_nyLFCache) return _nyLFCache;
+    var v=1.6497;
+    try{
+      var d=document.createElement('div');
+      d.style.cssText='position:absolute;left:-9999px;top:0;visibility:hidden;width:500px;'
+        + 'font-family:"맑은 고딕","Malgun Gothic",sans-serif;font-size:100px;line-height:normal;white-space:pre';
+      d.textContent='가\n가\n가\n가\n가\n가';   // 6줄
+      document.body.appendChild(d);
+      var per=d.getBoundingClientRect().height/6/100;   // em 당 줄높이
+      d.parentNode.removeChild(d);
+      if(per>0.8 && per<2.5) v=Math.round(per*1.22917*10000)/10000;
+    }catch(_e){}
+    _nyLFCache=v; return v;
+  }
   function _nyDateStr(d){
     var p=String(d||'').split('-');
     return p.length===3 ? (Number(p[0])+'년 '+Number(p[1])+'월 '+Number(p[2])+'일') : String(d||'');
@@ -19076,7 +19102,9 @@ function reloadState() {
     var recv=esc(D.corp)+(D.rep?(' 대표 '+esc(D.rep)):'');
     var send=esc(K.holder)+' 대표 '+esc(K.rep);
     // r212: 수치를 docx 와 똑같게 맞춘다 (위 주석 참고)
-    var LH=function(pt){ return (Math.round(pt*1.4939*100)/100)+'pt'; };   // 워드 줄높이
+    // r214: 계수를 박지 않고 이 브라우저에서 직접 재서 쓴다
+    var _nyLF=_nyLineFactor();
+    var LH=function(pt){ return (Math.round(pt*_nyLF*100)/100)+'pt'; };   // 워드 줄높이
     var SP=function(pt){ return '<div style="height:'+pt+'pt;font-size:0;line-height:0"></div>'; };
     var TB='border-collapse:collapse;width:100%;table-layout:fixed;margin:0';
     var TD='border:0.5pt solid #808080;padding:0 5.4pt;height:19.3pt;font-size:9.5pt;line-height:'+LH(9.5)+';vertical-align:middle';
@@ -19384,9 +19412,7 @@ function reloadState() {
     var tb = document.getElementById('fxToolbar'), body = document.getElementById('fxBody');
     if(!tb || !body) return;
     if(_fxTab==='up' && !_fxUpAllowed()) _fxTab='ar';   // r166: 업로드 탭은 마스터 전용
-    var nv=document.getElementById('fxSubNav');
-    if(nv){ var _ub=nv.querySelector('[data-fxtab="up"]'); if(_ub) _ub.style.display = _fxUpAllowed() ? '' : 'none'; }
-    if(nv) nv.querySelectorAll('.file-grp-tab').forEach(function(b){ b.classList.toggle('active', b.dataset.fxtab===_fxTab); });
+    try{ _fxSyncAcctNav(); }catch(_e){}   // r214: 소카테고리 줄은 없애고 상위 탭을 맞춘다
     var metaSpan='<span id="fxMeta" style="font-size:11px;color:#9ca3af;white-space:nowrap"></span>';
     var _empty = function(msg){ return '<div style="text-align:center;padding:56px 20px;color:#b6bec9;font-size:13px;line-height:1.9">'+msg+'</div>'; };
     var _loading='<div style="text-align:center;padding:40px;color:#9ca3af;font-size:13px">자료 불러오는 중…</div>';
