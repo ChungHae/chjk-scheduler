@@ -8195,6 +8195,7 @@ function reloadState() {
   function renderQCart(){
     var el=document.getElementById('qCart'); if(!el) return;
     if(_qgSuspend) return;
+    try{ (_qCart||[]).forEach(function(c){ if(c && c.psrc==null && String(c.spec||'').trim() && _qHasAnyPrice(c)) c.psrc=_qNorm(c.spec); }); }catch(_e){}   // r216: 저장 견적을 불러온 줄도 가격 출처 표시
     _qEnsureFirstRow();   // 규격 작성용 첫 줄은 항상 유지
     var _vendorSel=!!(_qCurId && (typeof quoteVendors!=='undefined'&&quoteVendors) && quoteVendors.find(function(v){return v.id===_qCurId;}));
     (function(){ var _mgi=document.getElementById('qManager'); if(_mgi){ if(_vendorSel){ _mgi.disabled=false; } else { _mgi.disabled=true; _mgi.value=''; } } })();
@@ -8225,7 +8226,7 @@ function reloadState() {
       var _iR='text-align:right';
       var cVname=esc(c.vname);
       var cName=_m?('<input class="qc-in qc-fit" data-mf="name" autocomplete="off" value="'+esc(c.name||'')+'" oninput="qCartNameInput('+i+',this)" onchange="qCartCommit('+i+')" onkeydown="qCartNameKey(event,'+i+')" style="'+_iC+'">'):esc(c.name||'');
-      var cSpec=(_m?('<input class="qc-in" data-mf="spec" autocomplete="off" placeholder="'+(_lockInput?'거래처를 먼저 선택하세요':'규격 입력')+'" value="'+esc(c.spec||'')+'" oninput="qCartSpecInput('+i+',this)" onchange="qCartSpecChanged('+i+',this)" onkeydown="qCartSpecKey(event,'+i+')" style="'+_iC+'">'):esc(c.spec))+((c.changed||_hasDisc)?' <span style="font-size:9px;color:#dc2626;font-weight:700;background:#fef2f2;border:1px solid #fecaca;border-radius:4px;padding:1px 4px;white-space:nowrap;vertical-align:middle">단종/변경</span>':'');
+      var cSpec=(_m?('<input class="qc-in" data-mf="spec" autocomplete="off" placeholder="'+(_lockInput?'거래처를 먼저 선택하세요':'규격 입력')+'" value="'+esc(c.spec||'')+'" data-orig="'+esc(c.spec||'')+'" oninput="qCartSpecInput('+i+',this)" onchange="qCartSpecChanged('+i+',this)" onkeydown="qCartSpecKey(event,'+i+')" style="'+_iC+'">'):esc(c.spec))+((c.changed||_hasDisc)?' <span style="font-size:9px;color:#dc2626;font-weight:700;background:#fef2f2;border:1px solid #fecaca;border-radius:4px;padding:1px 4px;white-space:nowrap;vertical-align:middle">단종/변경</span>':'');
       var cEta=_m?('<input class="qc-in qc-fit" data-mf="eta" autocomplete="off" value="'+esc(c.eta||'')+'" oninput="qCartEtaInput('+i+',this)" onchange="qCartCommit('+i+')" onkeydown="qCartEtaKey(event,'+i+')" style="'+_iC+'">'):(c.eta?esc(c.eta):'-');
       var cOnce='<label title="켜면 이 견적에만 적용됩니다 (원장을 바꾸지 않음)" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer"><input type="checkbox" '+(c.once?'checked':'')+' onchange="qCartOnce('+i+',this.checked)" style="width:13px;height:13px;margin:0;cursor:pointer"></label>';
       var cInfo=_cartInfo[_qRowKey(c.spec)]?('<button onclick="qShowInfoSpec('+i+')" title="추가 정보 (브랜드·구매처·구매링크·비고)" style="border:none;background:none;color:#1B3A6B;font-size:11px;line-height:1;padding:2px 3px;cursor:pointer">ℹ️</button>'):'<span style="color:#d5dbe3">·</span>';
@@ -9256,6 +9257,10 @@ function reloadState() {
   }
   window.qCartSpecChanged = function(i, el){
     qCartCommit(i);
+    // r216: 규격이 그릴 때 값(data-orig)과 같으면 '바뀐 것'이 아니다 — 마지막 줄 엔터 대기용 가짜 change, 칸 드나들기 등에서
+    //       불러온 견적(psrc 없는 줄)의 가격을 원장값으로 바꾸거나 지우고 안내창을 열던 문제(사용자 보고 2026-10-01).
+    try{ var _og=el&&el.getAttribute?el.getAttribute('data-orig'):null; var _c0=_qCart[i];
+      if(_og!=null && _c0 && _qNorm(_og)===_qNorm(el.value||'')){ if(_c0.psrc==null && String(_c0.spec||'').trim() && _qHasAnyPrice(_c0)) _qMarkPriceSrc(_c0); return; } }catch(_e0){}
     var act='';
     try{ act=_qCartOnSpecChanged(i); }catch(_e){}
     if(act){ _qCartSave(); renderQCart(); }
