@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r216 2026-10-01 -->
+<!-- test build r217 2026-10-01 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -1758,6 +1758,8 @@
     .mm-smc.due { border-color:#fecaca; background:#fef2f2; color:#b91c1c; }
     .mm-smc b { font-weight:700; }
     .mm-smc a { color:inherit; font-weight:700; text-decoration:underline; cursor:pointer; margin-left:auto; }
+    .mm-smc.pend { border-color:#bfdbfe; background:#eff6ff; color:#1e40af; }   /* r217 업체 정보 등록 대기 */
+    #clxPendBar .mm-smc { margin:0 0 10px 0; }
     @media (max-width:640px){ .mm-smc { margin-left:68px; } }
     /* ── r183 메모 날짜 수정·요일 ── */
     .mm-row .mm-date.mm-date-rep { opacity:0; }
@@ -2806,6 +2808,7 @@
       <button class="qic" id="btnClxUpload" onclick="openClxExcelGuide()" data-tip="엑셀 업로드" aria-label="엑셀 업로드" style="border-color:#16a34a;color:#16a34a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></button>
       <button class="qic" id="btnClxDownload" onclick="confirmClxExcelDownload()" data-tip="엑셀 다운로드" aria-label="엑셀 다운로드" style="border-color:#1B3A6B;color:#1B3A6B"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"/><path d="M7.5 11.5 12 16l4.5-4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></button>
     </div>
+    <div id="clxPendBar"></div><!-- r217 -->
     <div id="clxList" style="display:flex;flex-direction:column;gap:8px"></div>
   </div>
 
@@ -3746,6 +3749,7 @@
   let memoLines = load('sched_memos') ?? [];        // r179 메모장 줄 [{id,owner,text,parent,kind,vendor,to,name,phone,when,date,createdAt,done,doneAt,feedback,card,linked}]
   let memoCards = load('sched_memo_cards') ?? {};   // r179 명함 사진 {cardId: dataURL}
   let meetings = load('sched_meetings') ?? [];     // r187 회의록 [{id,date,time,place,room,title,author,attendees,agenda:[{id,title,text,done,doneAt,doneBy}],reports:[{name,items:[...]}]}]
+  let clientPend = load('sched_client_pend') ?? [];   // r217 업체 정보 등록 대기 [{id,name,by,at,quoteNo,status:wait|ok|skip,okBy,okAt}]
   let smcQueue = load('sched_smc_queue') ?? [];     // r181 SMC 가격 확인 대기열 [{id,spec,name,e,buy,vid,vname,by,at,quoteNo,status:wait|ok|skip,okE,okHp,okSm,okBy,okAt}]
   // 프로젝트 노트 [{id, memberId, authorName, title, content, createdAt, updatedAt}]
 
@@ -3890,6 +3894,7 @@
     save('sched_memos', memoLines);   // r179
     save('sched_memo_cards', memoCards);
     save('sched_smc_queue', smcQueue);   // r181
+    save('sched_client_pend', clientPend);   // r217
     save('sched_meetings', meetings);   // r187
     localStorage.setItem('sched_local_ts', Date.now().toString()); // 로컬 변경 시각 기록
     debouncedFbSave();
@@ -4603,6 +4608,7 @@
         sched_memos: memoLines,   // r179
         sched_memo_cards: memoCards,
         sched_smc_queue: smcQueue,   // r181
+        sched_client_pend: clientPend,   // r217
         sched_meetings: meetings,   // r187
         sched_comments: schedComments,
         sched_categories: schedCategories,
@@ -4678,7 +4684,7 @@
       const d = await _syncGet();
       if (!d || (d._updatedAt || 0) <= _fbLastUpdatedAt) return;
       _fbLastUpdatedAt = d._updatedAt || 0;
-      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_meetings','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
+      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_client_pend','sched_meetings','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
       KEYS.forEach(k => { if (d[k] !== undefined) save(k, d[k]); });
       // ── 바로가기(sched_links) 보호 ──
       // 키가 없을 때: sched_links_ts가 있으면 신버전 클라이언트의 정상 저장(목록이 비어서
@@ -4781,7 +4787,7 @@
       const d = await _syncGet();
       const fbTs    = (d && d._updatedAt) || 0;
       const localTs = parseInt(localStorage.getItem('sched_local_ts') || '0');
-      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_meetings','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
+      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_client_pend','sched_meetings','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
 
       // ── 올바른 팀원 ID 목록 (하드코딩) ──────────────────────
       const _VALID_MEMBER_IDS = defaultMembers().map(m => m.id);
@@ -4905,6 +4911,7 @@ function reloadState() {
     memoLines        = load('sched_memos') ?? [];   // r179
     memoCards        = load('sched_memo_cards') ?? {};
     smcQueue         = load('sched_smc_queue') ?? [];   // r181
+    clientPend       = load('sched_client_pend') ?? [];   // r217
     meetings         = load('sched_meetings') ?? [];   // r187
     clientInfo       = _ciMigrate(_cliDecMap(load('sched_client_info') ?? {}));   // r161
     _ciVer++;
@@ -6059,7 +6066,9 @@ function reloadState() {
         +'<span style="color:#9ca3af;font-size:11px;white-space:nowrap;flex-shrink:0">원장 없음</span></div>';
     }).join('');
     var addHtml='';
-    if(raw && !_qvSet[q] && !(allClients()||[]).some(function(c){ return _qNorm(c[0])===q; })){ var _ai=_ni++; window._qVenNav.push({t:'a',name:raw}); var rr=raw.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); addHtml='<div data-qvi="'+_ai+'" class="qvd-item" onclick="qAddVendor(\''+rr+'\')" style="padding:9px 12px;font-size:12px;cursor:pointer;color:#1B3A6B;font-weight:700;border-top:2px solid #d6e4f5;background:#eaf1fb">새 거래처 추가: "'+esc(raw)+'"</div>'; }
+    if(raw && !_qvSet[q] && !(allClients()||[]).some(function(c){ return _qNorm(c[0])===q; })){ var _ai=_ni++; window._qVenNav.push({t:'a',name:raw}); var rr=raw.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); addHtml='<div data-qvi="'+_ai+'" class="qvd-item" onclick="qAddVendor(\''+rr+'\')" style="padding:9px 12px;font-size:12px;cursor:pointer;color:#1B3A6B;font-weight:700;border-top:2px solid #d6e4f5;background:#eaf1fb">새 거래처 추가: "'+esc(raw)+'"</div>';
+      var _qi2=_ni++; window._qVenNav.push({t:'q',name:raw});   // r217
+      addHtml+='<div data-qvi="'+_qi2+'" class="qvd-item" onclick="qQuickVendor(\''+rr+'\')" style="padding:9px 12px;font-size:12px;cursor:pointer;color:#1e40af;font-weight:700;border-top:1px solid #d6e4f5;background:#eff6ff;display:flex;align-items:baseline;gap:8px"><span>임시 등록하고 바로 작성: "'+esc(raw)+'"</span><span style="font-size:11px;color:#6b7280;font-weight:500">업체 정보는 나중에</span></div>'; }
     if(!rowsHtml && !extraHtml && !addHtml){ dd.innerHTML='<div style="padding:9px 12px;color:#bbb;font-size:13px">'+((quoteVendors.length||extra.length)?'일치하는 거래처 없음':'등록된 거래처 없음')+'</div>'; }
     else { dd.innerHTML=rowsHtml+extraHtml+addHtml; }
     dd.style.display='block';
@@ -6067,7 +6076,7 @@ function reloadState() {
   }
 ;
   // 드롭다운 화살표 이동 · 실행 · 하이라이트
-  window._qVenDo=function(idx){ var it=(window._qVenNav||[])[idx]; if(!it) return; if(it.t==='v') selectQVendor(it.id); else if(it.t==='e') qPickClient(it.name); else if(it.t==='a') qAddVendor(it.name); };
+  window._qVenDo=function(idx){ var it=(window._qVenNav||[])[idx]; if(!it) return; if(it.t==='v') selectQVendor(it.id); else if(it.t==='e') qPickClient(it.name); else if(it.t==='a') qAddVendor(it.name); else if(it.t==='q') qQuickVendor(it.name); };
   window._qVenHi=function(idx){
     var dd=document.getElementById('qVendorDropdown'); if(!dd) return;
     var items=dd.querySelectorAll('[data-qvi]');
@@ -6094,6 +6103,89 @@ function reloadState() {
     else { id='q_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); quoteVendors.push({id:id, name:nm, count:0}); saveAll(); if(typeof doFbSave==='function') doFbSave(); }
     selectQVendor(id);
   }
+  // ── r217: 거래처가 없어도 임시 등록하고 바로 견적 작성 → '업체 정보 등록 대기'에 모아서 나중에 채운다 ──
+  function _pendWho(){ return (typeof _authUser!=='undefined'&&_authUser&&_authUser.name)?_authUser.name:''; }
+  function _pendFind(nm){ var k=_qNorm(nm); return (clientPend||[]).find(function(p){ return _qNorm(p.name)===k && (p.status||'wait')==='wait'; }); }
+  function _pendDone(nm){   // 사업자번호가 들어갔거나 상세정보(대표자·전화·주소)가 있으면 등록된 것으로 본다
+    var row=_cliFind(nm); if(!row) return false;
+    if(String(row[1]||'').replace(/\D/g,'').length===10) return true;
+    var inf=_clxInfo(row); return !!(inf && (inf.ceo||inf.tel||inf.addr));
+  }
+  function _pendSweep(){ var ch=false; (clientPend||[]).forEach(function(p){ if((p.status||'wait')==='wait' && _pendDone(p.name)){ p.status='ok'; p.okAt=Date.now(); p.okBy='자동'; ch=true; } }); if(ch) saveAll(); return ch; }
+  function _pendWaitCount(){ try{ _pendSweep(); }catch(_e){} return (clientPend||[]).filter(function(p){ return (p.status||'wait')==='wait'; }).length; }
+  function _pendFmtD(ts){ if(!ts) return ''; var d=new Date(ts); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+  window.qQuickVendorAsk = function(name){
+    var nm=String(name||'').trim(); if(!nm) return;
+    var dd=document.getElementById('qVendorDropdown'); if(dd) dd.style.display='none';
+    showConfirmModal('등록되지 않은 거래처',
+      '"'+nm+'" 은(는) 등록된 거래처가 아닙니다.\n임시로 등록하고 바로 견적을 작성할까요?\n\n사업자번호·대표자·주소 등 업체 정보는 나중에 "업체 정보 등록 대기" 에서 채우면 됩니다.',
+      function(){ qQuickVendor(nm); }, '임시 등록하고 작성', '#1B3A6B');
+  };
+  window.qQuickVendor = function(name){
+    if(typeof _guardW==='function' && !_guardW()) return;
+    var nm=String(name||'').trim(); if(!nm) return;
+    var dd=document.getElementById('qVendorDropdown'); if(dd) dd.style.display='none';
+    try{ ensureClientList(); }catch(_e){}
+    var _row=_cliFind(nm);
+    if(_row){ nm=_row[0]; }
+    else { clientList.push(_cliMake(nm,'')); customClients.push(_cliMake(nm,'')); save('sched_clients_added', customClients); _saveClients(); }
+    if(!_pendFind(nm) && !_pendDone(nm)){
+      clientPend.push({ id:'cp'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), name:nm, by:_pendWho(), at:Date.now(), quoteNo:'', status:'wait' });
+      saveAll();
+    }
+    _qRegisterAndSelectVendor(nm);
+    try{ _mtToast('"'+nm+'" 임시 등록 — 견적을 작성하세요. 업체 정보는 나중에 채우면 됩니다.'); }catch(_e){}
+    try{ if(typeof _refreshClientMgr==='function') _refreshClientMgr(); }catch(_e){}
+  };
+  function _pendTouchFromCart(){ try{ if(!_qCart||!_qCart.length) return; var p=_pendFind(_qCart[0].vname||''); if(p && _qQuoteNo && p.quoteNo!==_qQuoteNo){ p.quoteNo=_qQuoteNo; saveAll(); } }catch(_e){} }
+  function _pendBanner(){
+    var n=_pendWaitCount(); if(!n) return '';
+    return '<div class="mm-smc pend"><b>업체 정보 등록 대기 '+n+'건</b><span>견적에서 임시로 등록한 거래처 — 사업자번호·대표자·주소 등을 등록해 주세요</span><a onclick="pendOpen()">등록하러 가기 →</a></div>';
+  }
+  var _pendFilter='wait';
+  window.pendSetFilter = function(f){ _pendFilter=f; pendOpen(); };
+  window._pendClose = function(){ var ov=document.getElementById('pendOverlay'); if(ov) ov.style.display='none'; };
+  window.pendOpen = function(){
+    try{ _pendSweep(); }catch(_e){}
+    var ov=document.getElementById('pendOverlay');
+    if(!ov){ ov=document.createElement('div'); ov.id='pendOverlay'; ov.style.cssText='position:fixed;inset:0;z-index:2000100;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px'; ov.onclick=function(e){ if(e.target===ov) _pendClose(); }; document.body.appendChild(ov); }
+    var all=(clientPend||[]); var cnt={wait:0,ok:0,skip:0}; all.forEach(function(p){ var s=p.status||'wait'; cnt[s]=(cnt[s]||0)+1; });
+    var list=all.filter(function(p){ return (p.status||'wait')===_pendFilter; }).sort(function(a,b){ return (b.at||0)-(a.at||0); });
+    var fb=function(k,l){ return '<button type="button" onclick="pendSetFilter(\''+k+'\')" style="padding:3px 10px;border:1px solid '+(_pendFilter===k?'#1a1a1a':'#c8d2de')+';background:'+(_pendFilter===k?'#1a1a1a':'#fff')+';color:'+(_pendFilter===k?'#fff':'#374151')+';border-radius:0;font-size:11.5px;cursor:pointer;font-family:inherit">'+l+'</button>'; };
+    var h='<div style="width:100%;max-width:640px;max-height:84vh;display:flex;flex-direction:column;background:#fff;border:1px solid #c8d2de;border-radius:0;overflow:hidden">'
+      +'<div style="padding:9px 14px;border-bottom:1px solid #c8d2de;background:#f4f6f9;display:flex;align-items:center;gap:8px"><span style="width:3px;height:15px;background:#1a1a1a"></span><span style="font-size:13.5px;font-weight:700;color:#1a1a1a">업체 정보 등록 대기</span>'
+      +'<span style="flex:1"></span>'+fb('wait','대기 '+cnt.wait)+fb('ok','등록됨 '+cnt.ok)+fb('skip','제외 '+cnt.skip)
+      +'<button type="button" onclick="_pendClose()" style="margin-left:6px;padding:0 10px;height:24px;background:#fff;border:1px solid #c8d2de;border-radius:0;font-size:11.5px;color:#4b5563;cursor:pointer;font-family:inherit">닫기</button></div>'
+      +'<div style="padding:8px 14px;font-size:11.5px;color:#6b7280;border-bottom:1px solid #eef1f4">견적에서 "임시 등록하고 작성"으로 만든 거래처입니다. [정보 등록]을 누르면 업체 관리에서 그 업체가 열립니다 — 사업자번호나 대표자·전화·주소를 저장하면 자동으로 "등록됨"으로 옮겨집니다.</div>'
+      +'<div style="overflow:auto">';
+    if(!list.length){ h+='<div style="padding:30px 16px;text-align:center;color:#b6bec9;font-size:12.5px">'+(_pendFilter==='wait'?'정보 등록을 기다리는 거래처가 없습니다.':'해당하는 항목이 없습니다.')+'</div>'; }
+    else {
+      h+='<table style="border-collapse:collapse;width:100%;font-size:12.5px"><thead><tr>'+['거래처','임시 등록','작성자','견적번호',(_pendFilter==='wait'?'처리':'상태')].map(function(t){ return '<th style="background:#f8fafc;border-bottom:1px solid #e5e7eb;padding:6px 10px;text-align:left;font-weight:700;color:#374151;white-space:nowrap">'+t+'</th>'; }).join('')+'</tr></thead><tbody>';
+      list.forEach(function(p){
+        var td='padding:6px 10px;border-bottom:1px solid #eef1f4;white-space:nowrap';
+        h+='<tr><td style="'+td+';font-weight:700;color:#14305c">'+esc(p.name)+'</td><td style="'+td+'">'+_pendFmtD(p.at)+'</td><td style="'+td+'">'+esc(p.by||'')+'</td><td style="'+td+';color:#6b7280">'+esc(p.quoteNo||'')+'</td><td style="'+td+'">';
+        if(_pendFilter==='wait') h+='<button type="button" onclick="pendGo(\''+p.id+'\')" style="padding:2px 9px;border:1px solid #1B3A6B;background:#1B3A6B;color:#fff;border-radius:0;font-size:11.5px;cursor:pointer;font-family:inherit;margin-right:4px">정보 등록</button><button type="button" onclick="pendSkip(\''+p.id+'\')" style="padding:2px 9px;border:1px solid #c8d2de;background:#fff;color:#4b5563;border-radius:0;font-size:11.5px;cursor:pointer;font-family:inherit">제외</button>';
+        else h+='<span style="color:#6b7280">'+(p.status==='ok'?'등록':'제외')+' · '+esc(p.okBy||'')+' '+_pendFmtD(p.okAt)+'</span> <button type="button" onclick="pendRestore(\''+p.id+'\')" style="padding:2px 9px;border:1px solid #c8d2de;background:#fff;color:#4b5563;border-radius:0;font-size:11.5px;cursor:pointer;font-family:inherit;margin-left:6px">대기로</button>';
+        h+='</td></tr>';
+      });
+      h+='</tbody></table>';
+    }
+    h+='</div></div>';
+    ov.innerHTML=h; ov.style.display='flex';
+  };
+  window.pendGo = function(id){
+    var p=(clientPend||[]).find(function(x){ return x.id===id; }); if(!p) return;
+    _pendClose();
+    try{ switchPage('clients'); }catch(_e){}
+    var row=_cliFind(p.name);
+    _clxQ=String(p.name||'').trim().toLowerCase(); _clxPage=1; _clxBr='all';
+    var si=document.getElementById('clxSearch'); if(si) si.value=p.name;
+    _clxExp=row?_cliKey(row):null;
+    _clxRender();
+    setTimeout(function(){ var f=document.querySelector('#clxForm .clx-f[data-k="bizNo"]'); if(f){ try{ f.focus(); }catch(_e){} } }, 80);
+  };
+  window.pendSkip = function(id){ if(typeof _guardW==='function' && !_guardW()) return; var p=(clientPend||[]).find(function(x){ return x.id===id; }); if(!p) return; p.status='skip'; p.okBy=_pendWho(); p.okAt=Date.now(); saveAll(); pendOpen(); try{ renderMemoPage(); }catch(_e){} };
+  window.pendRestore = function(id){ if(typeof _guardW==='function' && !_guardW()) return; var p=(clientPend||[]).find(function(x){ return x.id===id; }); if(!p) return; p.status='wait'; delete p.okBy; delete p.okAt; saveAll(); pendOpen(); };
   window.qAddVendor = function(name){
     var dd=document.getElementById('qVendorDropdown'); if(dd) dd.style.display='none';
     openAddClient(name, null, null, '', function(nm){ _qRegisterAndSelectVendor(nm); });
@@ -6484,7 +6576,8 @@ function reloadState() {
     var total=vs.length+extra.length;
     if(exV.length===1){ if(e.key==='Enter') e.preventDefault(); selectQVendor(exV[0].id); return; }
     if(exV.length===0 && exE.length===1){ if(e.key==='Enter') e.preventDefault(); _qRegisterAndSelectVendor(exE[0][0]); return; }
-    if(total===1){ if(e.key==='Enter') e.preventDefault(); if(vs.length===1) selectQVendor(vs[0].id); else _qRegisterAndSelectVendor(extra[0][0]); }
+    if(total===1){ if(e.key==='Enter') e.preventDefault(); if(vs.length===1) selectQVendor(vs[0].id); else _qRegisterAndSelectVendor(extra[0][0]); return; }
+    if(e.key==='Enter' && !exV.length && !exE.length){ e.preventDefault(); qQuickVendorAsk((inp.value||'').trim()); }   // r217: 없는 거래처 → 임시 등록하고 바로 작성
   };
   document.addEventListener('click', function(e){
     var dd=document.getElementById('qVendorDropdown'); var inp=document.getElementById('qVendorSearch');
@@ -7939,6 +8032,7 @@ function reloadState() {
     if(!_fbDbUrl) return;
     try{ await _qFlushLedgerFromCart(); }catch(_le){}   // 견적이 저장될 때만 원장(구매가·판매가) 갱신
     try{ await _smcCollectFromCart(); }catch(_se){}   // r181: 가격표에 없는 규격+E가 → SMC 확인 대기열
+    try{ _pendTouchFromCart(); }catch(_pe){}   // r217
     var items=JSON.parse(JSON.stringify(_qCart));
     // 견적 '항목'을 먼저 저장한다. 실패하면 예외를 던져 목록에 등록하지 않는다.
     // (등록만 되고 항목이 없으면 나중에 '불러오기 실패'가 나는 껍데기 견적이 된다)
@@ -8625,7 +8719,7 @@ function reloadState() {
 
           // 복사한 상태를 화면에 즉시 반영 (_pollSync 와 동일한 적용 경로 + sched_links 포함)
           _lmStatus('화면 반영 중…','#9ca3af');
-          var KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_meetings'];
+          var KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_client_pend','sched_meetings'];
           KEYS.forEach(function(k){ if(prod[k]!==undefined) save(k, prod[k]); });
           // r134: 매입매출 규칙은 정식에 없으면 빈 값으로 리셋 (스테이지 로컬 잔재 제거)
           ['sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'].forEach(function(k){
@@ -10898,6 +10992,7 @@ function reloadState() {
       sched_projects: projectsList, sched_client_info: clientInfo, sched_proj_memos: projMemos,
       sched_memos: memoLines, sched_memo_cards: memoCards,   // r179
       sched_smc_queue: smcQueue,   // r181
+      sched_client_pend: clientPend,   // r217
       sched_meetings: meetings,   // r187
       // r157: 매입매출 설정 5종 — 빠져 있어서 복원 시 미배정 매칭 작업이 통째로 사라졌다
       sched_fx_alias: fxAlias, sched_fx_openings: fxOpenings, sched_fx_adjusts: fxAdjusts,
@@ -14004,6 +14099,7 @@ function reloadState() {
     _mmBindInput(); _mmSetChildUI();
     var h='';
     try{ h+=_mmSmcBanner(); }catch(_e){}   // r181 SMC 확인 대기 배너
+    try{ h+=_pendBanner(); }catch(_e){}   // r217 업체 정보 등록 대기 배너
     // ① 공지 — 모든 사람 것
     var notices=(memoLines||[]).filter(function(l){ return l.kind==='notice' && !l.parent && _mmVisible(l, showDone); }).sort(function(a,b){ return (a.createdAt||0)-(b.createdAt||0); });
     if(notices.length){
@@ -16778,6 +16874,7 @@ function reloadState() {
   }
   function _clxRender(){
     var box=document.getElementById('clxList'); if(!box) return;
+    try{ var _pb=document.getElementById('clxPendBar'); if(_pb) _pb.innerHTML=_pendBanner(); }catch(_e){}   // r217
     try{ ensureClientList(); }catch(_e){}
     var _allRaw=allClients().slice().sort(function(a,b){ return String(a[0]).localeCompare(String(b[0])); });
     // r159: 지점 필터 (펼쳐 놓은 업체는 필터와 무관하게 남긴다)
