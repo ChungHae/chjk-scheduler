@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r219 2026-10-02 -->
+<!-- test build r220 2026-10-02 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -18065,21 +18065,94 @@ function reloadState() {
     if(ysel) ysel.value=_fxSumYear;
     document.querySelectorAll('#fxSumModeBtns .pf-btn').forEach(function(b){ b.classList.toggle('active', b.dataset.m===_fxSumMode); });
     var q=document.getElementById('fxSumQ'); if(q) q.style.display = _fxSumMode==='vendor'?'':'none';
+    if(ysel) ysel.style.display = (_fxSumMode==='year') ? 'none' : '';   // r220: 연도별은 연도 선택이 필요 없다
     var sv=fxSalesInv.filter(function(e){ return (_fxRegion==='all'||e.biz===_fxRegion) && e.date && e.date.slice(0,4)===_fxSumYear; });
     var pv=fxPurchInv.filter(function(e){ return (_fxRegion==='all'||e.biz===_fxRegion) && e.date && e.date.slice(0,4)===_fxSumYear; });
     var TH='padding:9px 10px;background:#fafafa;color:#888;font-weight:500;font-size:12px;text-align:center;border-bottom:2px solid #d3dce6;border-right:1px solid #e3e9f0;white-space:nowrap';
     var TD='padding:9px 10px;border-bottom:1px solid #eef2f7;border-right:1px solid #eef2f7;white-space:nowrap;font-size:12.5px;text-align:right';
+    if(_fxSumMode==='year'){   // r220: 연도별 (여러 해 한 표 + 추이)
+      var yl=_fxYears().slice().sort(), Y={};
+      yl.forEach(function(y){ Y[y]={ sc:0, ss:0, st:0, stt:0, pc:0, ps:0, pt:0, ptt:0 }; });
+      fxSalesInv.forEach(function(e){ if((_fxRegion==='all'||e.biz===_fxRegion) && e.date){ var y1=e.date.slice(0,4); if(Y[y1]){ Y[y1].sc++; Y[y1].ss+=e.supply||0; Y[y1].st+=e.tax||0; Y[y1].stt+=e.total||0; } } });
+      fxPurchInv.forEach(function(e){ if((_fxRegion==='all'||e.biz===_fxRegion) && e.date){ var y2=e.date.slice(0,4); if(Y[y2]){ Y[y2].pc++; Y[y2].ps+=e.supply||0; Y[y2].pt+=e.tax||0; Y[y2].ptt+=e.total||0; } } });
+      var mxv=0; yl.forEach(function(y){ mxv=Math.max(mxv, Y[y].ss, Y[y].ps); });
+      var bars=yl.map(function(y){
+        var x=Y[y];
+        var hs=mxv?Math.max(2,Math.round(x.ss/mxv*118)):2, hp=mxv?Math.max(2,Math.round(x.ps/mxv*118)):2;
+        return '<div style="flex:1;min-width:44px;display:flex;flex-direction:column;align-items:center;gap:5px">'
+          + '<div style="display:flex;align-items:flex-end;gap:3px;height:122px">'
+          +   '<div title="매출 '+_fxFmt(x.ss)+'원" style="width:16px;height:'+hs+'px;background:#1B3A6B"></div>'
+          +   '<div title="매입 '+_fxFmt(x.ps)+'원" style="width:16px;height:'+hp+'px;background:#9aa6b8"></div>'
+          + '</div>'
+          + '<div style="font-size:11px;color:'+(y===_fxSumYear?'#1B3A6B':'#8a94a6')+';font-weight:'+(y===_fxSumYear?'700':'400')+'">'+y+'</div>'
+          + '</div>';
+      }).join('');
+      var T2={ sc:0, ss:0, st:0, stt:0, pc:0, ps:0, pt:0, ptt:0 };
+      var rowsY=yl.slice().reverse().map(function(y){
+        var x=Y[y];
+        ['sc','ss','st','stt','pc','ps','pt','ptt'].forEach(function(k){ T2[k]+=x[k]; });
+        var pf=x.ss-x.ps, mr=x.ss?pf/x.ss*100:0;
+        return '<tr'+((!x.sc&&!x.pc)?' style="opacity:.45"':'')+'>'
+          + '<td style="'+TD+';text-align:center;font-weight:700;color:#14305c">'+y+'년</td>'
+          + '<td style="'+TD+';text-align:center;color:#6b7280">'+(x.sc||'-')+'</td>'
+          + '<td style="'+TD+'">'+_fxFmt(x.ss)+'</td>'
+          + '<td style="'+TD+';font-weight:700">'+_fxFmt(x.stt)+'</td>'
+          + '<td style="'+TD+';text-align:center;color:#6b7280">'+(x.pc||'-')+'</td>'
+          + '<td style="'+TD+'">'+_fxFmt(x.ps)+'</td>'
+          + '<td style="'+TD+';font-weight:700">'+_fxFmt(x.ptt)+'</td>'
+          + '<td style="'+TD+';font-weight:700;color:'+(pf>=0?'#14305c':'#dc2626')+'">'+_fxFmt(pf)+'</td>'
+          + '<td style="'+TD+';color:'+(pf>=0?'#14305c':'#dc2626')+'">'+(x.ss?mr.toFixed(1)+'%':'-')+'</td>'
+          + '</tr>';
+      }).join('');
+      var pfT=T2.ss-T2.ps, mrT=T2.ss?pfT/T2.ss*100:0;
+      rowsY += '<tr style="background:#f4f8fe">'
+        + '<td style="'+TD+';text-align:center;font-weight:700;color:#1B3A6B">합계</td>'
+        + '<td style="'+TD+';text-align:center;font-weight:700">'+T2.sc+'</td>'
+        + '<td style="'+TD+';font-weight:700">'+_fxFmt(T2.ss)+'</td>'
+        + '<td style="'+TD+';font-weight:700">'+_fxFmt(T2.stt)+'</td>'
+        + '<td style="'+TD+';text-align:center;font-weight:700">'+T2.pc+'</td>'
+        + '<td style="'+TD+';font-weight:700">'+_fxFmt(T2.ps)+'</td>'
+        + '<td style="'+TD+';font-weight:700">'+_fxFmt(T2.ptt)+'</td>'
+        + '<td style="'+TD+';font-weight:700;color:'+(pfT>=0?'#1B3A6B':'#dc2626')+'">'+_fxFmt(pfT)+'</td>'
+        + '<td style="'+TD+';font-weight:700;color:'+(pfT>=0?'#1B3A6B':'#dc2626')+'">'+(T2.ss?mrT.toFixed(1)+'%':'-')+'</td>'
+        + '</tr>';
+      host.innerHTML =
+        '<div style="background:#fff;border:1px solid #d6deea;padding:14px 16px 10px;margin-bottom:12px">'
+        + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">'
+        +   '<span style="font-size:12.5px;font-weight:700;color:#14305c">연도별 매출·매입 추이</span>'
+        +   '<span style="font-size:11px;color:#9ca3af">공급가액 기준 · 부가세 별도</span><span style="flex:1"></span>'
+        +   '<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#6b7280"><i style="width:9px;height:9px;background:#1B3A6B;display:inline-block"></i>매출</span>'
+        +   '<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#6b7280"><i style="width:9px;height:9px;background:#9aa6b8;display:inline-block"></i>매입</span>'
+        + '</div>'
+        + '<div style="display:flex;align-items:flex-end;gap:4px">'+bars+'</div>'
+        + '</div>'
+        + '<div style="background:#fff;border:1px solid #d6deea;overflow:auto"><table style="width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px;min-width:860px">'
+        + '<thead><tr>'
+        +   '<th style="'+TH+'" rowspan="2">연도</th>'
+        +   '<th style="'+TH+'" colspan="3">매출 (계산서 발행)</th>'
+        +   '<th style="'+TH+'" colspan="3">매입 (계산서 수취)</th>'
+        +   '<th style="'+TH+'" rowspan="2">매출총이익</th>'
+        +   '<th style="'+TH+'" rowspan="2">마진율</th>'
+        + '</tr><tr>'
+        +   '<th style="'+TH+'">건수</th><th style="'+TH+'">공급가액</th><th style="'+TH+'">합계</th>'
+        +   '<th style="'+TH+'">건수</th><th style="'+TH+'">공급가액</th><th style="'+TH+'">합계</th>'
+        + '</tr></thead><tbody>'+rowsY+'</tbody></table></div>'
+        + '<div style="margin-top:8px;font-size:11.5px;color:#9ca3af">매출총이익 = 매출 공급가액 − 매입 공급가액 · 마진율 = 매출총이익 ÷ 매출 공급가액 (부가세 별도)</div>';
+      return;
+    }
     if(_fxSumMode==='month'){
       var M={};
       for(var m=1;m<=12;m++) M[m]={ sc:0, ss:0, st:0, stt:0, pc:0, ps:0, pt:0, ptt:0 };
       sv.forEach(function(e){ var m=Number(e.date.slice(5,7)); if(M[m]){ M[m].sc++; M[m].ss+=e.supply||0; M[m].st+=e.tax||0; M[m].stt+=e.total||0; } });
       pv.forEach(function(e){ var m=Number(e.date.slice(5,7)); if(M[m]){ M[m].pc++; M[m].ps+=e.supply||0; M[m].pt+=e.tax||0; M[m].ptt+=e.total||0; } });
       var T={ sc:0, ss:0, st:0, stt:0, pc:0, ps:0, pt:0, ptt:0 };
+      var _mg=function(x){ return x.ss ? ((x.ss-x.ps)/x.ss*100) : null; };   // r220: 마진율 (공급가액 기준)
       var rows='';
       for(var m2=1;m2<=12;m2++){
         var x=M[m2];
         ['sc','ss','st','stt','pc','ps','pt','ptt'].forEach(function(k){ T[k]+=x[k]; });
         var dim = !x.sc && !x.pc;
+        var _r=_mg(x);
         rows += '<tr'+(dim?' style="opacity:.45"':'')+'>'
           + '<td style="'+TD+';text-align:center;font-weight:700;color:#14305c">'+m2+'월</td>'
           + '<td style="'+TD+';text-align:center;color:#6b7280">'+(x.sc||'-')+'</td>'
@@ -18091,8 +18164,10 @@ function reloadState() {
           + '<td style="'+TD+';color:#6b7280">'+_fxFmt(x.pt)+'</td>'
           + '<td style="'+TD+';font-weight:700">'+_fxFmt(x.ptt)+'</td>'
           + '<td style="'+TD+';font-weight:700;color:'+((x.stt-x.ptt)>=0?'#14305c':'#dc2626')+'">'+_fxFmt(x.stt-x.ptt)+'</td>'
+          + '<td style="'+TD+';color:'+((_r!=null&&_r>=0)?'#14305c':'#dc2626')+'">'+(_r!=null?_r.toFixed(1)+'%':'-')+'</td>'
           + '</tr>';
       }
+      var _rT=_mg(T);
       rows += '<tr style="background:#f4f8fe">'
         + '<td style="'+TD+';text-align:center;font-weight:700;color:#1B3A6B">합계</td>'
         + '<td style="'+TD+';text-align:center;font-weight:700">'+T.sc+'</td>'
@@ -18104,18 +18179,21 @@ function reloadState() {
         + '<td style="'+TD+';font-weight:700">'+_fxFmt(T.pt)+'</td>'
         + '<td style="'+TD+';font-weight:700">'+_fxFmt(T.ptt)+'</td>'
         + '<td style="'+TD+';font-weight:700;color:'+((T.stt-T.ptt)>=0?'#1B3A6B':'#dc2626')+'">'+_fxFmt(T.stt-T.ptt)+'</td>'
+        + '<td style="'+TD+';font-weight:700;color:'+((_rT!=null&&_rT>=0)?'#1B3A6B':'#dc2626')+'">'+(_rT!=null?_rT.toFixed(1)+'%':'-')+'</td>'
         + '</tr>';
       host.innerHTML =
-        '<div style="background:#fff;border:1px solid #d6deea;overflow:auto"><table style="width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px;min-width:900px">'
+        '<div style="background:#fff;border:1px solid #d6deea;overflow:auto"><table style="width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px;min-width:980px">'
         + '<thead><tr>'
         +   '<th style="'+TH+'" rowspan="2">월</th>'
         +   '<th style="'+TH+'" colspan="4">매출 (계산서 발행)</th>'
         +   '<th style="'+TH+'" colspan="4">매입 (계산서 수취)</th>'
         +   '<th style="'+TH+'" rowspan="2">차액(합계)</th>'
+        +   '<th style="'+TH+'" rowspan="2">마진율</th>'
         + '</tr><tr>'
         +   '<th style="'+TH+'">건수</th><th style="'+TH+'">공급가액</th><th style="'+TH+'">세액</th><th style="'+TH+'">합계</th>'
         +   '<th style="'+TH+'">건수</th><th style="'+TH+'">공급가액</th><th style="'+TH+'">세액</th><th style="'+TH+'">합계</th>'
         + '</tr></thead><tbody>'+rows+'</tbody></table></div>'
+        + '<div style="margin-top:8px;font-size:11.5px;color:#9ca3af">마진율 = (매출 공급가액 − 매입 공급가액) ÷ 매출 공급가액 (부가세 별도)</div>'
         + (pv.length?'':'<div style="margin-top:8px;font-size:11.5px;color:#9ca3af">매입 계산서 자료는 자료 업로드(홈택스 매입) 연결 후 채워집니다.</div>');
       return;
     }
@@ -19653,6 +19731,7 @@ function reloadState() {
         + '<select id="fxSumYearSel" class="q-flat" onchange="fxSumYear(this.value)" style="width:88px;flex:0 0 auto"></select>'
         + '<div id="fxSumModeBtns" style="display:flex;gap:4px">'
         +   '<button type="button" class="btn pf-btn" data-m="month" onclick="fxSumMode(\'month\')" style="font-size:11.5px;padding:3px 11px">월별</button>'
+        +   '<button type="button" class="btn pf-btn" data-m="year" onclick="fxSumMode(\'year\')" style="font-size:11.5px;padding:3px 11px">연도별</button>'
         +   '<button type="button" class="btn pf-btn" data-m="vendor" onclick="fxSumMode(\'vendor\')" style="font-size:11.5px;padding:3px 11px">거래처별</button>'
         + '</div>'
         + '<input type="text" id="fxSumQ" class="q-flat" placeholder="거래처 검색…" value="'+esc(_fxSumQ)+'" oninput="fxSumSearch(this.value)" autocomplete="off" style="width:200px;display:none">'
@@ -19948,23 +20027,43 @@ function reloadState() {
       var pv=fxPurchInv.filter(function(e){ return (_fxRegion==='all'||e.biz===_fxRegion) && e.date && e.date.slice(0,4)===yr; });
       if(!sv.length && !pv.length){ showInfoModal('집계','해당 연도 자료가 없습니다.'); return; }
       var aoa, fn, money, left;
+      if(_fxSumMode==='year'){   // r220: 연도별 시트
+        var yl2=_fxYears().slice().sort(), Y2={};
+        yl2.forEach(function(y){ Y2[y]={ sc:0, ss:0, st:0, stt:0, pc:0, ps:0, pt:0, ptt:0 }; });
+        fxSalesInv.forEach(function(e){ if((_fxRegion==='all'||e.biz===_fxRegion) && e.date){ var a1=e.date.slice(0,4); if(Y2[a1]){ Y2[a1].sc++; Y2[a1].ss+=e.supply||0; Y2[a1].st+=e.tax||0; Y2[a1].stt+=e.total||0; } } });
+        fxPurchInv.forEach(function(e){ if((_fxRegion==='all'||e.biz===_fxRegion) && e.date){ var a2=e.date.slice(0,4); if(Y2[a2]){ Y2[a2].pc++; Y2[a2].ps+=e.supply||0; Y2[a2].pt+=e.tax||0; Y2[a2].ptt+=e.total||0; } } });
+        var TY={ sc:0, ss:0, st:0, stt:0, pc:0, ps:0, pt:0, ptt:0 };
+        var aoaY=[['연도','매출 건수','매출 공급가액','매출 합계','매입 건수','매입 공급가액','매입 합계','매출총이익','마진율(%)']];
+        yl2.slice().reverse().forEach(function(y){
+          var x=Y2[y];
+          ['sc','ss','st','stt','pc','ps','pt','ptt'].forEach(function(k){ TY[k]+=x[k]; });
+          aoaY.push([y+'년', x.sc, x.ss, x.stt, x.pc, x.ps, x.ptt, x.ss-x.ps, x.ss?Math.round((x.ss-x.ps)/x.ss*1000)/10:0]);
+        });
+        aoaY.push(['합계', TY.sc, TY.ss, TY.stt, TY.pc, TY.ps, TY.ptt, TY.ss-TY.ps, TY.ss?Math.round((TY.ss-TY.ps)/TY.ss*1000)/10:0]);
+        var wsY=XLSX.utils.aoa_to_sheet(aoaY);
+        wsY['!cols']=[{wch:8},{wch:9},{wch:16},{wch:16},{wch:9},{wch:16},{wch:16},{wch:16},{wch:10}];
+        _fxXlsStyle(wsY, 0, [2,3,5,6,7], null);
+        var wbY=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wbY, wsY, '연도별');
+        XLSX.writeFile(wbY, '매입매출집계_연도별_'+_fxRegionLabel()+'_'+_fxDs()+'.xlsx');
+        return;
+      }
       if(_fxSumMode==='month'){
         var M={}, m;
         for(m=1;m<=12;m++) M[m]={ sc:0, ss:0, st:0, stt:0, pc:0, ps:0, pt:0, ptt:0 };
         sv.forEach(function(e){ var k=Number(e.date.slice(5,7)); if(M[k]){ M[k].sc++; M[k].ss+=e.supply||0; M[k].st+=e.tax||0; M[k].stt+=e.total||0; } });
         pv.forEach(function(e){ var k=Number(e.date.slice(5,7)); if(M[k]){ M[k].pc++; M[k].ps+=e.supply||0; M[k].pt+=e.tax||0; M[k].ptt+=e.total||0; } });
         var T={ sc:0, ss:0, st:0, stt:0, pc:0, ps:0, pt:0, ptt:0 };
-        aoa=[['월','매출 건수','매출 공급가액','매출 세액','매출 합계','매입 건수','매입 공급가액','매입 세액','매입 합계','차액(합계)']];
+        aoa=[['월','매출 건수','매출 공급가액','매출 세액','매출 합계','매입 건수','매입 공급가액','매입 세액','매입 합계','차액(합계)','마진율(%)']];
         for(m=1;m<=12;m++){
           var x=M[m];
           ['sc','ss','st','stt','pc','ps','pt','ptt'].forEach(function(k){ T[k]+=x[k]; });
-          aoa.push([m+'월', x.sc, x.ss, x.st, x.stt, x.pc, x.ps, x.pt, x.ptt, x.stt-x.ptt]);
+          aoa.push([m+'월', x.sc, x.ss, x.st, x.stt, x.pc, x.ps, x.pt, x.ptt, x.stt-x.ptt, x.ss?Math.round((x.ss-x.ps)/x.ss*1000)/10:0]);
         }
-        aoa.push(['합계', T.sc, T.ss, T.st, T.stt, T.pc, T.ps, T.pt, T.ptt, T.stt-T.ptt]);
+        aoa.push(['합계', T.sc, T.ss, T.st, T.stt, T.pc, T.ps, T.pt, T.ptt, T.stt-T.ptt, T.ss?Math.round((T.ss-T.ps)/T.ss*1000)/10:0]);
         fn='매입매출집계_월별_'+_fxRegionLabel()+'_'+yr+'_'+_fxDs()+'.xlsx';
         money=[2,3,4,6,7,8,9]; left=null;
         var ws1=XLSX.utils.aoa_to_sheet(aoa);
-        ws1['!cols']=[{wch:6},{wch:9},{wch:14},{wch:12},{wch:14},{wch:9},{wch:14},{wch:12},{wch:14},{wch:14}];
+        ws1['!cols']=[{wch:6},{wch:9},{wch:14},{wch:12},{wch:14},{wch:9},{wch:14},{wch:12},{wch:14},{wch:14},{wch:10}];
         _fxXlsStyle(ws1, 0, money, left);
         var wb1=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb1, ws1, yr+'년 월별');
         XLSX.writeFile(wb1, fn);
