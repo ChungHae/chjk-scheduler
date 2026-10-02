@@ -7622,7 +7622,9 @@ function reloadState() {
     var FONT=await _qPdfFontLoad(pm);
     var dd=_qBuildPdfDoc({ orient:window._qPdfOrient, font:FONT });
     var _fn=('견적서 '+(_qQuoteNo||'')).replace(/[<>:"/\\|?*]/g,' ').replace(/\s+/g,' ').trim();
+    var _xwb=await _qPrepQuoteXlsx();   // r218
     pm.createPdf(dd).download(_fn+'.pdf');
+    _qSaveQuoteXlsx(_xwb, _fn);   // r218
   };
   window.qPreviewPdf = async function(orient){
     if(!_qCart.length || !_qCartHasContent()){ showInfoModal('견적 목록', '견적 목록이 비어 있습니다.'); return; }
@@ -7770,15 +7772,17 @@ function reloadState() {
         }
         var dl=document.getElementById('qPvDlBtn');
         if(dl) dl.onclick=function(){
-          showConfirmModal('견적서 저장', '견적번호 <b>'+esc(no)+'</b> 로 저장 후 PDF 파일을 다운로드합니다.\n\n파일명 · 견적서 '+esc(no)+'.pdf', function(){ (async function(){
+          showConfirmModal('견적서 저장', '견적번호 <b>'+esc(no)+'</b> 로 저장 후 PDF 와 엑셀 파일을 함께 다운로드합니다.\n\n파일명 · 견적서 '+esc(no)+'.pdf / .xlsx', function(){ (async function(){
             var _saved=true;   // r186
+            var _xwb=await _qPrepQuoteXlsx();   // r218
             try{ await _qPersistQuote(); }catch(_pe){ _saved=false; showInfoModal('견적 저장 실패', (_pe&&_pe.message||String(_pe))+'\n\n다운로드는 계속 진행하지만, 이 견적은 저장되지 않았습니다.'); }
             try{
               var _fn=('견적서 '+no).replace(/[<>:"/\\|?*]/g,' ').replace(/\s+/g,' ').trim();
               var a=document.createElement('a'); a.href=window._qPvUrl; a.download=_fn+'.pdf';
               document.body.appendChild(a); a.click(); a.remove();
+              _qSaveQuoteXlsx(_xwb, _fn);   // r218
               window._qPdfPreviewClose();
-              if(_saved){ _qResetQuoteScreen(); showInfoModal('저장 완료', '"'+esc(no)+'" 견적을 저장하고 PDF 로 내려받았습니다.\n새 견적을 작성할 수 있게 목록을 비웠습니다.'); }   // r186
+              if(_saved){ _qResetQuoteScreen(); showInfoModal('저장 완료', '"'+esc(no)+'" 견적을 저장하고 PDF·엑셀로 내려받았습니다.\n새 견적을 작성할 수 있게 목록을 비웠습니다.'); }   // r186
             }catch(_de){ showInfoModal('PDF 다운로드 실패', (_de&&_de.message||String(_de))); }
           })(); }, 'PDF 다운로드', '#1B3A6B');
         };
@@ -7798,10 +7802,10 @@ function reloadState() {
     window._qPdfOrient=(orient==='l')?'l':'p';
     _qEnsureQuoteNo();
     var no=_qQuoteNo||'';
-    showConfirmModal('견적서 저장', '견적번호 <b>'+esc(no)+'</b> 로 저장 후 PDF 파일을 다운로드합니다.\n\n파일명 · 견적서 '+esc(no)+'.pdf', function(){ (async function(){
+    showConfirmModal('견적서 저장', '견적번호 <b>'+esc(no)+'</b> 로 저장 후 PDF 와 엑셀 파일을 함께 다운로드합니다.\n\n파일명 · 견적서 '+esc(no)+'.pdf / .xlsx', function(){ (async function(){
       var _saved=true;   // r186
       try{ await _qPersistQuote(); }catch(_pe){ _saved=false; showInfoModal('견적 저장 실패', (_pe&&_pe.message||String(_pe))+'\n\n다운로드는 계속 진행하지만, 이 견적은 저장되지 않았습니다.'); }
-      try{ await window.qDownloadPdf(window._qPdfOrient); if(_saved){ _qResetQuoteScreen(); showInfoModal('저장 완료', '"'+esc(no)+'" 견적을 저장하고 PDF 로 내려받았습니다.\n새 견적을 작성할 수 있게 목록을 비웠습니다.'); } }   // r186
+      try{ await window.qDownloadPdf(window._qPdfOrient); if(_saved){ _qResetQuoteScreen(); showInfoModal('저장 완료', '"'+esc(no)+'" 견적을 저장하고 PDF·엑셀로 내려받았습니다.\n새 견적을 작성할 수 있게 목록을 비웠습니다.'); } }   // r186
       catch(_de){ showInfoModal('PDF 생성 실패', (_de&&_de.message||String(_de))+'\n\n브라우저 인쇄창 방식으로 대신 진행합니다.'); try{ qExportPdf(true); }catch(_e2){} }
     })(); }, 'PDF 다운로드', '#1B3A6B');
   };
@@ -8103,6 +8107,14 @@ function reloadState() {
     try{
       await _ensureXlsxLib();
       try{ await _qPersistQuote(); }catch(_pe){ showInfoModal('견적 저장 실패', (_pe&&_pe.message||String(_pe))+'\n\n엑셀은 계속 만들지만, 이 견적은 저장되지 않았습니다.'); }
+      var wb=_qBuildQuoteXlsxWb();   // r218
+      var vn=(_qCart[0].vname||'견적'); var d=new Date();
+      var ds=d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
+      XLSX.writeFile(wb,'견적목록_'+vn+'_'+ds+'.xlsx');
+      if(_qQuoteNo) showInfoModal('자동 저장', '이 견적은 "'+esc(_qQuoteNo)+'" 번호로 자동 저장되었습니다.');
+    }catch(e){ showInfoModal('알림', '엑셀 내보내기 실패: '+e.message); }
+  };
+  function _qBuildQuoteXlsxWb(){   // r218: 견적목록 엑셀 워크북 — 일반 엑셀 버튼과 PDF 동시 다운로드가 같이 쓴다 (XLSX 로드 후 호출)
       var totalBuy=0, totalSell=0, totalQty=0;
       var _cxC=(typeof _qCols!=='undefined'&&_qCols)?_qCols:[];
       var _isSynapse=(((_qCart[0]&&_qCart[0].vname)||'').indexOf('시냅스이미징')>=0);
@@ -8156,12 +8168,11 @@ function reloadState() {
         else { cl.s = pctCols[c] ? pct : (numCols[c] ? num : ctr); }
       }}
       var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'견적목록');
-      var vn=(_qCart[0].vname||'견적'); var d=new Date();
-      var ds=d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
-      XLSX.writeFile(wb,'견적목록_'+vn+'_'+ds+'.xlsx');
-      if(_qQuoteNo) showInfoModal('자동 저장', '이 견적은 "'+esc(_qQuoteNo)+'" 번호로 자동 저장되었습니다.');
-    }catch(e){ showInfoModal('알림', '엑셀 내보내기 실패: '+e.message); }
-  };
+      return wb;
+  }
+  // r218: PDF 와 같은 이름(견적서 <번호>.xlsx)으로 엑셀을 이어서 저장. 목록을 비우기 전에 미리 만들어 둔 워크북을 쓴다.
+  async function _qPrepQuoteXlsx(){ try{ await _ensureXlsxLib(); return _qBuildQuoteXlsxWb(); }catch(_e){ return null; } }
+  function _qSaveQuoteXlsx(wb, fn){ if(!wb) return; setTimeout(function(){ try{ XLSX.writeFile(wb, fn+'.xlsx'); }catch(_e){} }, 600); }
   window.qNegoSet = function(val){ if(!_guardW()) return; var v=String(val||'').replace(/[,\s]/g,''); if(v===''){ _qNego=null; } else { var n=Number(v); _qNego=isNaN(n)?null:n; } _qCartSave(); renderQCart(); };
   window.qMemoSet = function(v){ _qMemo=(v==null?'':String(v)); _qCartSaveSoon(); };   // 비고 타이핑: 200행 이상이면 저장만 250ms 디바운스
   window.qNoteSet = function(v){ _qNote=(v==null?'':String(v)); _qCartSaveSoon(); };   // 툴바 메모(견적 찾기용) 타이핑 — 견적서 지면에는 안 나감
