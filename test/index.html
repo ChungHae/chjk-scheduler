@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r220 2026-10-02 -->
+<!-- test build r221 2026-10-02 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -2332,12 +2332,6 @@
       .main { padding: 10px 8px !important; }
       /* 상단 요약/필터 박스 여백 축소 */
       #qSubPrice > div:first-child, #qSubQuote > div:first-child { padding: 10px !important; gap: 6px !important; }
-      /* 입금매칭 요약: 카드/그래프는 이미 auto-fit → 여백만 */
-      #misuSummaryWrap { margin-bottom: 12px !important; }
-      /* 좁은 화면: 앱 설명 문구 숨김 (버튼 title로 대체) — 요약 칩은 flex-wrap으로 자동 줄바꿈 */
-      .arm-appdesc { display:none !important; }
-      /* 좁은 화면: 회계 차트는 한 줄에 1개 */
-      #armChartGrid { grid-template-columns: 1fr !important; }
       /* 넓은 데이터 표: 가로 스크롤 컨테이너가 화면을 넘지 않도록 */
       .page-section > div[style*="overflow-x:auto"], .page-section [style*="overflow-x:auto"] { max-width: 100%; }
     }
@@ -2574,16 +2568,6 @@
       /* 누르는 동안에만 눌림 표시 (떼면 원래 색으로 복귀) */
       #pageWeekly .wknav-arrow:active { background: #1B3A6B !important; color: #fff !important; border-color: #1B3A6B !important; }
       #pageWeekly .wknav-today:active { background: #14305c !important; }
-      /* ══ 회계(입출금) ══ */
-      /* 툴바: 제목·기준일 한 줄, 앱 열기 버튼은 아래 전폭 */
-      #pageArmatch .q-toolbar { row-gap: 8px; }
-      #pageArmatch .q-toolbar a[href*="chjk-manage"] { flex: 1 1 100%; justify-content: center; }
-      /* 차트: 세로 막대 SVG는 비율 유지로 축소(빈 여백 방지) + 넘치면 가로 스크롤 */
-      #armChartGrid > div > div:last-child { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-      #armChartGrid svg { height: auto !important; min-width: 520px; }
-      /* 상위업체 가로 막대: 업체명·금액 칸 축소 → 막대가 살도록 */
-      .arm-hbn { width: 96px !important; flex: 0 0 96px !important; font-size: 11px !important; }
-      .arm-hbv { width: 56px !important; flex: 0 0 56px !important; font-size: 11px !important; }
     }
     /* ── 초소형(≤480px): 카드매출 달력 셀 더 축소 ── */
     @media (max-width: 480px) {
@@ -2671,7 +2655,6 @@
 </nav>
 <nav class="sub-nav" id="acctSubNav" style="display:none">
   <button class="sub-tab" data-page="fxsum">집계</button>
-  <button class="sub-tab" data-page="armatch">입출금</button>
   <button class="sub-tab" data-page="fx">미수현황</button>
   <button class="sub-tab" data-page="cardsales">카드매출</button>
   <button class="sub-tab" id="acctTabFxUp" data-page="fxup">자료 업로드</button>
@@ -2966,35 +2949,6 @@
   </div>
 
   <!-- ─── 입금매칭(미수) 페이지 ─── -->
-  <div id="pageArmatch" class="page-section">
-    <!-- 상단 툴바: 견적·재고 툴바(.q-toolbar)와 동일한 결 — 좌측 제목·기준일, 우측 앱 열기 -->
-    <div class="q-toolbar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <span style="font-size:12.5px;font-weight:700;color:#14305c;white-space:nowrap">회계 현황</span>
-      <span id="misuSummaryMeta" style="font-size:11px;color:#9ca3af;white-space:nowrap"></span>
-      <span style="flex:1"></span>
-      <span class="arm-appdesc" style="font-size:11px;color:#9ca3af;white-space:nowrap">은행 입금내역 ↔ 세금계산서 자동 대사 · 내용증명 문서 생성</span>
-      <a href="https://chjk-manage.streamlit.app/" target="_blank" rel="noopener" onclick="try{var _fu=firebase.auth().currentUser,_fn=localStorage.getItem('sched_last_user');if(_fu&&_fn){this.href=this.href.split('?')[0]+'?sso='+encodeURIComponent(_fu.refreshToken)+'&u='+encodeURIComponent(_fn);}}catch(e){}" title="새 탭에서 열립니다 (팝업·다운로드가 원활히 작동합니다)" style="display:inline-flex;align-items:center;background:#1B3A6B;color:#fff;font-weight:700;font-size:12.5px;padding:7px 18px;border-radius:0;text-decoration:none;white-space:nowrap">입출금내역 앱 열기 ↗</a>
-    </div>
-    <div id="misuSummaryWrap" style="margin:14px 0 18px">
-      <!-- 요약: 카드매출 상단 요약 칩과 동일한 결 (각진 작은 칩 한 줄) — 큰 카드 대신 최소 공간 -->
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
-        <span style="font-size:12.5px;font-weight:700;color:#14305c;white-space:nowrap;margin-right:2px">미수 현황</span>
-        <span id="misuSummaryGrid" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-width:0"><span style="color:#9ca3af;font-size:12px">불러오는 중…</span></span>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-        <span style="font-size:12.5px;font-weight:700;color:#14305c;white-space:nowrap;margin-right:2px">매출 현황</span>
-        <span id="salesSummaryGrid" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-width:0"><span style="color:#9ca3af;font-size:12px">불러오는 중…</span></span>
-        <span id="salesSummaryMeta" style="font-size:11px;color:#9ca3af;white-space:nowrap"></span>
-      </div>
-      <div id="armChartGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px">
-        <div id="salesChartYear"></div>
-        <div id="salesChartMonth"></div>
-        <div id="salesTopYear"></div>
-        <div id="salesTopMonth"></div>
-      </div>
-    </div>
-  </div>
-
   <!-- ─── 매입매출(신) 페이지 (r122, r128 디자인 통일: 재고/매입처 툴바 패턴) ─── -->
   <div id="pageFx" class="page-section">
     <style>
@@ -3919,89 +3873,8 @@
   let _fbPollTimer = null;
   let _fbLastUpdatedAt = 0;
   let myMemberId = localStorage.getItem('sched_my_id') || '';
-  function _misuFmtWon(x){
-    x = Number(x)||0;
-    if(x>=1e8) return (x/1e8).toFixed(1).replace(/\.0$/,'')+'억';
-    if(x>=1e4) return Math.round(x/1e4).toLocaleString()+'만';
-    return x.toLocaleString();
-  }
-  function _misuVBarChart(containerId, title, rows){
-    var el=document.getElementById(containerId); if(!el) return;
-    if(!rows || !rows.length){ el.innerHTML=''; return; }
-    var n=rows.length, W=Math.max(320, n*74), H=300, padL=10, padR=10, padT=26, padB=26, plotH=H-padT-padB;
-    var maxv=1; rows.forEach(function(r){ maxv=Math.max(maxv, r.sales||0, r.buy||0); });
-    var groupW=(W-padL-padR)/n, barW=Math.min(22, groupW/2.5), gap=13;
-    var bars='', labels='';
-    rows.forEach(function(r,i){
-      var cx=padL+groupW*i+groupW/2;
-      var hs=Math.round((r.sales||0)/maxv*plotH), hb=Math.round((r.buy||0)/maxv*plotH);
-      var cxs=cx-barW/2-gap/2, cxb=cx+barW/2+gap/2;
-      bars+='<rect x="'+(cx-barW-gap/2)+'" y="'+(padT+plotH-hs)+'" width="'+barW+'" height="'+hs+'" rx="0" fill="#1B3A6B"><title>매출 '+_misuFmtWon(r.sales)+'원</title></rect>';
-      bars+='<rect x="'+(cx+gap/2)+'" y="'+(padT+plotH-hb)+'" width="'+barW+'" height="'+hb+'" rx="0" fill="#9db8dd"><title>매입 '+_misuFmtWon(r.buy)+'원</title></rect>';
-      if((r.sales||0)>0) bars+='<text x="'+cxs+'" y="'+(padT+plotH-hs-4)+'" text-anchor="middle" font-size="9.5" font-weight="700" fill="#1a1a1a">'+_misuFmtWon(r.sales)+'</text>';
-      if((r.buy||0)>0) bars+='<text x="'+cxb+'" y="'+(padT+plotH-hb-4)+'" text-anchor="middle" font-size="9.5" font-weight="700" fill="#5f7fb0">'+_misuFmtWon(r.buy)+'</text>';
-      labels+='<text x="'+cx+'" y="'+(H-9)+'" text-anchor="middle" font-size="10.5" fill="#6b7280">'+r.label+'</text>';
-    });
-    var bands=''; for(var _bi=0;_bi<n;_bi++){ if(_bi%2===0) bands+='<rect x="'+(padL+groupW*_bi).toFixed(1)+'" y="'+padT+'" width="'+groupW.toFixed(1)+'" height="'+plotH+'" fill="#f4f6fb"/>'; }
-    var base='<line x1="'+padL+'" y1="'+(padT+plotH)+'" x2="'+(W-padR)+'" y2="'+(padT+plotH)+'" stroke="#e5e9f0" stroke-width="1"/>';
-    var legend='<span style="font-size:11px;color:#6b7280"><span style="display:inline-block;width:9px;height:9px;background:#1B3A6B;border-radius:0;margin-right:3px"></span>매출<span style="display:inline-block;width:9px;height:9px;background:#9db8dd;border-radius:0;margin:0 3px 0 10px"></span>매입</span>';
-    el.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;flex-wrap:wrap;gap:4px"><span style="font-size:13px;font-weight:700;color:#1a1a1a">'+title+'</span>'+legend+'</div>'+
-      '<div style="border:1px solid #eef2f7;border-radius:0;padding:6px 6px 2px;background:#fff"><svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" preserveAspectRatio="xMidYMid meet">'+bands+base+bars+labels+'</svg></div>';
-  }
-  // 요약 칩: 카드매출 상단 칩(_csRenderSummary)과 동일한 모양 — 각진 작은 칩, 라벨 + 굵은 값
-  function _misuChip(label, val, bg, vc, lc){
-    return '<span style="background:'+bg+';border-radius:0;padding:4px 10px;font-size:12px;color:'+(lc||'#6b7280')+';white-space:nowrap">'+label+' <b style="color:'+vc+';font-weight:700">'+val+'</b></span>';
-  }
-  // 매출 상위 업체 가로 막대 그래프 (rows: [{n:업체명, a:매출액}])
-  function _misuHBarChart(containerId, title, rows){
-    var el=document.getElementById(containerId); if(!el) return;
-    if(!rows || !rows.length){ el.innerHTML=''; return; }
-    var mx=1; rows.forEach(function(r){ mx=Math.max(mx, Number(r.a)||0); });
-    var body=rows.map(function(r){
-      var a=Number(r.a)||0, w=Math.max(4, Math.round(a/mx*100)), nm=esc(String(r.n||''));
-      return '<div style="display:flex;align-items:center;gap:10px;margin:9px 0">'
-        +'<div class="arm-hbn" title="'+nm+'" style="width:180px;flex:0 0 180px;font-size:12px;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right">'+nm+'</div>'
-        +'<div style="flex:1;background:#f1f4f9;height:18px;position:relative"><div style="width:'+w+'%;height:100%;background:#1B3A6B"></div></div>'
-        +'<div class="arm-hbv" style="width:70px;flex:0 0 70px;font-size:12px;font-weight:700;color:#1a1a1a;white-space:nowrap">'+_misuFmtWon(a)+'</div>'
-        +'</div>';
-    }).join('');
-    el.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;flex-wrap:wrap;gap:4px"><span style="font-size:13px;font-weight:700;color:#1a1a1a">'+title+'</span><span style="font-size:11px;color:#9ca3af">부가세 별도</span></div>'
-      +'<div style="border:1px solid #eef2f7;border-radius:0;padding:12px 14px;background:#fff">'+body+'</div>';
-  }
+  // r221: 입출금 탭(구 Streamlit 요약 대시보드) 삭제. _misuNote 는 카드매출이 쓰므로 남긴다.
   function _misuNote(gridId, msg){ var g=document.getElementById(gridId); if(g) g.innerHTML='<div style="color:#9ca3af;font-size:13px;padding:14px">'+msg+'</div>'; }
-  async function loadMisuSummary(){
-    var meta=document.getElementById('misuSummaryMeta'), smeta=document.getElementById('salesSummaryMeta');
-    if(!document.getElementById('misuSummaryGrid')) return;
-    try{
-      if(!_fbDbUrl){ _misuNote('misuSummaryGrid','로그인 후 표시됩니다.'); _misuNote('salesSummaryGrid','로그인 후 표시됩니다.'); return; }
-      var r=await _fbFetch(_fbDbUrl+'/'+_FB_PATH+'_misu_summary.json');
-      var d = (r && r.ok) ? await r.json() : null;
-      if(!d || typeof d!=='object'){ var m='아직 요약 데이터가 없습니다. 미수 앱에서 “미수 현황”을 한 번 열면 생성됩니다.'; _misuNote('misuSummaryGrid',m); _misuNote('salesSummaryGrid',m); if(meta)meta.textContent=''; if(smeta)smeta.textContent=''; return; }
-      var mg=document.getElementById('misuSummaryGrid');
-      if(mg) mg.innerHTML=[
-        _misuChip('총 미수', _misuFmtWon(d.total_unpaid)+'원', '#1B3A6B', '#fff', '#ccdcf5'),
-        _misuChip('거래처', (d.unpaid_count||0)+'곳', '#EAF1FB', '#1B3A6B'),
-        _misuChip('장기미수', (d.longoverdue_count||0)+'곳 · '+_misuFmtWon(d.longoverdue_amt)+'원', '#fdecea', '#b91c1c'),
-        _misuChip('서울', _misuFmtWon(d.seoul_unpaid)+'원', '#dcf5e7', '#15803d'),
-        _misuChip('화성', _misuFmtWon(d.hwaseong_unpaid)+'원', '#fdf1e3', '#b45309')
-      ].join('');
-      if(meta) meta.textContent=(d.basis?('기준일 '+d.basis):'');  /* 갱신 시각 표시 제거(사용자 요청 2026-08-02) — 기준일만 표시 */
-      if(d.sales_year){
-        var sg=document.getElementById('salesSummaryGrid');
-        if(sg) sg.innerHTML=[
-          _misuChip('올해('+d.sales_year+')', _misuFmtWon(d.sales_year_total)+'원', '#1B3A6B', '#fff', '#ccdcf5'),
-          _misuChip('매출총이익', _misuFmtWon(d.sales_year_profit)+'원', '#eafaf1', '#15803d'),
-          _misuChip('마진율', (d.sales_year_margin||0)+'%', '#EAF1FB', '#1B3A6B'),
-          _misuChip((d.sales_latest_month||'최근월'), _misuFmtWon(d.sales_latest_month_total)+'원', '#f3f6fa', '#1a1a1a')
-        ].join('');
-        if(smeta) smeta.textContent=d.sales_year+'년 누적 (계산서 기준) · 부가세 별도';
-        _misuVBarChart('salesChartYear','연도별 매출·매입 추이',(d.sales_yearly||[]).map(function(x){return {label:x.y,sales:x.sales,buy:x.buy};}));
-        _misuVBarChart('salesChartMonth',(d.sales_year||'')+'년 월별 매출·매입',(d.sales_monthly||[]).map(function(x){return {label:x.m,sales:x.sales,buy:x.buy};}));
-        _misuHBarChart('salesTopYear',(d.sales_top_year_label||((d.sales_year||'올해')+'년'))+' 매출 상위 업체', d.sales_top_year||[]);
-        _misuHBarChart('salesTopMonth',(d.sales_top_month_label||'최근 월')+' 매출 상위 업체', d.sales_top_month||[]);
-      } else { _misuNote('salesSummaryGrid','매출 요약이 아직 없습니다.'); if(smeta)smeta.textContent=''; _misuVBarChart('salesChartYear','',[]); _misuVBarChart('salesChartMonth','',[]); _misuHBarChart('salesTopYear','',[]); _misuHBarChart('salesTopMonth','',[]); }
-    }catch(e){ _misuNote('misuSummaryGrid','요약을 불러오지 못했습니다.'); _misuNote('salesSummaryGrid','요약을 불러오지 못했습니다.'); }
-  }
 
   // ─── 회계 > 카드매출 (머니온/SemPlus 자동 동기화 데이터 표시) ───
   let _csBranchFilter = 'all';
@@ -13781,7 +13654,7 @@ function reloadState() {
     try{ if(typeof _qLeaveGuard==='function' && _qLeaveGuard(page)) return; }catch(_e){}
     var _SCHED=['personal','weekly','biz','project','clients','memo','done','meeting'];   // r179·r184·r187
     var _ETC=['links'];
-    var _ACCT=['armatch','fx','fxsum','fxup','cardsales'];   // r214: 집계·자료 업로드를 상위 탭으로
+    var _ACCT=['fx','fxsum','fxup','cardsales'];   // r221: 입출금 탭 삭제
     document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
     if(_SCHED.indexOf(page)>=0){ var _ts=document.getElementById('tabSchedule'); if(_ts) _ts.classList.add('active'); _lastSched=page; }
     else if(_ETC.indexOf(page)>=0){ var _te=document.getElementById('tabEtc'); if(_te) _te.classList.add('active'); }
@@ -13795,12 +13668,11 @@ function reloadState() {
     try{ _fxSyncAcctNav(); }catch(_e){}   // r214: '자료 업로드' 는 마스터만
     document.querySelectorAll('.sub-tab').forEach(t => t.classList.toggle('active', t.dataset.page === page));
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-    const pageMap = { memo:'pageMemo', done:'pageDone', meeting:'pageMeeting', weekly:'pageWeekly', biz:'pageBiz', project:'pageProject', clients:'pageClients', assign:'pageAssign', personal:'pagePersonal', finance:'pageFinance', ar:'pageAr', inventory:'pageInventory', purchase:'pagePurchase', files:'pageFiles', estimate:'pageEstimate', armatch:'pageArmatch', fx:'pageFx', fxsum:'pageFx', fxup:'pageFx', links:'pageLinks', cardsales:'pageCardSales' };
+    const pageMap = { memo:'pageMemo', done:'pageDone', meeting:'pageMeeting', weekly:'pageWeekly', biz:'pageBiz', project:'pageProject', clients:'pageClients', assign:'pageAssign', personal:'pagePersonal', finance:'pageFinance', ar:'pageAr', inventory:'pageInventory', purchase:'pagePurchase', files:'pageFiles', estimate:'pageEstimate', fx:'pageFx', fxsum:'pageFx', fxup:'pageFx', links:'pageLinks', cardsales:'pageCardSales' };
     document.getElementById(pageMap[page] || 'pageWeekly').classList.add('active');
     // 견적 화면에서만 .main 의 가로 스크롤을 풀어 툴바 sticky 가 화면 기준으로 붙게 한다
     var _mn=document.querySelector('.main'); if(_mn) _mn.classList.toggle('main-estimate', page==='estimate' || page==='clients');
     _syncTopFrozenH();   // 서브탭 노출 여부에 따라 고정 헤더 높이가 바뀐다
-    if (page === 'armatch'){ if(typeof loadMisuSummary==='function') loadMisuSummary(); }
     if (page === 'fx' || page === 'fxsum' || page === 'fxup'){   // r214: 한 화면을 세 탭이 나눠 쓴다
       _fxTab = (page==='fxsum') ? 'sum' : (page==='fxup' ? 'up' : 'ar');
       _fxArPage = 1;
@@ -13863,7 +13735,7 @@ function reloadState() {
   });
   (function(){ var ts=document.getElementById('tabSchedule'); if(ts) ts.addEventListener('click', function(){ switchPage('memo'); }); })();
   (function(){ var te=document.getElementById('tabEtc'); if(te) te.addEventListener('click', function(){ switchPage('links'); }); })();
-  (function(){ var ta=document.getElementById('tabAccounting'); if(ta) ta.addEventListener('click', function(){ switchPage('armatch'); }); })();
+  (function(){ var ta=document.getElementById('tabAccounting'); if(ta) ta.addEventListener('click', function(){ switchPage('fxsum'); }); })();   // r221: 입출금 삭제 → 집계가 기본
   (function(){ var lg=document.querySelector('.brand-logo'); if(lg){ lg.style.cursor='pointer'; lg.title='처음 화면'; lg.addEventListener('click', function(){ switchPage('memo'); }); } })();
 
 
