@@ -1796,6 +1796,7 @@
     .mm-k-newbiz { background:#fce7f3; color:#9d174d; }   /* r184 신규 */
     .mm-k-dev { background:#ccfbf1; color:#115e59; }   /* r193 개발 */
     .mm-chip.mm-mt { background:#e0e7ff; color:#3730a3; cursor:pointer; }   /* r189 회의록에서 온 업무 */
+    .mm-chip.mm-qt { background:#dcfce7; color:#166534; cursor:pointer; }   /* r222 견적서 작성 기록 */
     /* ── r187 회의록 ── */
     #pageMeeting .mt-tb { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:10px 16px; border-bottom:1px solid #e5e7eb; background:#fff; position:sticky; top:0; z-index:3; }
     #pageMeeting .mt-tb .mt-title { font-size:14px; font-weight:700; color:#1f2937; }
@@ -7753,7 +7754,27 @@ function reloadState() {
     if(ex){ ex.title=_qQuoteNo; ex.vname=vn; ex.vid=vid; ex.count=_qCart.length; ex.total=supply; ex.nego=_qNego; ex.memo=_qMemo; ex.note=_qNote; if(!ex.savedBy) ex.savedBy=who; ex.cols=JSON.parse(JSON.stringify(_qCols||[])); }
     else { quoteSaved.unshift({id:_qLoadedId, title:_qQuoteNo, vname:vn, vid:vid, count:_qCart.length, total:supply, nego:_qNego, memo:_qMemo, note:_qNote, savedBy:who, savedAt:Date.now(), cols:JSON.parse(JSON.stringify(_qCols||[]))}); }
     saveAll();
+    try{ _qLogDoneMemo(_qQuoteNo, vn, _qCart.length, supply, who); }catch(_e){}   // r222: 작성자 일정에 완료된 업무로
   }
+  // r222: 견적서 저장 → 작성자 일정에 '완료된 업무'로 기록 (같은 견적을 다시 저장하면 그 줄을 갱신)
+  function _qLogDoneMemo(no, vn, cnt, supply, who){
+    try{
+      if(!who || !(members||[]).some(function(x){ return x.name===who; })) return;
+      var txt='견적서 작성 · '+(vn||'')+' · '+String(no||'')+' ('+cnt+'품목'+(supply>0?(' · '+Number(supply).toLocaleString('ko-KR')+'원'):'')+')';
+      var now=Date.now();
+      var ex=(memoLines||[]).find(function(l){ return l.qRef && l.qRef.id===_qLoadedId && l.owner===who; });
+      if(ex){ ex.text=txt; ex.vendor=vn||''; ex.qRef.no=no||''; if(!ex.done){ ex.done=true; ex.doneAt=now; } }
+      else {
+        memoLines.push({ id:'mm'+now.toString(36)+Math.random().toString(36).slice(2,6), owner:who, text:txt, parent:'',
+                         kind:'memo', vendor:(vn||''), to:'', name:'', phone:'', when:{date:'',time:''},
+                         date:_mmToday(), createdAt:now, done:true, doneAt:now, feedback:[], card:'', linked:{},
+                         qRef:{ id:_qLoadedId, no:(no||'') } });
+      }
+      _mmSave();
+      try{ if(document.getElementById('pageMemo') && document.getElementById('pageMemo').classList.contains('active')) renderMemoPage(true); }catch(_e){}
+    }catch(_e){}
+  }
+  window.mmGoQuote = function(id){ try{ switchPage('quote'); }catch(_e){} try{ qLoadSaved(id); }catch(_e){} };
   // 견적 저장 마무리 공통 로직 (실제 저장 + 목록 비우기 + 이탈 가드 콜백 실행)
   // r186: 견적 화면 초기화 (저장 후 공통) — 목록·거래처·검색·날짜 비움
   function _qResetQuoteScreen(){
@@ -13738,11 +13759,12 @@ function reloadState() {
   function _mmChips(l, mine){
     var h='';
     if(l.mtRef) h+='<span class="mm-chip mm-mt" onclick="mmGoMeeting(\''+l.mtRef.mid+'\')" title="회의록에서 온 업무 — 누르면 그 회의록으로">회의</span>';   // r189
+    if(l.qRef) h+='<span class="mm-chip mm-qt" onclick="mmGoQuote(\''+_mmEsc(l.qRef.id)+'\')" title="저장된 견적 — 누르면 그 견적을 불러옵니다">견적</span>';   // r222
     if(l.kind && l.kind!=='memo') h+='<span class="mm-chip mm-k-'+l.kind+'">'+_mmKLabel[l.kind]+(l.kind==='request'&&l.to?(' → '+_mmEsc(l.to)):'')+'</span>';
     if((l.kind==='newbiz'||l.kind==='dev') && l.vendor) h+='<span class="mm-chip mm-vend" onclick="mmVendorPick(\''+l.id+'\')" title="업체 바꾸기">'+_mmEsc(l.vendor)+(l.vendorBr==='화성'?' ·화성':'')+'</span>';   // r184 신규 · r193 개발: 아는 업체일 때만
     if(l.kind==='meeting'||l.kind==='project'||l.kind==='delivery'||(l.kind==='contact'&&!l.parent)){
       if(l.vendor) h+='<span class="mm-chip mm-vend" onclick="mmVendorPick(\''+l.id+'\')" title="업체 바꾸기">'+_mmEsc(l.vendor)+(l.vendorBr==='화성'?' ·화성':'')+'</span>';
-      else if(mine) h+='<span class="mm-chip mm-vend mm-vend-none" onclick="mmVendorPick(\''+l.id+'\')" title="업체 지정">업체?</span>';
+      else if(mine && !l.mtRef) h+='<span class="mm-chip mm-vend mm-vend-none" onclick="mmVendorPick(\''+l.id+'\')" title="업체 지정">업체?</span>';   // r222: 회의록에서 온 줄은 제외
     }
     if((l.kind==='meeting'||l.kind==='delivery'||l.kind==='dev') && l.when && (l.when.date||l.when.time)) h+='<span class="mm-chip mm-when">'+_mmFmtD(l.when.date)+(l.when.time?(' '+l.when.time):'')+'</span>';
     if(l.kind==='contact' && l.phone) h+='<span class="mm-chip mm-k-contact" style="background:transparent;border:1px solid #cbd5e1">'+_mmEsc(l.phone)+'</span>';
@@ -14062,9 +14084,10 @@ function reloadState() {
     var el=document.getElementById('mtAgIn'); if(!el) return; var lines=_mtLines(el);
     if(!lines.length){ _mtToast('적힌 안건이 없습니다.'); return; }
     var m=_mtFind(id); if(!m) return; if(typeof _guardW==='function' && !_guardW()) return; if(_mtLocked(m)) return;
-    lines.forEach(function(t){ var p=_mtParseAgenda(t); m.agenda.push({ id:_mtId('ma'), title:p.title, text:p.text, done:false, by:_mtMe(), at:Date.now() }); });
+    var _mn=0;
+    lines.forEach(function(t){ var p=_mtParseAgenda(t); var a={ id:_mtId('ma'), title:p.title, text:p.text, done:false, by:_mtMe(), at:Date.now() }; m.agenda.push(a); try{ _mtAgendaMemo(m, a); _mn+=(a.memoIds||[]).length; }catch(_e){} });   // r222: 참석자 일정에도
     m.updatedAt=Date.now(); _mtSave(); el.value=''; try{ mtDraftKeep(el, id); }catch(_e){}
-    renderMeetingPage(true); _mtToast('안건 '+lines.length+'건 저장');
+    renderMeetingPage(true); _mtToast('안건 '+lines.length+'건 저장'+(_mn?(' — 참석자 일정에 '+_mn+'건 등록'):''));
   };
   // 줄 앞의 이름 → 담당자. "함현식 …" / "함현식: …" / "[함현식] …" 모두 인식. 이름만 있는 줄은 그 아래 줄들의 담당자를 정한다.
   function _mtSplitName(line, names){
@@ -14127,7 +14150,7 @@ function reloadState() {
   };
   window.mtDelItem = function(id, iid){
     var m=_mtFind(id); if(!m) return; if(typeof _guardW==='function' && !_guardW()) return; if(_mtLocked(m)) return;   // r191
-    try{ var _di=_mtItem(m, iid); if(_di && _di.memoId){ var _dl=(memoLines||[]).find(function(x){ return x.id===_di.memoId; }); if(_dl){ delete _dl.mtRef; _mmSave(); } } }catch(_e){}   // r189: 일정 줄은 남기고 연결만 해제
+    try{ var _di=_mtItem(m, iid); var _dls=_mtMemoLinesOf(_di); if(_dls.length){ _dls.forEach(function(_dl){ delete _dl.mtRef; }); _mmSave(); } }catch(_e){}   // r189: 일정 줄은 남기고 연결만 해제 (r222: 안건 줄들 포함)
     m.agenda=(m.agenda||[]).filter(function(x){ return x.id!==iid; });
     (m.reports||[]).forEach(function(r){ r.items=(r.items||[]).filter(function(i){ return i.id!==iid; }); });
     m.updatedAt=Date.now(); _mtSave(); renderMeetingPage(true);
@@ -14139,7 +14162,7 @@ function reloadState() {
     var _lk=(m.status==='final');   // r191: 확정되면 글 수정·삭제 잠금 (완료 체크는 계속 가능)
     return '<div class="mt-it'+(it.done?' done':'')+'"><span class="mt-chk" onclick="mtToggle(\''+m.id+'\',\''+it.id+'\')" title="'+(it.done?'완료 취소':'완료')+'">'+(it.done?'✓':'')+'</span>'
       +'<span class="mt-tx"'+(_lk?'':' onclick="mtEditItem(\''+m.id+'\',\''+it.id+'\')" title="클릭하면 수정"')+'>'+tx+'</span>'
-      +(by?'<span class="mt-by">'+by+'</span>':'')+(it.memoId?'<span class="mt-by" title="담당자 일정에 등록됨">일정</span>':'')+(it.from?'<span class="mt-by" title="이전 회의에서 가져옴">↻</span>':'')
+      +(by?'<span class="mt-by">'+by+'</span>':'')+(it.memoId?'<span class="mt-by" title="담당자 일정에 등록됨">일정</span>':((it.memoIds&&it.memoIds.length)?'<span class="mt-by" title="참석자 '+it.memoIds.length+'명의 일정에 등록됨">일정 '+it.memoIds.length+'</span>':''))+(it.from?'<span class="mt-by" title="이전 회의에서 가져옴">↻</span>':'')
       +(_lk?'':'<button class="mt-del" onclick="mtDelItem(\''+m.id+'\',\''+it.id+'\')" title="삭제">✕</button>')+'</div>';
   }
   function _mtDocHtml(m, print){
@@ -14197,6 +14220,25 @@ function reloadState() {
                mtRef:{ mid:m.id, iid:it.id } };
     memoLines.push(line); it.memoId=line.id; _mmSave();
   }
+  function _mtAgendaMemo(m, a){   // r222: 안건 → 참석자 각자의 일정(메모)에 한 줄씩. 참석자 중 멤버가 없으면 작성자 본인.
+    var who=(m.attendees||[]).filter(function(n){ return !!_mtMemberName(n); });
+    if(!who.length){ var me=_mtMemberName(_mtMe()); if(me) who=[me]; }
+    if(!who.length) return;
+    var txt='회의 안건'+(m.title?'('+m.title+')':'')+' · '+(a.title?(a.title+': '):'')+(a.text||'');
+    var now=Date.now(); a.memoIds=a.memoIds||[];
+    who.forEach(function(name, i){
+      var line={ id:'mm'+(now+i).toString(36)+Math.random().toString(36).slice(2,6), owner:name, text:txt, parent:'',
+                 kind:'meeting', vendor:'', to:'', name:'', phone:'', when:{date:(m.date||''), time:''},
+                 date:_mmToday(), createdAt:now, done:false, doneAt:0, feedback:[], card:'', linked:{},
+                 mtRef:{ mid:m.id, iid:a.id } };
+      memoLines.push(line); a.memoIds.push(line.id);
+    });
+    _mmSave();
+  }
+  function _mtMemoLinesOf(it){   // r222: 항목에 연결된 메모 줄 전부 (업무 보고 memoId + 안건 memoIds)
+    var ids=[]; if(it&&it.memoId) ids.push(it.memoId); if(it&&it.memoIds) ids=ids.concat(it.memoIds);
+    return (memoLines||[]).filter(function(x){ return ids.indexOf(x.id)>=0; });
+  }
   function _mtSyncFromMemo(l, done){   // 메모 줄 완료/취소 → 회의록 항목도 같이
     if(!l || !l.mtRef) return;
     var m=_mtFind(l.mtRef.mid); if(!m) return;
@@ -14204,13 +14246,16 @@ function reloadState() {
     if(done){ if(it.done) return; it.done=true; it.doneAt=l.doneAt||Date.now(); it.doneBy=l.owner||_mtMe(); }
     else { if(!it.done) return; it.done=false; it.doneAt=0; it.doneBy=''; }
     m.updatedAt=Date.now(); _mtSave();
+    try{ _mtSyncToMemo(it); }catch(_e){}   // r222: 안건이면 다른 참석자의 일정 줄도 같이
     try{ if(document.getElementById('pageMeeting') && document.getElementById('pageMeeting').classList.contains('active')) renderMeetingPage(true); }catch(_e){}
   }
-  function _mtSyncToMemo(it){   // 회의록 항목 완료/취소 → 연결된 메모 줄도 같이
-    if(!it || !it.memoId) return;
-    var l=(memoLines||[]).find(function(x){ return x.id===it.memoId; }); if(!l) return;
-    if(it.done){ if(!l.done){ l.done=true; l.doneAt=it.doneAt||Date.now(); } }
-    else { if(l.done){ l.done=false; l.doneAt=0; } }
+  function _mtSyncToMemo(it){   // 회의록 항목 완료/취소 → 연결된 메모 줄도 같이 (r222: 안건은 참석자 수만큼)
+    if(!it) return;
+    var ls=_mtMemoLinesOf(it); if(!ls.length) return;
+    ls.forEach(function(l){
+      if(it.done){ if(!l.done){ l.done=true; l.doneAt=it.doneAt||Date.now(); } }
+      else { if(l.done){ l.done=false; l.doneAt=0; } }
+    });
     _mmSave();
     try{ if(document.getElementById('pageMemo') && document.getElementById('pageMemo').classList.contains('active')) renderMemoPage(true); }catch(_e){}
   }
