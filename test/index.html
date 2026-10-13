@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r226 2026-10-13 -->
+<!-- test build r227 2026-10-13 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -1730,7 +1730,7 @@
     .wk-it { display:block; margin:2px 0; padding:1px 6px; border-radius:3px; font-size:11.5px; line-height:18px; white-space:normal; word-break:break-word; }
     .wk-it.k-meeting { background:#dbeafe; color:#1e40af; } .wk-it.k-delivery { background:#ffedd5; color:#9a3412; } .wk-it.k-project { background:#dcfce7; color:#166534; }
     .wk-it.k-vac { background:#e5e7eb; color:#374151; } .wk-it.k-etc { background:#fef3c7; color:#92400e; }
-    .wk-it.done { text-decoration:line-through; opacity:.55; }
+    .wk-it.done { text-decoration:none; opacity:1; }   /* r227: 완료 건도 그대로 보이게 (✓ 로만 구분) */
     .mm-vc { padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px; margin:6px 0; cursor:pointer; }
     .mm-vc:hover { background:#f4f6f9; border-color:#c8d2de; }
     .wk-it.k-done { background:#f3f4f6; color:#374151; }   /* r185 완료한 메모 */
@@ -1831,6 +1831,14 @@
     #qpbOverlay .qpb-opt b { display:block; font-size:14px; margin-bottom:4px; }
     #qpbOverlay .qpb-opt.on { border-color:#1B3A6B; background:#eef2f6; }
     #qpbOverlay .qpb-opt.on.sm { border-color:#0f766e; background:#f0fdfa; }
+    .mm-smc.nb { border-color:#fbcfe8; background:#fdf2f8; color:#9d174d; }   /* r227 신규 영업 응원 */
+    .mm-smc.nb.ok { border-color:#bbf7d0; background:#f0fdf4; color:#166534; }
+    .mm-smc.mt { border-color:#fecaca; background:#fef2f2; color:#b91c1c; }   /* r227 업무회의 필요 */
+    #pageMeeting .mt-due { margin:10px 16px 0; padding:10px 14px; border:1px solid #fecaca; background:#fef2f2; color:#b91c1c; font-size:13px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    #pageMeeting .mt-due b { font-weight:700; }
+    #pageMeeting .mt-due a { margin-left:auto; font-weight:700; text-decoration:underline; cursor:pointer; color:inherit; }
+    #pageMeeting .mt-past-tg { padding:8px 16px 0; font-size:12.5px; }
+    #pageMeeting .mt-past-tg a { color:#1B3A6B; text-decoration:underline; cursor:pointer; }
     #coMineOverlay table { width:100%; border-collapse:collapse; font-size:12.5px; }
     #coMineOverlay th { background:#f8fafc; color:#6b7280; font-weight:600; padding:6px 8px; border-bottom:2px solid #d3dce6; white-space:nowrap; font-size:11.5px; text-align:left; }
     #coMineOverlay td { padding:5px 8px; border-bottom:1px solid #eef2f7; vertical-align:middle; }
@@ -8382,6 +8390,47 @@ function reloadState() {
     try{ _qLogDoneMemo(_qQuoteNo, vn, _qCart.length, supply, who); }catch(_e){}   // r222: 작성자 일정에 완료된 업무로
     try{ _coAfterQuote(vn, who); }catch(_e){}   // r225: 견적 5회 → 담당 편입
   }
+  // ─── r227: 신규 영업 응원 배너 · 업무회의 2주 주기 ───
+  var _MT_CYCLE_DAYS=14, _NB_CHEER_DAYS=3, _mtShowPast=false;
+  function _nbLabel(l){ var v=String(l.vendor||'').trim(); if(v) return v; var t=String(l.text||'').replace(/^\s*(신규영업|신규)\s*/,'').trim(); return t.length>24?(t.slice(0,24)+'…'):t; }
+  function _nbBanner(){
+    var now=Date.now(), act=[], done=[];
+    (memoLines||[]).forEach(function(l){
+      if(!l || l.parent || l.kind!=='newbiz') return;
+      if(!l.done) act.push(l);
+      else if(l.doneAt && (now-l.doneAt) < _NB_CHEER_DAYS*86400000) done.push(l);
+    });
+    var h='';
+    if(act.length){
+      var who={}; act.forEach(function(l){ var o=l.owner||''; (who[o]=who[o]||[]).push(_nbLabel(l)); });
+      var parts=Object.keys(who).map(function(o){ return '<b>'+_mmEsc(o)+'</b>님 → '+_mmEsc(who[o].filter(Boolean).join(', ')); });
+      h+='<div class="mm-smc nb"><b>신규 영업 진행 중!</b><span>'+parts.join(' · ')+'</span><span style="margin-left:auto;font-weight:700">함께 응원해요 — 우리도 신규 한 곳씩!</span></div>';
+    }
+    if(done.length){
+      var ps=done.map(function(l){ return '<b>'+_mmEsc(l.owner||'')+'</b>님 '+_mmEsc(_nbLabel(l)); });
+      h+='<div class="mm-smc nb ok"><b>신규 등록 축하!</b><span>'+ps.join(' · ')+'</span><span style="margin-left:auto">박수 — 다음은 우리 차례</span></div>';
+    }
+    return h;
+  }
+  function _mtLastDate(){ var t=_mmToday(), best=''; (meetings||[]).forEach(function(m){ var d=String(m.date||''); if(d && d<=t && d>best) best=d; }); return best; }
+  function _mtDaysSince(){ var d=_mtLastDate(); if(!d) return null; var p=d.split('-'); var a=new Date(+p[0],+p[1]-1,+p[2]); var b=new Date(); b.setHours(0,0,0,0); return Math.round((b-a)/86400000); }
+  function _mtHasUpcoming(){ var t=_mmToday(); return (meetings||[]).some(function(m){ return String(m.date||'')>t; }); }
+  function _mtDueInfo(){ var n=_mtDaysSince(); if(_mtHasUpcoming()) return null; if(n==null) return {days:null, last:''}; if(n>=_MT_CYCLE_DAYS) return {days:n, last:_mtLastDate()}; return null; }
+  function _mtDueBanner(){
+    var d=_mtDueInfo(); if(!d) return '';
+    var msg=(d.days==null)?'아직 업무회의 기록이 없습니다':('마지막 업무회의가 <b>'+_mmEsc(_mtFmtD(d.last))+'</b> — <b>'+d.days+'일째</b> 회의가 없습니다');
+    return '<div class="mm-smc mt"><b>업무회의 필요</b><span>'+msg+' · 2주마다 진행해요</span><a onclick="switchPage(\'meeting\')">회의록 만들기 →</a></div>';
+  }
+  function _mtDueHtml(){
+    var d=_mtDueInfo(); if(!d) return '';
+    var msg=(d.days==null)?'아직 업무회의 기록이 없습니다.':('마지막 업무회의 <b>'+_mtEsc(_mtFmtD(d.last))+'</b> 이후 <b>'+d.days+'일</b>이 지났습니다.');
+    return '<div class="mt-due"><b>업무회의 필요</b><span>'+msg+' 2주마다 진행합니다 — 새 회의록을 만들어 일정을 잡아 주세요.</span><a onclick="mtNew()">+ 새 회의록</a></div>';
+  }
+  window.mtTogglePast = function(){ _mtShowPast=!_mtShowPast; try{ renderMeetingPage(true); }catch(_e){} };
+  // 일정(메모장)에서 지난 회의의 안건 줄은 숨긴다 (회의록에는 그대로 남는다)
+  function _mmPastMeetingLine(l){
+    try{ if(!l || !l.mtRef || !l.mtRef.mid) return false; var m=(meetings||[]).find(function(x){ return x.id===l.mtRef.mid; }); if(!m) return false; var d=String(m.date||''); return !!d && d<_mmToday(); }catch(_e){ return false; }
+  }
   // ─── r226: 업체별 소물류 기준가 (확판가 hp / 소물가 sm) ───
   var _qpbAsked={};
   function _qpbStore(){ if(!clientPBase || typeof clientPBase!=='object' || Array.isArray(clientPBase)) clientPBase={}; return clientPBase; }
@@ -14565,6 +14614,7 @@ function reloadState() {
     return r;
   }
   function _mmVisible(l, showDone){
+    if(_mmPastMeetingLine(l)) return false;   // r227 지난 회의 안건은 일정에서 숨김
     if(!l.done) return true;
     if(!showDone) return false;
     if(!l.doneAt) return true;
@@ -14698,6 +14748,8 @@ function reloadState() {
     try{ h+=_pendBanner(); }catch(_e){}   // r217 업체 정보 등록 대기 배너
     try{ h+=_cuBanner(); }catch(_e){}   // r224 내 카드 미분류 배너
     try{ h+=_coBanner(); }catch(_e){}   // r226 내 담당 업체 매출 카드
+    try{ h+=_mtDueBanner(); }catch(_e){}   // r227 업무회의 2주 주기
+    try{ h+=_nbBanner(); }catch(_e){}   // r227 신규 영업 응원
     // ① 공지 — 모든 사람 것
     var notices=(memoLines||[]).filter(function(l){ return l.kind==='notice' && !l.parent && _mmVisible(l, showDone); }).sort(function(a,b){ return (a.createdAt||0)-(b.createdAt||0); });
     if(notices.length){
@@ -15169,8 +15221,18 @@ function reloadState() {
     var list=(meetings||[]).filter(function(m){ if(plf && m.place!==plf) return false; if(q){ var all=[m.title,m.room].concat((m.agenda||[]).map(function(a){ return (a.title||'')+' '+(a.text||''); })).concat([].concat.apply([], (m.reports||[]).map(function(r){ return (r.items||[]).map(function(i){ return i.text||''; }); }))).join(' '); if(_qNorm(all).indexOf(q)<0) return false; } return true; })
       .sort(function(a,b){ return (b.date||'')<(a.date||'')?-1:((b.date||'')>(a.date||'')?1:(b.createdAt||0)-(a.createdAt||0)); });
     if(cnt) cnt.textContent = list.length ? (list.length+'건') : '';
-    if(!list.length){ host.innerHTML='<div class="mt-empty">'+(q||plf?'해당하는 회의록이 없습니다.':'아직 회의록이 없습니다. [+ 새 회의록] 으로 시작하세요.')+'</div>'; return; }
-    var h='<div class="mt-list"><table><thead><tr><th>No.</th><th>일시</th><th>장소</th><th>회의명</th><th>작성자</th><th>참석자</th><th>진행</th></tr></thead><tbody>';
+    var _dueH=_mtDueHtml();   // r227 회의 필요 안내
+    if(!list.length){ host.innerHTML=_dueH+'<div class="mt-empty">'+(q||plf?'해당하는 회의록이 없습니다.':'아직 회의록이 없습니다. [+ 새 회의록] 으로 시작하세요.')+'</div>'; return; }
+    // r227: 지난 회의(날짜 지난 것)는 접어 두고 [지난 회의 N건 보기]로 펼친다 (검색·장소 필터 중에는 전부)
+    var _pastTg='';
+    if(!q && !plf){
+      var _tdy=_mmToday(), _allL=list, _upL=_allL.filter(function(m){ return String(m.date||'')>=_tdy; }), _pastN=_allL.length-_upL.length;
+      if(_mtShowPast){ if(_pastN) _pastTg='<div class="mt-past-tg"><a onclick="mtTogglePast()">지난 회의 접기</a></div>'; }
+      else { list=_upL; if(_pastN) _pastTg='<div class="mt-past-tg"><a onclick="mtTogglePast()">지난 회의 '+_pastN+'건 보기</a></div>'; }
+      if(cnt) cnt.textContent = list.length ? (list.length+'건') : '';
+      if(!list.length){ host.innerHTML=_dueH+_pastTg+'<div class="mt-empty">예정된 회의가 없습니다. [+ 새 회의록] 으로 다음 회의를 잡아 주세요.</div>'; return; }
+    }
+    var h=_dueH+_pastTg+'<div class="mt-list"><table><thead><tr><th>No.</th><th>일시</th><th>장소</th><th>회의명</th><th>작성자</th><th>참석자</th><th>진행</th></tr></thead><tbody>';
     list.forEach(function(m, i){ var p=_mtProg(m);
       h+='<tr class="mt-row" onclick="mtOpen(\''+m.id+'\')"><td>'+(list.length-i)+'</td><td>'+_mtEsc(_mtFmtD(m.date))+' '+_mtEsc(m.time||'')+'</td><td>'+_mtEsc(m.place||'')+'</td><td class="mt-t">'+_mtEsc(m.title||'')+(m.status==='final'?' <span class="mt-badge fin">확정</span>':' <span class="mt-badge draft">작성중</span>')+'</td><td>'+_mtEsc(m.author||'')+'</td><td>'+_mtEsc((m.attendees||[]).join(', '))+'</td><td><span class="mt-prog'+(p.t&&p.d===p.t?' all':'')+'">'+(p.t?(p.d+' / '+p.t):'-')+'</span></td></tr>';
     });
@@ -15473,7 +15535,7 @@ function reloadState() {
       if(!mineS) return;
       var sd=s.date, ed=s.endDate||s.date; if(!(sd<=dStr && dStr<=ed)) return;
       var k = s.category==='미팅'?'k-meeting':(s.category==='납품'?'k-delivery':'k-etc');
-      out.push({ cls:k+(s.done?' done':''), text:(s.time&&s.time!=='종일'?(s.time+' '):'')+(s.bizName?(s.bizName+' · '):'')+(s.title||''), ts:(s.time||'') });
+      out.push({ cls:k+(s.done?' done':''), text:(s.done?'✓ ':'')+(s.time&&s.time!=='종일'?(s.time+' '):'')+(s.bizName?(s.bizName+' · '):'')+(s.title||''), ts:(s.time||'') });   // r227 ✓
     });
     (projectsList||[]).forEach(function(p){
       if(!(p.memberId===m.id || (p.authorName && p.authorName===m.name))) return;   // r185
