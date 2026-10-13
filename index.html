@@ -1797,6 +1797,45 @@
     .mm-k-dev { background:#ccfbf1; color:#115e59; }   /* r193 개발 */
     .mm-chip.mm-mt { background:#e0e7ff; color:#3730a3; cursor:pointer; }   /* r189 회의록에서 온 업무 */
     .mm-chip.mm-qt { background:#dcfce7; color:#166534; cursor:pointer; }   /* r222 견적서 작성 기록 */
+    /* ── r224 카드사용 ── */
+    #pageCardUse .cu-tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin:12px 0; }
+    #pageCardUse .cu-tile { background:#fff; border:1px solid #e3eaf3; border-radius:10px; padding:12px 14px; }
+    #pageCardUse .cu-tile .k { font-size:11.5px; color:#6b7280; }
+    #pageCardUse .cu-tile .v { font-size:20px; font-weight:700; color:#1B3A6B; margin-top:2px; }
+    #pageCardUse .cu-tile .v.warn { color:#b45309; }
+    #pageCardUse .cu-sub { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-bottom:12px; }
+    #pageCardUse .cu-box { background:#fff; border:1px solid #e3eaf3; border-radius:10px; overflow:hidden; }
+    #pageCardUse .cu-box h4 { margin:0; padding:8px 12px; font-size:12px; color:#374151; background:#f8fafc; border-bottom:1px solid #eef2f7; }
+    #pageCardUse .cu-box table { width:100%; border-collapse:collapse; font-size:12px; }
+    #pageCardUse .cu-box td { padding:5px 12px; border-bottom:1px solid #f1f5f9; }
+    #pageCardUse .cu-box td.n { text-align:right; font-variant-numeric:tabular-nums; }
+    #pageCardUse table.cu-list { width:100%; border-collapse:collapse; font-size:12.5px; background:#fff; }
+    #pageCardUse table.cu-list th { background:#f8fafc; color:#6b7280; font-weight:600; padding:7px 8px; border-bottom:2px solid #d3dce6; white-space:nowrap; font-size:11.5px; }
+    #pageCardUse table.cu-list td { padding:5px 8px; border-bottom:1px solid #eef2f7; white-space:nowrap; vertical-align:middle; }
+    #pageCardUse table.cu-list td.n { text-align:right; font-variant-numeric:tabular-nums; }
+    #pageCardUse table.cu-list tr.cancel td { color:#9ca3af; text-decoration:line-through; }
+    #pageCardUse table.cu-list tr.untag td.mer { color:#b45309; font-weight:600; }
+    .cu-sel, .cu-inp { height:26px; border:1px solid #d1d5db; border-radius:5px; font-size:12px; font-family:inherit; padding:0 6px; background:#fff; }
+    .cu-inp { min-width:140px; }
+    .cu-sel.none { border-color:#f59e0b; background:#fffbeb; }
+    .cu-chip { display:inline-block; font-size:10.5px; padding:1px 6px; border-radius:4px; background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
+    .mm-smc.cu { border-color:#fde68a; background:#fffbeb; color:#92400e; }
+    #coMineOverlay table { width:100%; border-collapse:collapse; font-size:12.5px; }
+    #coMineOverlay th { background:#f8fafc; color:#6b7280; font-weight:600; padding:6px 8px; border-bottom:2px solid #d3dce6; white-space:nowrap; font-size:11.5px; text-align:left; }
+    #coMineOverlay td { padding:5px 8px; border-bottom:1px solid #eef2f7; vertical-align:middle; }
+    #coMineOverlay td.n, #coMineOverlay th.n { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    #coMineOverlay tr.tot td { font-weight:700; background:#f4f6f9; border-top:2px solid #c8d2de; }
+    #coMineOverlay .co-tag { display:inline-block; font-size:10.5px; padding:1px 6px; border:1px solid #c8d2de; color:#6b7280; margin-left:4px; }
+    #coMineOverlay .co-tag.m { border-color:#1B3A6B; color:#1B3A6B; }
+    #coMineOverlay select.co-sel { font-size:12px; padding:2px 4px; border:1px solid #c8d2de; background:#fff; }
+    #coMineOverlay .co-tiles { display:flex; gap:10px; padding:10px 14px; flex-wrap:wrap; border-bottom:1px solid #eef2f7; }
+    #coMineOverlay .co-tile { flex:1 1 140px; border:1px solid #d3dce6; padding:8px 10px; }
+    #coMineOverlay .co-tile b { display:block; font-size:11px; color:#6b7280; font-weight:600; margin-bottom:3px; }
+    #coMineOverlay .co-tile span { font-size:15px; font-weight:700; color:#1B3A6B; font-variant-numeric:tabular-nums; }
+    #cuMineOverlay table { width:100%; border-collapse:collapse; font-size:12.5px; }
+    #cuMineOverlay th { background:#f8fafc; color:#6b7280; font-weight:600; padding:6px 8px; border-bottom:2px solid #d3dce6; white-space:nowrap; font-size:11.5px; text-align:left; }
+    #cuMineOverlay td { padding:5px 8px; border-bottom:1px solid #eef2f7; vertical-align:middle; }
+    #cuMineOverlay td.n { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
     /* ── r187 회의록 ── */
     #pageMeeting .mt-tb { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:10px 16px; border-bottom:1px solid #e5e7eb; background:#fff; position:sticky; top:0; z-index:3; }
     #pageMeeting .mt-tb .mt-title { font-size:14px; font-weight:700; color:#1f2937; }
@@ -2491,6 +2530,7 @@
   <button class="sub-tab" data-page="fxsum">집계</button>
   <button class="sub-tab" data-page="fx">미수현황</button>
   <button class="sub-tab" data-page="cardsales">카드매출</button>
+  <button class="sub-tab" data-page="carduse">카드사용</button><!-- r224 -->
   <button class="sub-tab" id="acctTabFxUp" data-page="fxup">자료 업로드</button>
 </nav>
 <nav class="sub-nav" id="etcSubNav" style="display:none">
@@ -2571,6 +2611,8 @@
       <span style="flex:1"></span>
       <label style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:#6b7280;cursor:pointer;user-select:none;white-space:nowrap;flex:0 0 auto"><input type="checkbox" id="mmShowDone" checked onchange="renderMemoPage(true)" style="width:13px;height:13px;accent-color:#1B3A6B;cursor:pointer">완료 표시</label>
       <span class="qic-div" style="width:1px;align-self:stretch;background:#d3dae4;margin:2px 4px"></span>
+      <button class="qic" onclick="cuOpenMine()" data-tip="내 카드 사용" aria-label="내 카드 사용" style="border-color:#b45309;color:#b45309"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></button><!-- r224 -->
+      <button class="qic" onclick="coOpenMine()" data-tip="내 담당 업체 매출" aria-label="내 담당 업체 매출" style="border-color:#0f766e;color:#0f766e"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 4 3 5-7"/></svg></button><!-- r225 -->
       <button class="qic" onclick="mmHelp()" data-tip="적는 법" aria-label="적는 법" style="border-color:#5b7ba6;color:#5b7ba6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7"/><path d="M12 17h.01"/></svg></button>
     </div>
     <div class="mm-pad">
@@ -2910,6 +2952,28 @@
   </div>
 
   <!-- ─── 회계 > 카드매출 페이지 ─── -->
+  <div id="pageCardUse" class="page-section">
+    <div class="q-toolbar inv-toolbar" style="flex-wrap:wrap;gap:6px">
+      <span class="inv-flat-label">카드사용</span>
+      <button class="btn" onclick="cuMonthDelta(-1)" style="padding:3px 9px">‹</button>
+      <span id="cuMonthLbl" style="font-weight:700;color:#1B3A6B;min-width:84px;text-align:center"></span>
+      <button class="btn" onclick="cuMonthDelta(1)" style="padding:3px 9px">›</button>
+      <span class="inv-flat-div"></span>
+      <select id="cuCardF" class="cu-sel" onchange="cuSetFilter()"><option value="">전체 카드</option></select>
+      <select id="cuWhoF" class="cu-sel" onchange="cuSetFilter()"><option value="">전체 사용자</option></select>
+      <select id="cuUseF" class="cu-sel" onchange="cuSetFilter()"><option value="">전체 용도</option><option value="__none">미분류만</option></select>
+      <label style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:#6b7280;white-space:nowrap"><input type="checkbox" id="cuDupOnly" onchange="cuSetFilter()" style="accent-color:#1B3A6B">계산서 중복만</label>
+      <span id="cuMeta" style="font-size:11px;color:#9ca3af;margin-left:6px"></span>
+      <span style="flex:1"></span>
+      <button class="btn" onclick="cuOpenCards()" style="font-size:12px">카드 등록</button>
+      <button class="btn" onclick="cuOpenCats()" style="font-size:12px">용도 목록</button>
+      <button class="btn" id="cuUpBtn" onclick="cuOpenUpload()" style="font-size:12px">엑셀 업로드</button>
+      <button class="btn btn-primary" onclick="cuExport()" style="font-size:12px">엑셀 다운로드</button>
+    </div>
+    <div class="cu-tiles" id="cuTiles"></div>
+    <div class="cu-sub" id="cuSub"></div>
+    <div style="background:#fff;border:1px solid #e3eaf3;border-radius:10px;overflow:auto"><table class="cu-list"><thead><tr><th>일자</th><th>시간</th><th>카드</th><th>사용자</th><th>가맹점</th><th>사업자번호</th><th style="text-align:right">금액</th><th>승인번호</th><th>용도</th><th>메모</th><th>계산서</th></tr></thead><tbody id="cuBody"></tbody></table></div>
+  </div>
   <div id="pageCardSales" class="page-section">
     <style>
       /* 2026-08-05 디자인 통일: 달력·년월 네비는 개인일정(월간 달력)과 동일하게,
@@ -3536,6 +3600,7 @@
   let memoLines = load('sched_memos') ?? [];        // r179 메모장 줄 [{id,owner,text,parent,kind,vendor,to,name,phone,when,date,createdAt,done,doneAt,feedback,card,linked}]
   let memoCards = load('sched_memo_cards') ?? {};   // r179 명함 사진 {cardId: dataURL}
   let meetings = load('sched_meetings') ?? [];     // r187 회의록 [{id,date,time,place,room,title,author,attendees,agenda:[{id,title,text,done,doneAt,doneBy}],reports:[{name,items:[...]}]}]
+  let clientOwner = load('sched_client_owner') ?? {};   // r225 담당 업체 { m:{업체:{who,by,at}} 수동, a:{업체:{who,at}} 자동 기록 }
   let clientPend = load('sched_client_pend') ?? [];   // r217 업체 정보 등록 대기 [{id,name,by,at,quoteNo,status:wait|ok|skip,okBy,okAt}]
   let smcQueue = load('sched_smc_queue') ?? [];     // r181 SMC 가격 확인 대기열 [{id,spec,name,e,buy,vid,vname,by,at,quoteNo,status:wait|ok|skip,okE,okHp,okSm,okBy,okAt}]
   // 프로젝트 노트 [{id, memberId, authorName, title, content, createdAt, updatedAt}]
@@ -3682,6 +3747,7 @@
     save('sched_memo_cards', memoCards);
     save('sched_smc_queue', smcQueue);   // r181
     save('sched_client_pend', clientPend);   // r217
+    save('sched_client_owner', clientOwner);   // r225
     save('sched_meetings', meetings);   // r187
     localStorage.setItem('sched_local_ts', Date.now().toString()); // 로컬 변경 시각 기록
     debouncedFbSave();
@@ -4051,6 +4117,241 @@
     _csRenderAll();
   }
 
+  // ─── r224: 법인카드 사용 내역 ─────────────────────────────────────────
+  //  자료 위치는 카드매출처럼 환경 공통(teamdata_test_carduse) — 수집기(GitHub Actions)가 한 곳에 쓴다.
+  var _CU_ROOT='teamdata_test_carduse';
+  var _CU_ISSUERS=[['shinhan','신한카드'],['hana','하나카드'],['other','기타']];
+  var _CU_DEF_CATS=['식비','유류·교통','자재·부품','소모품','접대','통신·공과','차량','기타'];
+  var _cu={ recs:[], meta:{}, cards:{}, tags:{}, learn:{}, cats:null, loaded:false, loadedAt:0, ym:'', fCard:'', fWho:'', fUse:'', fDup:false, dupMap:null };
+  function _cuUrl(p){ return _fbDbUrl+'/'+_CU_ROOT+'/'+p+'.json'; }
+  function _cuIssuerName(k){ var f=_CU_ISSUERS.find(function(x){ return x[0]===k; }); return f?f[1]:(k||''); }
+  function _cuMe(){ return (typeof _authUser!=='undefined'&&_authUser&&_authUser.name)?String(_authUser.name).trim():''; }
+  function _cuFmt(n){ return Math.round(Number(n)||0).toLocaleString('ko-KR'); }
+  function _cuDigits(s){ return String(s==null?'':s).replace(/\D/g,''); }
+  function _cuMerKey(m){ return String(m==null?'':m).toLowerCase().replace(/\s+/g,'').replace(/[()\[\]\-_.,·]/g,''); }
+  function _cuCats(){ return (Array.isArray(_cu.cats)&&_cu.cats.length)?_cu.cats:_CU_DEF_CATS.slice(); }
+  function _cuLast4(r){ var d=_cuDigits(r.cardNoMasked||r.cardLast4||''); return d.slice(-4); }
+  function _cuHolder(r){   // 카드 등록표 우선, 없으면 카드사 파일의 이용자명이 멤버면 그 사람
+    var c=_cu.cards[_cuLast4(r)]; if(c&&c.holder) return c.holder;
+    var h=String(r.holderHint||'').trim(); if(h && (members||[]).some(function(m){ return m.name===h; })) return h;
+    return '';
+  }
+  function _cuTag(r){ return _cu.tags[r.id]||{}; }
+  function _cuUse(r){ var t=_cuTag(r); if(t.use) return t.use; var l=_cu.learn[_cuMerKey(r.merchant)]; return (l&&l.use)?l.use:''; }
+  function _cuWho(r){ var t=_cuTag(r); return t.who||_cuHolder(r); }
+  async function _cuGet(p){ try{ var r=await _fbFetch(_cuUrl(p)); if(!r||!r.ok) return null; return await r.json(); }catch(_e){ return null; } }
+  async function _cuPut(p, body){ var r=await _fbFetch(_cuUrl(p), {method:'PUT', body:JSON.stringify(body)}); if(!r||!r.ok) throw new Error('카드사용 저장 실패 (HTTP '+(r?r.status:'네트워크')+')'); }
+  async function _cuPatch(p, body){ var r=await _fbFetch(_cuUrl(p), {method:'PATCH', body:JSON.stringify(body)}); if(!r||!r.ok) throw new Error('카드사용 저장 실패 (HTTP '+(r?r.status:'네트워크')+')'); }
+  async function _cuEnsure(force){
+    if(!_fbDbUrl) return;
+    if(_cu.loaded && !force && (Date.now()-_cu.loadedAt<5*60*1000)) return;
+    var got=await Promise.all(_CU_ISSUERS.map(function(x){ return _cuGet(x[0]); }).concat([_cuGet('_meta'),_cuGet('_cards'),_cuGet('_tags'),_cuGet('_learn'),_cuGet('_cats')]));
+    var recs=[];
+    _CU_ISSUERS.forEach(function(x,i){ var node=got[i]||{}; Object.keys(node).forEach(function(d){ var day=node[d]||{}; Object.keys(day).forEach(function(k){ var r=day[k]; if(r&&typeof r==='object'){ if(!r.id) r.id=k; if(!r.issuer) r.issuer=x[0]; if(!r.date) r.date=d; recs.push(r); } }); }); });
+    recs.sort(function(a,b){ return (b.date+(b.time||''))<(a.date+(a.time||''))?-1:1; });
+    _cu.recs=recs; _cu.meta=got[_CU_ISSUERS.length]||{}; _cu.cards=got[_CU_ISSUERS.length+1]||{}; _cu.tags=got[_CU_ISSUERS.length+2]||{}; _cu.learn=got[_CU_ISSUERS.length+3]||{}; _cu.cats=got[_CU_ISSUERS.length+4]||null;
+    _cu.loaded=true; _cu.loadedAt=Date.now(); _cu.dupMap=null;
+    if(!_cu.ym){ var last=recs.length?recs[0].date:''; var t=new Date(); _cu.ym=last?last.slice(0,6):(t.getFullYear()+String(t.getMonth()+1).padStart(2,'0')); }
+  }
+  function _cuMonthRecs(){ return _cu.recs.filter(function(r){ return String(r.date||'').slice(0,6)===_cu.ym; }); }
+  // ── 매입 세금계산서 대사: 가맹점 사업자번호 + 금액(±1원) + 날짜 ±31일 ──
+  async function _cuBuildDup(){
+    try{ await _fxEnsureData(); }catch(_e){}
+    var inv=(typeof fxPurchInv!=='undefined'&&fxPurchInv)?fxPurchInv:[]; var byBiz={};
+    inv.forEach(function(e){ var k=_cuDigits(e.vbiz); if(k.length!==10) return; (byBiz[k]=byBiz[k]||[]).push(e); });
+    var map={};
+    _cu.recs.forEach(function(r){ if(r.status==='cancelled') return; var k=_cuDigits(r.mbiz); if(k.length!==10||!byBiz[k]) return; var amt=Math.round(Number(r.amount)||0); var rd=_cuDate(r.date);
+      var hit=byBiz[k].find(function(e){ var tot=Math.round(Number(e.total)||((Number(e.supply)||0)+(Number(e.tax)||0))); if(Math.abs(tot-amt)>1) return false; var ed=_cuDate(String(e.date||'').replace(/\D/g,'').slice(0,8)); return ed&&rd&&Math.abs(ed-rd)<=31*86400000; });
+      if(hit) map[r.id]={date:hit.date, vendor:hit.vendor||''}; });
+    _cu.dupMap=map; return map;
+  }
+  function _cuDate(ymd){ var s=String(ymd||''); if(s.length<8) return null; return new Date(Number(s.slice(0,4)),Number(s.slice(4,6))-1,Number(s.slice(6,8))).getTime(); }
+  // ── 화면 ──
+  window.renderCardUsePage = async function(force){
+    var body=document.getElementById('cuBody'); if(!body) return;
+    if(!_fbDbUrl){ body.innerHTML='<tr><td colspan="11" style="padding:40px;text-align:center;color:#ccc">로그인 후 표시됩니다.</td></tr>'; return; }
+    try{ await _cuEnsure(force); if(!_cu.dupMap) await _cuBuildDup(); }catch(_e){ body.innerHTML='<tr><td colspan="11" style="padding:40px;text-align:center;color:#ccc">불러오지 못했습니다.</td></tr>'; return; }
+    var ub=document.getElementById('cuUpBtn'); if(ub) ub.style.display=_isAdmin()?'':'none';
+    _cuRenderAll();
+  };
+  window.cuMonthDelta = function(d){ var y=Number(_cu.ym.slice(0,4)), m=Number(_cu.ym.slice(4,6))-1+d; var dt=new Date(y,m,1); _cu.ym=dt.getFullYear()+String(dt.getMonth()+1).padStart(2,'0'); _cuRenderAll(); };
+  window.cuSetFilter = function(){ var g=function(id){ var e=document.getElementById(id); return e?e.value:''; }; _cu.fCard=g('cuCardF'); _cu.fWho=g('cuWhoF'); _cu.fUse=g('cuUseF'); var d=document.getElementById('cuDupOnly'); _cu.fDup=!!(d&&d.checked); _cuRenderList(); };
+  function _cuFillSelect(id, opts, cur, keepFirst){ var el=document.getElementById(id); if(!el) return; var first=keepFirst||1; while(el.options.length>first) el.remove(first); opts.forEach(function(o){ var op=document.createElement('option'); op.value=o[0]; op.textContent=o[1]; el.appendChild(op); }); el.value=cur||''; if(el.value!==(cur||'')) el.value=''; }
+  function _cuRenderAll(){
+    var lbl=document.getElementById('cuMonthLbl'); if(lbl) lbl.textContent=_cu.ym.slice(0,4)+'년 '+Number(_cu.ym.slice(4,6))+'월';
+    var meta=document.getElementById('cuMeta'); if(meta){ meta.textContent=_CU_ISSUERS.map(function(x){ var m=_cu.meta[x[0]]; return m&&m.lastSyncedAt?(x[1]+' '+String(m.lastSyncedAt).replace('T',' ').slice(0,16)):''; }).filter(Boolean).join(' · ')||'아직 수집된 자료가 없습니다'; }
+    var mr=_cuMonthRecs();
+    var cards={}, whos={}, uses={};
+    mr.forEach(function(r){ var l4=_cuLast4(r); if(l4) cards[l4]=1; var w=_cuWho(r); if(w) whos[w]=1; });
+    _cuFillSelect('cuCardF', Object.keys(cards).sort().map(function(k){ var c=_cu.cards[k]; return [k, '****-'+k+(c&&c.holder?(' '+c.holder):'')]; }), _cu.fCard);
+    _cuFillSelect('cuWhoF', Object.keys(whos).sort().map(function(k){ return [k,k]; }), _cu.fWho);
+    _cuFillSelect('cuUseF', _cuCats().map(function(k){ return [k,k]; }), _cu.fUse, 2);
+    // 타일
+    var ok=mr.filter(function(r){ return r.status!=='cancelled'; }); var sum=0, untag=0, dup=0, cancel=mr.length-ok.length;
+    ok.forEach(function(r){ sum+=Number(r.amount)||0; if(!_cuUse(r)) untag++; if(_cu.dupMap&&_cu.dupMap[r.id]) dup++; });
+    var tiles=document.getElementById('cuTiles'); if(tiles) tiles.innerHTML=
+      '<div class="cu-tile"><div class="k">이달 사용액</div><div class="v">'+_cuFmt(sum)+'원</div></div>'
+      +'<div class="cu-tile"><div class="k">건수</div><div class="v">'+ok.length+'건'+(cancel?' <span style="font-size:11px;color:#9ca3af;font-weight:500">취소 '+cancel+'</span>':'')+'</div></div>'
+      +'<div class="cu-tile"><div class="k">미분류</div><div class="v'+(untag?' warn':'')+'">'+untag+'건</div></div>'
+      +'<div class="cu-tile"><div class="k">매입계산서 중복 의심</div><div class="v'+(dup?' warn':'')+'">'+dup+'건</div></div>';
+    // 소계
+    var g=function(keyFn){ var M={}; ok.forEach(function(r){ var k=keyFn(r)||'(없음)'; M[k]=M[k]||{n:0,s:0}; M[k].n++; M[k].s+=Number(r.amount)||0; }); return Object.keys(M).sort(function(a,b){ return M[b].s-M[a].s; }).map(function(k){ return [k,M[k]]; }); };
+    var box=function(title, rows){ return '<div class="cu-box"><h4>'+title+'</h4><table>'+(rows.length?rows.map(function(x){ return '<tr><td>'+esc(x[0])+'</td><td class="n" style="color:#6b7280">'+x[1].n+'건</td><td class="n"><b>'+_cuFmt(x[1].s)+'</b></td></tr>'; }).join(''):'<tr><td style="color:#bbb">없음</td></tr>')+'</table></div>'; };
+    var sub=document.getElementById('cuSub'); if(sub) sub.innerHTML=box('카드별', g(function(r){ var l4=_cuLast4(r); var c=_cu.cards[l4]; return l4?('****-'+l4+(c&&c.label?' '+c.label:'')):''; }))+box('사용자별', g(_cuWho))+box('용도별', g(function(r){ return _cuUse(r)||'미분류'; }))+box('가맹점 TOP', g(function(r){ return r.merchant||''; }).slice(0,8));
+    _cuRenderList();
+  }
+  function _cuUseSel(r, cls){ var u=_cuUse(r); var t=_cuTag(r); return '<select class="cu-sel'+(u?'':' none')+(cls?' '+cls:'')+'" onchange="cuSetUse(\''+esc(r.id)+'\',this.value)"><option value="">용도 선택</option>'+_cuCats().map(function(c){ return '<option value="'+esc(c)+'"'+(c===u?' selected':'')+'>'+esc(c)+(c===u&&!t.use?' (자동)':'')+'</option>'; }).join('')+'</select>'; }
+  function _cuRenderList(){
+    var body=document.getElementById('cuBody'); if(!body) return;
+    var mr=_cuMonthRecs().filter(function(r){
+      if(_cu.fCard && _cuLast4(r)!==_cu.fCard) return false;
+      if(_cu.fWho && _cuWho(r)!==_cu.fWho) return false;
+      if(_cu.fUse==='__none'){ if(_cuUse(r)||r.status==='cancelled') return false; } else if(_cu.fUse && _cuUse(r)!==_cu.fUse) return false;
+      if(_cu.fDup && !(_cu.dupMap&&_cu.dupMap[r.id])) return false;
+      return true; });
+    if(!mr.length){ body.innerHTML='<tr><td colspan="11" style="padding:30px;text-align:center;color:#bbb">해당하는 카드 사용 내역이 없습니다.</td></tr>'; return; }
+    var names=(members||[]).map(function(m){ return m.name; }).filter(Boolean);
+    body.innerHTML=mr.map(function(r){
+      var t=_cuTag(r); var who=_cuWho(r); var l4=_cuLast4(r); var dup=_cu.dupMap&&_cu.dupMap[r.id]; var cancel=r.status==='cancelled';
+      var d=String(r.date||''); var ds=d.slice(0,4)+'-'+d.slice(4,6)+'-'+d.slice(6,8);
+      return '<tr class="'+(cancel?'cancel':(!_cuUse(r)?'untag':''))+'"><td>'+ds+'</td><td>'+esc(r.time||'')+'</td><td title="'+esc(_cuIssuerName(r.issuer))+'">'+(l4?'****-'+l4:'')+'</td>'
+        +'<td>'+(cancel?esc(who):'<select class="cu-sel" onchange="cuSetWho(\''+esc(r.id)+'\',this.value)"><option value="">-</option>'+names.map(function(n){ return '<option value="'+esc(n)+'"'+(n===who?' selected':'')+'>'+esc(n)+'</option>'; }).join('')+'</select>')+'</td>'
+        +'<td class="mer">'+esc(r.merchant||'')+'</td><td style="color:#6b7280">'+esc(r.mbiz||'')+'</td><td class="n">'+(cancel?'-':'')+_cuFmt(r.amount)+'</td><td style="color:#6b7280">'+esc(r.approvalNo||'')+'</td>'
+        +'<td>'+(cancel?'':_cuUseSel(r))+'</td><td>'+(cancel?'':'<input class="cu-inp" value="'+esc(t.memo||'')+'" placeholder="메모" onchange="cuSetMemo(\''+esc(r.id)+'\',this.value)">')+'</td>'
+        +'<td>'+(dup?'<span class="cu-chip" title="같은 사업자번호·금액의 매입 세금계산서가 '+esc(dup.date)+' 에 있습니다 — 이중 공제 주의">계산서 중복?</span>':'')+'</td></tr>';
+    }).join('');
+  }
+  async function _cuSaveTag(id, patch){
+    if(typeof _guardW==='function' && !_guardW()) return false;
+    var t=_cu.tags[id]||{}; for(var k in patch) t[k]=patch[k]; t.by=_cuMe(); t.at=Date.now(); _cu.tags[id]=t;
+    try{ await _cuPatch('_tags/'+id, t); return true; }catch(_e){ showInfoModal('카드사용', _e.message||String(_e)); return false; }
+  }
+  window.cuSetUse = async function(id, use){
+    var r=_cu.recs.find(function(x){ return x.id===id; }); if(!r) return;
+    if(await _cuSaveTag(id, {use:use})){
+      if(use){ var k=_cuMerKey(r.merchant); if(k){ _cu.learn[k]={use:use, merchant:r.merchant||'', at:Date.now()}; try{ await _cuPatch('_learn', (function(){ var o={}; o[k]=_cu.learn[k]; return o; })()); }catch(_e){} } }
+      try{ _mtToast('"'+(r.merchant||'')+'" → '+(use||'미분류')+(use?' · 같은 가맹점은 앞으로 자동':'')); }catch(_e){}
+      _cuRenderAll();
+    }
+  };
+  window.cuSetWho = async function(id, who){ if(await _cuSaveTag(id, {who:who})) _cuRenderAll(); };
+  window.cuSetMemo = async function(id, memo){ await _cuSaveTag(id, {memo:String(memo||'').trim()}); };
+  // ── 카드 등록 (끝 4자리 → 사용자) ──
+  window.cuOpenCards = function(){
+    var ov=_cuOverlay('cuCardsOverlay', 560);
+    var names=(members||[]).map(function(m){ return m.name; }).filter(Boolean);
+    var rows=Object.keys(_cu.cards).sort().map(function(k){ var c=_cu.cards[k]; return '<tr><td><b>****-'+esc(k)+'</b></td><td>'+esc(_cuIssuerName(c.issuer))+'</td><td>'+esc(c.holder||'')+'</td><td>'+esc(c.label||'')+'</td><td><button class="btn" onclick="cuDelCard(\''+esc(k)+'\')" style="padding:2px 8px;font-size:11px;color:#dc2626">삭제</button></td></tr>'; }).join('');
+    ov.innerHTML='<div class="cu-ovbox"><div class="cu-ovhd"><span>카드 등록 — 끝 4자리로 사용자를 정합니다</span><button class="btn" onclick="document.getElementById(\'cuCardsOverlay\').style.display=\'none\'" style="margin-left:auto;padding:3px 10px">닫기</button></div>'
+      +'<div style="padding:12px 16px"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr><th style="text-align:left;padding:4px">카드</th><th style="text-align:left;padding:4px">카드사</th><th style="text-align:left;padding:4px">사용자</th><th style="text-align:left;padding:4px">별칭</th><th></th></tr></thead><tbody>'+(rows||'<tr><td colspan="5" style="color:#bbb;padding:8px">등록된 카드가 없습니다.</td></tr>')+'</tbody></table>'
+      +'<div style="display:flex;gap:6px;align-items:center;margin-top:12px;flex-wrap:wrap"><input id="cuNewL4" class="cu-inp" style="min-width:90px" maxlength="4" placeholder="끝 4자리"><select id="cuNewIss" class="cu-sel">'+_CU_ISSUERS.map(function(x){ return '<option value="'+x[0]+'">'+x[1]+'</option>'; }).join('')+'</select><select id="cuNewWho" class="cu-sel"><option value="">사용자</option>'+names.map(function(n){ return '<option value="'+esc(n)+'">'+esc(n)+'</option>'; }).join('')+'</select><input id="cuNewLabel" class="cu-inp" placeholder="별칭 (예: 영업용)"><button class="btn btn-primary" onclick="cuAddCard()" style="font-size:12px">추가</button></div></div></div>';
+    ov.style.display='flex';
+  };
+  window.cuAddCard = async function(){
+    if(!_isAdmin()){ showInfoModal('카드 등록','관리자만 등록할 수 있습니다.'); return; }
+    var l4=_cuDigits(document.getElementById('cuNewL4').value).slice(-4); if(l4.length!==4){ showInfoModal('카드 등록','카드 끝 4자리를 입력하세요.'); return; }
+    var c={ issuer:document.getElementById('cuNewIss').value, holder:document.getElementById('cuNewWho').value, label:String(document.getElementById('cuNewLabel').value||'').trim(), at:Date.now() };
+    _cu.cards[l4]=c; try{ await _cuPut('_cards/'+l4, c); }catch(_e){ showInfoModal('카드 등록', _e.message); return; }
+    cuOpenCards(); _cuRenderAll();
+  };
+  window.cuDelCard = async function(l4){ if(!_isAdmin()) return; delete _cu.cards[l4]; try{ await _fbFetch(_cuUrl('_cards/'+l4), {method:'DELETE'}); }catch(_e){} cuOpenCards(); _cuRenderAll(); };
+  window.cuOpenCats = function(){
+    showPromptModal('용도 목록', '쉼표로 구분해서 적으세요. 건별 용도 선택지에 그대로 쓰입니다.', _cuCats().join(', '), async function(v){
+      if(!_isAdmin()){ showInfoModal('용도 목록','관리자만 바꿀 수 있습니다.'); return; }
+      var arr=String(v||'').split(/[,，]/).map(function(s){ return s.trim(); }).filter(Boolean); if(!arr.length) return;
+      _cu.cats=arr; try{ await _cuPut('_cats', arr); }catch(_e){ showInfoModal('용도 목록', _e.message); } _cuRenderAll();
+    }, '저장');
+  };
+  function _cuOverlay(id, maxW){
+    var ov=document.getElementById(id);
+    if(!ov){ ov=document.createElement('div'); ov.id=id; ov.style.cssText='position:fixed;inset:0;z-index:2000120;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px'; ov.addEventListener('click',function(e){ if(e.target===ov) ov.style.display='none'; }); document.body.appendChild(ov);
+      var st=document.createElement('style'); st.textContent='#'+id+' .cu-ovbox{width:100%;max-width:'+maxW+'px;max-height:88vh;display:flex;flex-direction:column;background:#fff;border:1px solid #c8d2de;border-radius:0;overflow:hidden} #'+id+' .cu-ovhd{padding:9px 14px;border-bottom:1px solid #c8d2de;background:#f4f6f9;display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;color:#1a1a1a} #'+id+' .cu-ovbd{overflow:auto}'; document.head.appendChild(st); }
+    return ov;
+  }
+  // ── 엑셀 수동 업로드 (카드사 이용내역 — 머리글 키워드로 자동 판별; 수집기와 같은 자리에 기록) ──
+  var _cuUpFile=null, _cuUpIss='shinhan';
+  window.cuOpenUpload = function(){
+    if(!_isAdmin()){ showInfoModal('엑셀 업로드','관리자만 올릴 수 있습니다.'); return; }
+    var ov=_cuOverlay('cuUpOverlay', 520); _cuUpFile=null;
+    ov.innerHTML='<div class="cu-ovbox"><div class="cu-ovhd"><span>카드 이용내역 엑셀 업로드</span><button class="btn" onclick="document.getElementById(\'cuUpOverlay\').style.display=\'none\'" style="margin-left:auto;padding:3px 10px">닫기</button></div>'
+      +'<div style="padding:14px 16px;font-size:12.5px;color:#374151;line-height:1.8">카드사 홈페이지에서 받은 이용내역 엑셀을 올립니다. 머리글(이용일·가맹점·금액·승인번호·카드번호 …)을 읽어 자동으로 맞추고, 승인번호가 같은 건은 중복 저장하지 않습니다.<br>자동 수집이 돌아가는 카드사는 올릴 필요 없습니다.'
+      +'<div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap"><select id="cuUpIss" class="cu-sel" onchange="_cuUpIss=this.value">'+_CU_ISSUERS.map(function(x){ return '<option value="'+x[0]+'"'+(x[0]===_cuUpIss?' selected':'')+'>'+x[1]+'</option>'; }).join('')+'</select>'
+      +'<label style="cursor:pointer;margin:0;font-size:12px;background:#fff;border:1px solid #c8d2de;padding:5px 11px">파일 선택<input type="file" accept=".xlsx,.xls,.csv" onchange="_cuUpFile=this.files[0]||null;document.getElementById(\'cuUpName\').textContent=_cuUpFile?_cuUpFile.name:\'없음\'" style="display:none"></label><span id="cuUpName" style="color:#9ca3af">선택된 파일 없음</span></div>'
+      +'<div style="text-align:right;margin-top:12px"><button class="btn btn-primary" onclick="cuDoUpload()">업로드</button></div><div id="cuUpMsg" style="margin-top:8px;color:#6b7280"></div></div></div>';
+    ov.style.display='flex';
+  };
+  function _cuExcelDate(v){
+    if(v==null||v==='') return '';
+    if(typeof v==='number'){ var d=new Date(Math.round((v-25569)*86400000)); return d.getUTCFullYear()+String(d.getUTCMonth()+1).padStart(2,'0')+String(d.getUTCDate()).padStart(2,'0'); }
+    var s=String(v).trim(); var m=s.match(/(\d{4})\D?(\d{1,2})\D?(\d{1,2})/); if(!m) return ''; return m[1]+m[2].padStart(2,'0')+m[3].padStart(2,'0');
+  }
+  function _cuParseRows(aoa, issuer){   // 머리글 행 찾기 → 열 매핑 → 공통 스키마
+    var KEYS={ date:['이용일','거래일','승인일','매출일','사용일'], time:['이용시간','거래시간','승인시간','시간'], card:['카드번호','카드'], merchant:['가맹점명','이용가맹점','가맹점','이용처','상호','거래처'], mbiz:['사업자번호','사업자등록번호','가맹점사업자'], amount:['이용금액','승인금액','거래금액','결제금액','합계금액','금액'], supply:['공급가액','공급가'], tax:['부가세','세액'], approval:['승인번호','승인no'], status:['거래구분','승인구분','취소여부','상태','구분'], holder:['이용자','사용자','카드소지자','소지자','성명','이름'] };
+    var hdrIdx=-1, map={};
+    for(var i=0;i<Math.min(aoa.length,30);i++){ var row=(aoa[i]||[]).map(function(c){ return String(c==null?'':c).replace(/\s+/g,''); }); var m2={}; var hit=0;
+      Object.keys(KEYS).forEach(function(k){ for(var c=0;c<row.length;c++){ if(m2[k]!=null) break; if(KEYS[k].some(function(w){ return row[c].indexOf(w)>=0; })){ if(k==='amount' && (row[c].indexOf('공급')>=0||row[c].indexOf('부가')>=0)) continue; m2[k]=c; hit++; } } });
+      if(m2.date!=null && m2.amount!=null && (m2.merchant!=null||m2.approval!=null)){ hdrIdx=i; map=m2; break; } }
+    if(hdrIdx<0) throw new Error('머리글(이용일·가맹점·금액)을 찾지 못했습니다. 카드사에서 받은 이용내역 엑셀인지 확인해 주세요.');
+    var out=[];
+    for(var r=hdrIdx+1;r<aoa.length;r++){ var row=aoa[r]||[]; var g=function(k){ return (map[k]!=null)?row[map[k]]:''; };
+      var date=_cuExcelDate(g('date')); var amt=Number(String(g('amount')).replace(/[^\d.-]/g,''))||0; if(!date||!amt) continue;
+      var st=String(g('status')||''); var cancelled=/취소|반품|CANCEL/i.test(st)||amt<0; amt=Math.abs(amt);
+      var appr=String(g('approval')||'').replace(/\s+/g,''); var card=String(g('card')||'');
+      var id=issuer+'_'+(appr||(date+'_'+_cuDigits(card).slice(-4)+'_'+Math.round(amt)+'_'+_cuMerKey(g('merchant')).slice(0,12)));
+      out.push({ id:id.replace(/[.#$\[\]\/]/g,'_'), issuer:issuer, date:date, time:String(g('time')||'').slice(0,8), cardNoMasked:card, cardLast4:_cuDigits(card).slice(-4), merchant:String(g('merchant')||'').trim(), mbiz:(function(d){ return d.length===10?(d.slice(0,3)+'-'+d.slice(3,5)+'-'+d.slice(5)):String(g('mbiz')||'').trim(); })(_cuDigits(g('mbiz'))), amount:Math.round(amt), supplyAmt:Number(String(g('supply')).replace(/[^\d.-]/g,''))||null, taxAmt:Number(String(g('tax')).replace(/[^\d.-]/g,''))||null, approvalNo:appr, status:cancelled?'cancelled':'approved', holderHint:String(g('holder')||'').trim(), source:'upload' });
+    }
+    return out;
+  }
+  window.cuDoUpload = async function(){
+    if(!_isAdmin()) return; if(!_cuUpFile){ showInfoModal('엑셀 업로드','파일을 선택하세요.'); return; }
+    var msg=document.getElementById('cuUpMsg'); if(msg) msg.textContent='읽는 중…';
+    try{
+      await _ensureXlsxLib();
+      var buf=await _cuUpFile.arrayBuffer(); var wb=XLSX.read(new Uint8Array(buf),{type:'array'}); var ws=wb.Sheets[wb.SheetNames[0]]; var aoa=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
+      var recs=_cuParseRows(aoa, _cuUpIss);
+      var byDate={}; recs.forEach(function(r){ (byDate[r.date]=byDate[r.date]||{})[r.id]=r; });
+      var n=0; for(var d in byDate){ await _cuPatch(_cuUpIss+'/'+d, byDate[d]); n+=Object.keys(byDate[d]).length; }
+      var meta={ lastSyncedAt:new Date().toISOString(), lastSyncedCount:n, source:'upload', by:_cuMe() }; try{ await _cuPut('_meta/'+_cuUpIss, meta); }catch(_e){}
+      if(msg) msg.textContent=n+'건 저장 (같은 승인번호는 덮어씀)';
+      await renderCardUsePage(true);
+    }catch(e){ if(msg) msg.textContent='실패: '+(e&&e.message||e); }
+  };
+  // ── 엑셀 다운로드 (이달, 현재 필터) ──
+  window.cuExport = async function(){
+    try{ await _ensureXlsxLib(); }catch(_e){ showInfoModal('엑셀','엑셀 라이브러리를 불러오지 못했습니다.'); return; }
+    var rows=_cuMonthRecs().filter(function(r){ return !_cu.fCard||_cuLast4(r)===_cu.fCard; }).filter(function(r){ return !_cu.fWho||_cuWho(r)===_cu.fWho; });
+    var aoa=[['일자','시간','카드사','카드','사용자','가맹점','사업자번호','금액','공급가액','부가세','승인번호','상태','용도','메모','매입계산서 중복']];
+    rows.forEach(function(r){ var d=String(r.date||''); var dup=_cu.dupMap&&_cu.dupMap[r.id]; aoa.push([d.slice(0,4)+'-'+d.slice(4,6)+'-'+d.slice(6,8), r.time||'', _cuIssuerName(r.issuer), (_cuLast4(r)?'****-'+_cuLast4(r):''), _cuWho(r), r.merchant||'', r.mbiz||'', (r.status==='cancelled'?-1:1)*(Number(r.amount)||0), r.supplyAmt!=null?r.supplyAmt:'', r.taxAmt!=null?r.taxAmt:'', r.approvalNo||'', r.status==='cancelled'?'취소':'승인', _cuUse(r), (_cuTag(r).memo||''), dup?('계산서 '+dup.date):'']); });
+    var ws=XLSX.utils.aoa_to_sheet(aoa); ws['!cols']=[{wch:11},{wch:8},{wch:9},{wch:10},{wch:9},{wch:24},{wch:13},{wch:11},{wch:11},{wch:9},{wch:11},{wch:6},{wch:10},{wch:20},{wch:14}];
+    var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'카드사용'); XLSX.writeFile(wb,'카드사용_'+_cu.ym+'.xlsx');
+  };
+  // ── 개인: 내 카드 (메모장) ──
+  function _cuMine(){ var me=_cuMe(); if(!me) return []; return _cu.recs.filter(function(r){ return _cuWho(r)===me; }); }
+  function _cuMineUntagged(){ return _cuMine().filter(function(r){ return r.status!=='cancelled' && !_cuUse(r); }).length; }
+  function _cuBanner(){ if(!_cu.loaded) return ''; var n=_cuMineUntagged(); if(!n) return ''; return '<div class="mm-smc cu"><b>내 카드 사용 미분류 '+n+'건</b><span>용도를 골라 주세요 — 한 번 고르면 같은 가맹점은 자동으로 채워집니다</span><a onclick="cuOpenMine()">내 카드 보기 →</a></div>'; }
+  window.cuOpenMine = async function(){
+    var ov=_cuOverlay('cuMineOverlay', 860);
+    ov.innerHTML='<div class="cu-ovbox"><div class="cu-ovhd"><span>내 카드 사용</span><span id="cuMineSum" style="font-weight:500;color:#6b7280;font-size:12px"></span><button class="btn" onclick="document.getElementById(\'cuMineOverlay\').style.display=\'none\'" style="margin-left:auto;padding:3px 10px">닫기</button></div><div class="cu-ovbd" id="cuMineBody" style="padding:0 0 8px"><div style="padding:30px;text-align:center;color:#bbb">불러오는 중…</div></div></div>';
+    ov.style.display='flex';
+    try{ await _cuEnsure(); }catch(_e){}
+    _cuRenderMine();
+  };
+  function _cuRenderMine(){
+    var host=document.getElementById('cuMineBody'); if(!host) return;
+    var me=_cuMe(); var all=_cuMine();
+    if(!all.length){ host.innerHTML='<div style="padding:30px;text-align:center;color:#bbb">'+(me?('"'+esc(me)+'" 님 카드로 결제된 내역이 없습니다. (카드 등록표에 본인 카드가 있어야 보입니다)'):'로그인 후 표시됩니다.')+'</div>'; return; }
+    var byM={}; all.forEach(function(r){ var k=String(r.date||'').slice(0,6); (byM[k]=byM[k]||[]).push(r); });
+    var months=Object.keys(byM).sort().reverse().slice(0,3);
+    var h=''; var sumAll=0;
+    months.forEach(function(k){ var rs=byM[k]; var s=0, un=0; rs.forEach(function(r){ if(r.status!=='cancelled'){ s+=Number(r.amount)||0; if(!_cuUse(r)) un++; } }); sumAll+=s;
+      h+='<div style="padding:8px 14px;background:#f8fafc;border-bottom:1px solid #eef2f7;display:flex;gap:10px;align-items:baseline"><b style="color:#1B3A6B">'+k.slice(0,4)+'년 '+Number(k.slice(4,6))+'월</b><span style="font-size:12px;color:#374151">'+_cuFmt(s)+'원 · '+rs.length+'건'+(un?' · <span style="color:#b45309;font-weight:700">미분류 '+un+'</span>':'')+'</span></div>';
+      h+='<table><thead><tr><th>일자</th><th>가맹점</th><th style="text-align:right">금액</th><th>용도</th><th>메모</th></tr></thead><tbody>'+rs.map(function(r){ var d=String(r.date||''); var c=r.status==='cancelled'; var t=_cuTag(r); return '<tr'+(c?' style="color:#9ca3af;text-decoration:line-through"':'')+'><td style="white-space:nowrap">'+d.slice(4,6)+'/'+d.slice(6,8)+'</td><td>'+esc(r.merchant||'')+'</td><td class="n">'+(c?'-':'')+_cuFmt(r.amount)+'</td><td>'+(c?'':_cuUseSel(r,'mine'))+'</td><td>'+(c?'':'<input class="cu-inp" style="width:100%;min-width:120px" value="'+esc(t.memo||'')+'" placeholder="메모" onchange="cuSetMemo(\''+esc(r.id)+'\',this.value)">')+'</td></tr>'; }).join('')+'</tbody></table>'; });
+    host.innerHTML=h;
+    var sm=document.getElementById('cuMineSum'); if(sm) sm.textContent=me+' · 최근 '+months.length+'개월 '+_cuFmt(sumAll)+'원';
+  }
+  // 용도 선택이 '내 카드' 창에서 일어나면 그 창도 다시 그린다
+  (function(){ var _o=window.cuSetUse; window.cuSetUse=async function(id,use){ await _o(id,use); try{ if(document.getElementById('cuMineOverlay')&&document.getElementById('cuMineOverlay').style.display==='flex') _cuRenderMine(); }catch(_e){} try{ if(document.getElementById('pageMemo')&&document.getElementById('pageMemo').classList.contains('active')) renderMemoPage(true); }catch(_e){} }; })();
+  // 메모장을 열 때 조용히 한 번 읽어 배너를 띄운다 (5분 캐시)
+  function _cuWarmForMemo(){ if(!_fbDbUrl||!_cuMe()) return; if(_cu.loaded && Date.now()-_cu.loadedAt<5*60*1000) return; _cuEnsure().then(function(){ try{ if(_cuMineUntagged() && document.getElementById('pageMemo') && document.getElementById('pageMemo').classList.contains('active')) renderMemoPage(true); }catch(_e){} }).catch(function(){}); }
   async function renderCardSalesPage(){
     var tbody=document.getElementById('csTable');
     if(!tbody) return;
@@ -4315,6 +4616,7 @@
         sched_memo_cards: memoCards,
         sched_smc_queue: smcQueue,   // r181
         sched_client_pend: clientPend,   // r217
+        sched_client_owner: clientOwner,   // r225
         sched_meetings: meetings,   // r187
         sched_comments: schedComments,
         sched_categories: schedCategories,
@@ -4390,7 +4692,7 @@
       const d = await _syncGet();
       if (!d || (d._updatedAt || 0) <= _fbLastUpdatedAt) return;
       _fbLastUpdatedAt = d._updatedAt || 0;
-      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_client_pend','sched_meetings','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
+      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_client_pend','sched_client_owner','sched_meetings','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
       KEYS.forEach(k => { if (d[k] !== undefined) save(k, d[k]); });
       // ── 바로가기(sched_links) 보호 ──
       // 키가 없을 때: sched_links_ts가 있으면 신버전 클라이언트의 정상 저장(목록이 비어서
@@ -4493,7 +4795,7 @@
       const d = await _syncGet();
       const fbTs    = (d && d._updatedAt) || 0;
       const localTs = parseInt(localStorage.getItem('sched_local_ts') || '0');
-      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_client_pend','sched_meetings','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
+      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_client_pend','sched_client_owner','sched_meetings','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
 
       // ── 올바른 팀원 ID 목록 (하드코딩) ──────────────────────
       const _VALID_MEMBER_IDS = defaultMembers().map(m => m.id);
@@ -4618,6 +4920,7 @@ function reloadState() {
     memoCards        = load('sched_memo_cards') ?? {};
     smcQueue         = load('sched_smc_queue') ?? [];   // r181
     clientPend       = load('sched_client_pend') ?? [];   // r217
+    clientOwner      = load('sched_client_owner') ?? {};   // r225
     meetings         = load('sched_meetings') ?? [];   // r187
     clientInfo       = _ciMigrate(_cliDecMap(load('sched_client_info') ?? {}));   // r161
     _ciVer++;
@@ -7895,7 +8198,157 @@ function reloadState() {
     else { quoteSaved.unshift({id:_qLoadedId, title:_qQuoteNo, vname:vn, vid:vid, count:_qCart.length, total:supply, nego:_qNego, memo:_qMemo, note:_qNote, savedBy:who, savedAt:Date.now(), cols:JSON.parse(JSON.stringify(_qCols||[]))}); }
     saveAll();
     try{ _qLogDoneMemo(_qQuoteNo, vn, _qCart.length, supply, who); }catch(_e){}   // r222: 작성자 일정에 완료된 업무로
+    try{ _coAfterQuote(vn, who); }catch(_e){}   // r225: 견적 5회 → 담당 편입
   }
+  // ─── r225: 담당 업체 (견적 5회 이상 → 자동 편입) + 개인 일정 '내 담당 업체 매출' ───
+  var _CO_MIN = 5;   // 같은 회사 견적을 이만큼 저장하면 담당
+  function _coMe(){ return (typeof _authUser!=='undefined'&&_authUser&&_authUser.name)?String(_authUser.name).trim():''; }
+  function _coFmt(n){ return Math.round(Number(n)||0).toLocaleString('ko-KR'); }
+  function _coIsMember(n){ return !!n && (members||[]).some(function(x){ return x.name===n; }); }
+  function _coStore(){ if(!clientOwner || typeof clientOwner!=='object' || Array.isArray(clientOwner)) clientOwner={}; if(!clientOwner.m) clientOwner.m={}; if(!clientOwner.a) clientOwner.a={}; return clientOwner; }
+  // 저장된 견적 → 업체별 {작성자: 건수}. 반환 { 업체명: {cnt:{who:n}, last:{who:savedAt}, total:n} }
+  function _coQuoteStats(){
+    var st={};
+    (quoteSaved||[]).forEach(function(q){
+      var vn=String(q.vname||'').trim(), who=String(q.savedBy||'').trim();
+      if(!vn || !who) return;
+      var s=st[vn]||(st[vn]={cnt:{}, last:{}, total:0});
+      s.cnt[who]=(s.cnt[who]||0)+1; s.total++;
+      var at=Number(q.savedAt)||0; if(!s.last[who] || at>s.last[who]) s.last[who]=at;
+    });
+    return st;
+  }
+  // 자동 담당: 건수 최다 1명(_CO_MIN 이상), 동률이면 최근 작성자
+  function _coAutoWho(s){
+    if(!s) return '';
+    var best='', bn=0, bl=0;
+    Object.keys(s.cnt).forEach(function(w){ var n=s.cnt[w], l=s.last[w]||0; if(n>bn || (n===bn && l>bl)){ best=w; bn=n; bl=l; } });
+    return (bn>=_CO_MIN && _coIsMember(best)) ? best : '';
+  }
+  // 전체 담당표: { 업체명: {who, mode:'manual'|'auto', n(견적 건수 — 그 사람), total} }
+  function _coMap(){
+    var st=_coQuoteStats(), S=_coStore(), out={};
+    Object.keys(st).forEach(function(vn){ var w=_coAutoWho(st[vn]); if(w) out[vn]={who:w, mode:'auto', n:st[vn].cnt[w]||0, total:st[vn].total}; });
+    Object.keys(S.m).forEach(function(vn){ var m=S.m[vn]; if(!m) return;
+      if(m.who && _coIsMember(m.who)) out[vn]={who:m.who, mode:'manual', n:(st[vn]&&st[vn].cnt[m.who])||0, total:(st[vn]&&st[vn].total)||0};
+      else delete out[vn];   // who 가 비면 '담당 없음'으로 고정 (자동 무시)
+    });
+    return out;
+  }
+  function _coOwnerOf(vn){ var m=_coMap()[vn]; return m?m.who:''; }
+  function _coMine(me){ var mp=_coMap(); return Object.keys(mp).filter(function(vn){ return mp[vn].who===me; }).map(function(vn){ var o=mp[vn]; o.vname=vn; return o; }); }
+  // 견적 저장 뒤 호출: 이 업체의 자동 담당이 바뀌었으면 기록하고, 새 담당 일정에 완료 줄을 남긴다
+  function _coAfterQuote(vn, who){
+    try{
+      vn=String(vn||'').trim(); if(!vn) return;
+      var S=_coStore(), st=_coQuoteStats(), w=_coAutoWho(st[vn]);
+      var prev=(S.a[vn]&&S.a[vn].who)||'';
+      if(w===prev) return;
+      S.a[vn]={who:w, at:Date.now()};
+      if(w && !S.m[vn] && _coIsMember(w)){
+        var now=Date.now();
+        memoLines.push({ id:'mm'+now.toString(36)+Math.random().toString(36).slice(2,6), owner:w, parent:'',
+                         text:'담당 업체 편입 · '+vn+' (견적 '+(st[vn].cnt[w]||0)+'회 작성 — 내 담당 업체에서 매출을 볼 수 있습니다)',
+                         kind:'memo', vendor:vn, to:'', name:'', phone:'', when:{date:'',time:''},
+                         date:_mmToday(), createdAt:now, done:true, doneAt:now, feedback:[], card:'', linked:{}, coRef:{vname:vn} });
+        _mmSave();
+      } else { saveAll(); }
+    }catch(_e){}
+  }
+  // 매출 집계: 업체명 → 연도별 공급가 합 (서울+화성, 매출계산서). vbiz 로 먼저 맞추고 이름으로 보조.
+  function _coSalesByYear(vnames, years){
+    var want={}; vnames.forEach(function(vn){ want[vn]=1; });
+    var byVbiz={};
+    vnames.forEach(function(vn){ ['서울','화성'].forEach(function(b){ try{ var vb=_fxClientVbiz(vn,b); if(vb) byVbiz[vb]=vn; }catch(_e){} }); });
+    var out={}; vnames.forEach(function(vn){ out[vn]={}; years.forEach(function(y){ out[vn][y]=0; }); });
+    (fxSalesInv||[]).forEach(function(e){
+      var vn=(e.vbiz && byVbiz[e.vbiz]) || (want[e.vendor]?e.vendor:'');
+      if(!vn) return;
+      var y=String(e.date||'').slice(0,4); if(!out[vn][y] && out[vn][y]!==0) return;
+      out[vn][y]+=Number(e.supply)||0;
+    });
+    return out;
+  }
+  function _coOverlay(id, maxW){
+    var ov=document.getElementById(id);
+    if(!ov){ ov=document.createElement('div'); ov.id=id; ov.style.cssText='position:fixed;inset:0;z-index:2000120;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px'; ov.addEventListener('click',function(e){ if(e.target===ov) ov.style.display='none'; }); document.body.appendChild(ov);
+      var st=document.createElement('style'); st.textContent='#'+id+' .co-ovbox{width:100%;max-width:'+maxW+'px;max-height:88vh;display:flex;flex-direction:column;background:#fff;border:1px solid #c8d2de;border-radius:0;overflow:hidden} #'+id+' .co-ovhd{padding:9px 14px;border-bottom:1px solid #c8d2de;background:#f4f6f9;display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;color:#1a1a1a} #'+id+' .co-ovbd{overflow:auto}'; document.head.appendChild(st); }
+    return ov;
+  }
+  var _coView='mine';   // mine | all (관리자)
+  window.coOpenMine = async function(view){
+    _coView=(view==='all' && _isAdmin())?'all':'mine';
+    var ov=_coOverlay('coMineOverlay', 900);
+    ov.innerHTML='<div class="co-ovbox"><div class="co-ovhd"><span id="coMineTitle">내 담당 업체 매출</span><span id="coMineSum" style="font-weight:500;color:#6b7280;font-size:12px"></span>'
+      +(_isAdmin()?'<button class="btn" id="coViewBtn" onclick="coOpenMine(\''+(_coView==='all'?'mine':'all')+'\')" style="margin-left:auto;padding:3px 10px">'+(_coView==='all'?'내 담당만':'전체 담당 현황')+'</button>':'')
+      +'<button class="btn" onclick="document.getElementById(\'coMineOverlay\').style.display=\'none\'" style="'+(_isAdmin()?'':'margin-left:auto;')+'padding:3px 10px">닫기</button></div><div class="co-ovbd" id="coMineBody" style="padding:0 0 8px"><div style="padding:30px;text-align:center;color:#bbb">불러오는 중…</div></div></div>';
+    ov.style.display='flex';
+    try{ await _fxEnsureData(); }catch(_e){}
+    _coRender();
+  };
+  function _coYears(){ var y=new Date().getFullYear(); return [String(y), String(y-1), String(y-2)]; }
+  function _coRender(){
+    var host=document.getElementById('coMineBody'); if(!host) return;
+    var me=_coMe(), years=_coYears(), adm=_isAdmin();
+    var tt=document.getElementById('coMineTitle'); if(tt) tt.textContent=(_coView==='all'?'전체 담당 현황':'내 담당 업체 매출');
+    var list;
+    if(_coView==='all'){ var mp=_coMap(); list=Object.keys(mp).map(function(vn){ var o=mp[vn]; o.vname=vn; return o; }); }
+    else list=me?_coMine(me):[];
+    if(!list.length){
+      host.innerHTML='<div style="padding:30px;text-align:center;color:#bbb;line-height:1.7">'+(me?('"'+esc(me)+'" 님이 담당하는 업체가 아직 없습니다.<br>같은 회사 견적을 <b>'+_CO_MIN+'회</b> 이상 저장하면 그 회사 담당으로 자동 편입됩니다.'):'로그인 후 표시됩니다.')+'</div>';
+      if(adm && _coView==='mine') host.innerHTML+=_coAssignBox();
+      var sm0=document.getElementById('coMineSum'); if(sm0) sm0.textContent='';
+      return;
+    }
+    var sales=_coSalesByYear(list.map(function(o){ return o.vname; }), years);
+    list.sort(function(a,b){ return (sales[b.vname][years[0]]||0)-(sales[a.vname][years[0]]||0) || (b.n-a.n); });
+    var tot={}; years.forEach(function(y){ tot[y]=0; }); var totN=0;
+    list.forEach(function(o){ years.forEach(function(y){ tot[y]+=sales[o.vname][y]||0; }); totN+=o.n; });
+    var h='<div class="co-tiles">'
+      +'<div class="co-tile"><b>담당 업체</b><span>'+list.length+'곳</span></div>'
+      +years.map(function(y,i){ return '<div class="co-tile"><b>'+y+'년 매출'+(i===0?' (올해)':'')+'</b><span>'+_coFmt(tot[y])+'원</span></div>'; }).join('')
+      +'</div>';
+    h+='<table><thead><tr><th>업체</th>'+(_coView==='all'?'<th>담당</th>':'')+'<th class="n">견적</th>'+years.map(function(y){ return '<th class="n">'+y+'</th>'; }).join('')+'<th>근거</th>'+(adm?'<th>담당 변경</th>':'')+'</tr></thead><tbody>';
+    list.forEach(function(o){
+      h+='<tr><td>'+esc(o.vname)+'</td>'+(_coView==='all'?'<td>'+esc(o.who)+'</td>':'')+'<td class="n">'+o.n+(o.total>o.n?'<span style="color:#9ca3af">/'+o.total+'</span>':'')+'</td>'
+        +years.map(function(y){ var v=sales[o.vname][y]||0; return '<td class="n"'+(v?'':' style="color:#c0c6cf"')+'>'+_coFmt(v)+'</td>'; }).join('')
+        +'<td>'+(o.mode==='manual'?'<span class="co-tag m">지정</span>':'<span class="co-tag">견적 '+_CO_MIN+'회+</span>')+'</td>'
+        +(adm?'<td>'+_coOwnerSel(o.vname, o.who)+'</td>':'')+'</tr>';
+    });
+    h+='<tr class="tot"><td>합계</td>'+(_coView==='all'?'<td></td>':'')+'<td class="n">'+totN+'</td>'+years.map(function(y){ return '<td class="n">'+_coFmt(tot[y])+'</td>'; }).join('')+'<td></td>'+(adm?'<td></td>':'')+'</tr>';
+    h+='</tbody></table>';
+    h+='<div style="padding:8px 14px;font-size:11.5px;color:#6b7280">매출 = 매출계산서 공급가액(서울+화성 합산). 견적 = 내가 저장한 건수'+(_coView==='all'?'(/전체)':'')+'.</div>';
+    if(adm) h+=_coAssignBox();
+    host.innerHTML=h;
+    var sm=document.getElementById('coMineSum'); if(sm) sm.textContent=(_coView==='all'?'':me+' · ')+list.length+'곳 · '+years[0]+'년 '+_coFmt(tot[years[0]])+'원';
+  }
+  function _coOwnerSel(vn, cur){
+    var S=_coStore(), isM=!!S.m[vn];
+    var h='<select class="co-sel" onchange="coSetOwner(\''+esc(vn).replace(/'/g,'&#39;')+'\', this.value)"><option value="">(담당 없음)</option>';
+    (members||[]).forEach(function(m){ h+='<option value="'+esc(m.name)+'"'+(m.name===cur?' selected':'')+'>'+esc(m.name)+'</option>'; });
+    h+='</select>'+(isM?'<a onclick="coClearOwner(\''+esc(vn).replace(/'/g,'&#39;')+'\')" style="margin-left:6px;font-size:11px;color:#6b7280;cursor:pointer;text-decoration:underline">자동으로</a>':'');
+    return h;
+  }
+  function _coAssignBox(){
+    var names=[]; try{ names=_fxClientOpts().map(function(x){ return x.name; }); }catch(_e){ names=(allClients()||[]).map(function(c){ return c&&c[0]; }).filter(Boolean); }
+    var h='<div style="padding:10px 14px;border-top:1px solid #eef2f7;background:#fafbfc;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12.5px"><b style="color:#1B3A6B">담당 수동 지정</b>'
+      +'<input id="coAsgVn" list="coAsgList" placeholder="업체명" style="font-size:12.5px;padding:3px 6px;border:1px solid #c8d2de;min-width:200px"><datalist id="coAsgList">'+names.slice(0,3000).map(function(n){ return '<option value="'+esc(n)+'">'; }).join('')+'</datalist>'
+      +'<select id="coAsgWho" class="co-sel"><option value="">(담당 없음)</option>'+(members||[]).map(function(m){ return '<option value="'+esc(m.name)+'">'+esc(m.name)+'</option>'; }).join('')+'</select>'
+      +'<button class="btn" onclick="coAssign()" style="padding:3px 10px">지정</button><span style="color:#9ca3af">수동 지정은 견적 횟수보다 우선합니다. "(담당 없음)"으로 지정하면 자동 편입도 막습니다.</span></div>';
+    return h;
+  }
+  window.coSetOwner = function(vn, who){
+    if(!_isAdmin()) return;
+    var S=_coStore(); S.m[vn]={who:String(who||''), by:_coMe(), at:Date.now()};
+    saveAll(); _coRender();
+  };
+  window.coClearOwner = function(vn){ if(!_isAdmin()) return; var S=_coStore(); delete S.m[vn]; saveAll(); _coRender(); };
+  window.coAssign = function(){
+    if(!_isAdmin()) return;
+    var vi=document.getElementById('coAsgVn'), wi=document.getElementById('coAsgWho');
+    var vn=vi?String(vi.value||'').trim():''; if(!vn){ showInfoModal('담당 지정','업체명을 입력해 주세요.'); return; }
+    coSetOwner(vn, wi?wi.value:'');
+  };
   // r222: 견적서 저장 → 작성자 일정에 '완료된 업무'로 기록 (같은 견적을 다시 저장하면 그 줄을 갱신)
   function _qLogDoneMemo(no, vn, cnt, supply, who){
     try{
@@ -10850,6 +11303,7 @@ function reloadState() {
       sched_memos: memoLines, sched_memo_cards: memoCards,   // r179
       sched_smc_queue: smcQueue,   // r181
       sched_client_pend: clientPend,   // r217
+      sched_client_owner: clientOwner,   // r225
       sched_meetings: meetings,   // r187
       // r157: 매입매출 설정 5종 — 빠져 있어서 복원 시 미배정 매칭 작업이 통째로 사라졌다
       sched_fx_alias: fxAlias, sched_fx_openings: fxOpenings, sched_fx_adjusts: fxAdjusts,
@@ -13626,7 +14080,7 @@ function reloadState() {
     try{ if(typeof _qLeaveGuard==='function' && _qLeaveGuard(page)) return; }catch(_e){}
     var _SCHED=['personal','weekly','biz','project','clients','memo','done','meeting'];   // r179·r184·r187
     var _ETC=['links'];
-    var _ACCT=['fx','fxsum','fxup','cardsales'];   // r221: 입출금 탭 삭제
+    var _ACCT=['fx','fxsum','fxup','cardsales','carduse'];   // r221: 입출금 탭 삭제 · r224 카드사용
     document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
     if(_SCHED.indexOf(page)>=0){ var _ts=document.getElementById('tabSchedule'); if(_ts) _ts.classList.add('active'); _lastSched=page; }
     else if(_ETC.indexOf(page)>=0){ var _te=document.getElementById('tabEtc'); if(_te) _te.classList.add('active'); }
@@ -13640,7 +14094,7 @@ function reloadState() {
     try{ _fxSyncAcctNav(); }catch(_e){}   // r214: '자료 업로드' 는 마스터만
     document.querySelectorAll('.sub-tab').forEach(t => t.classList.toggle('active', t.dataset.page === page));
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-    const pageMap = { memo:'pageMemo', done:'pageDone', meeting:'pageMeeting', weekly:'pageWeekly', biz:'pageBiz', project:'pageProject', clients:'pageClients', assign:'pageAssign', personal:'pagePersonal', finance:'pageFinance', ar:'pageAr', inventory:'pageInventory', purchase:'pagePurchase', files:'pageFiles', estimate:'pageEstimate', fx:'pageFx', fxsum:'pageFx', fxup:'pageFx', links:'pageLinks', cardsales:'pageCardSales' };
+    const pageMap = { carduse:'pageCardUse', memo:'pageMemo', done:'pageDone', meeting:'pageMeeting', weekly:'pageWeekly', biz:'pageBiz', project:'pageProject', clients:'pageClients', assign:'pageAssign', personal:'pagePersonal', finance:'pageFinance', ar:'pageAr', inventory:'pageInventory', purchase:'pagePurchase', files:'pageFiles', estimate:'pageEstimate', fx:'pageFx', fxsum:'pageFx', fxup:'pageFx', links:'pageLinks', cardsales:'pageCardSales' };
     document.getElementById(pageMap[page] || 'pageWeekly').classList.add('active');
     // 견적 화면에서만 .main 의 가로 스크롤을 풀어 툴바 sticky 가 화면 기준으로 붙게 한다
     var _mn=document.querySelector('.main'); if(_mn) _mn.classList.toggle('main-estimate', page==='estimate' || page==='clients');
@@ -13700,6 +14154,8 @@ function reloadState() {
       // 오해했던 문제의 근본 해결).
       renderCardSalesPage();
     }
+    if (page === 'carduse'){ renderCardUsePage(); }   // r224
+    if (page === 'memo'){ try{ _cuWarmForMemo(); }catch(_e){} }   // r224: 내 카드 미분류 배너
   }
   document.querySelectorAll('.page-tab[data-page], .sub-tab').forEach(tab => {
     tab.addEventListener('click', () => switchPage(tab.dataset.page));
@@ -13955,6 +14411,7 @@ function reloadState() {
     var h='';
     try{ h+=_mmSmcBanner(); }catch(_e){}   // r181 SMC 확인 대기 배너
     try{ h+=_pendBanner(); }catch(_e){}   // r217 업체 정보 등록 대기 배너
+    try{ h+=_cuBanner(); }catch(_e){}   // r224 내 카드 미분류 배너
     // ① 공지 — 모든 사람 것
     var notices=(memoLines||[]).filter(function(l){ return l.kind==='notice' && !l.parent && _mmVisible(l, showDone); }).sort(function(a,b){ return (a.createdAt||0)-(b.createdAt||0); });
     if(notices.length){
