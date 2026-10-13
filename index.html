@@ -8600,71 +8600,14 @@ function reloadState() {
     try{
       await _ensureXlsxLib();
       try{ await _qPersistQuote(); }catch(_pe){ showInfoModal('견적 저장 실패', (_pe&&_pe.message||String(_pe))+'\n\n엑셀은 계속 만들지만, 이 견적은 저장되지 않았습니다.'); }
-      var wb=_qBuildQuoteXlsxWb();   // r218
-      var vn=(_qCart[0].vname||'견적'); var d=new Date();
-      var ds=d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
-      XLSX.writeFile(wb,'견적목록_'+vn+'_'+ds+'.xlsx');
+      var wb=_qBuildQuoteSheetWb();   // r229: 고객용 견적서(PDF 와 같은 모양 · 수식)
+      var _fn=('견적서 '+(_qQuoteNo||(_qCart[0].vname||'견적'))).replace(/[<>:"/\\|?*]/g,' ').replace(/\s+/g,' ').trim();
+      XLSX.writeFile(wb, _fn+'.xlsx');
       if(_qQuoteNo) showInfoModal('자동 저장', '이 견적은 "'+esc(_qQuoteNo)+'" 번호로 자동 저장되었습니다.');
     }catch(e){ showInfoModal('알림', '엑셀 내보내기 실패: '+e.message); }
   };
-  function _qBuildQuoteXlsxWb(){   // r218: 견적목록 엑셀 워크북 — 일반 엑셀 버튼과 PDF 동시 다운로드가 같이 쓴다 (XLSX 로드 후 호출)
-      var totalBuy=0, totalSell=0, totalQty=0;
-      var _cxC=(typeof _qCols!=='undefined'&&_qCols)?_qCols:[];
-      var _isSynapse=(((_qCart[0]&&_qCart[0].vname)||'').indexOf('시냅스이미징')>=0);
-      var aoa=[['NO','거래처','품목','규격','수량','단위','판매가','금액','예상납기','E가','DC율','구매가','마진율'].concat(_cxC.map(function(x){return x.title;}))];
-      _qCart.forEach(function(c,i){
-        var qty=Number(c.qty)||1; totalQty+=qty;
-        var _hasSpec=(c.spec!=null&&String(c.spec).trim()!=='');   // 규격 없으면 수량칸 빈칸
-        var hasSell=(c.sell!=null&&c.sell!=='');
-        var amt=hasSell?Number(c.sell)*qty:null; if(amt!=null) totalSell+=amt;
-        if(hasSell && c.buy!=null && c.buy!=='') totalBuy+=Number(c.buy)*qty;
-        var dc=_qDcOf(c.e,c.buy); var mg=hasSell?_qMarginOf(c.buy,c.sell):null;
-        var _dtx2=_qDiscText(c.disc);
-        var sellCell = hasSell ? Number(c.sell) : '';     // 단종/변경 문구는 금액 칸에만
-        aoa.push([ i+1, c.vname||'', c.name||'', c.spec||'', (_hasSpec?qty:''), 'EA', sellCell, (amt!=null?amt:_dtx2),
-          c.eta||'', (c.e!=null&&c.e!==''?Number(c.e):''), (dc!=null?dc:''),
-          (c.buy!=null&&c.buy!==''?Number(c.buy):''), (mg!=null?mg:'') ].concat(_cxC.map(function(x){ var _v=(c.cx&&c.cx[x.id]!=null)?c.cx[x.id]:''; if(_isSynapse && String(x.title||'').trim()==='코드' && _v!=='' && _v!=null){ _v='('+_v+')'; } return _v; })));
-      });
-      var marginPct = totalSell>0 ? (1-totalBuy/totalSell) : '';
-      aoa.push(['합계','','','', totalQty, '', '', totalSell, '', '', '', totalBuy, marginPct].concat(_cxC.map(function(){return '';})));
-      var _nego=(_qNego!=null)?Number(_qNego):0;
-      if(_nego){ var _fs=totalSell-_nego; var _fm=(totalBuy>0&&_fs>0)?(1-totalBuy/_fs):''; aoa.push(['NEGO 할인','','','','', '', '', -_nego, '', '', '', '', ''].concat(_cxC.map(function(){return '';}))); aoa.push(['최종 금액','','','','', '', '', _fs, '', '', '', '', _fm].concat(_cxC.map(function(){return '';}))); }
-      if(_qMemo){ aoa.push(['비고 : '+String(_qMemo)]); }
-      aoa.unshift([(_qQuoteNo||'')]);
-      var _footStart=_qCart.length+2;
-      var ws=XLSX.utils.aoa_to_sheet(aoa);
-      var _lastCol=12+_cxC.length;
-      ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:_lastCol}}];
-      if(_qMemo){ ws['!merges'].push({s:{r:aoa.length-1,c:0},e:{r:aoa.length-1,c:_lastCol}}); }   // 비고: 전체 열 병합
-      ws['!cols']=[{wch:11},{wch:16},{wch:18},{wch:22},{wch:7},{wch:6},{wch:12},{wch:13},{wch:18},{wch:11},{wch:8},{wch:11},{wch:8}].concat(_cxC.map(function(){return {wch:14};}));
-      var thin={style:'thin',color:{rgb:'808080'}};
-      var border={top:thin,bottom:thin,left:thin,right:thin};
-      var acct='_-* #,##0_-;-* #,##0_-;_-* "-"_-;_-@_-';
-      var hStyle={font:{name:'맑은 고딕',sz:9,bold:true},alignment:{horizontal:'center',vertical:'center',wrapText:true},fill:{patternType:'solid',fgColor:{rgb:'FFFF00'}},border:border};
-      var ctr={font:{name:'맑은 고딕',sz:9},alignment:{horizontal:'center',vertical:'center'},border:border};
-      var num={font:{name:'맑은 고딕',sz:9},alignment:{horizontal:'center',vertical:'center'},border:border,numFmt:acct};
-      var pct={font:{name:'맑은 고딕',sz:9},alignment:{horizontal:'center',vertical:'center'},border:border,numFmt:'0.0%'};
-      var foot={font:{name:'맑은 고딕',sz:9,bold:true},alignment:{horizontal:'center',vertical:'center'},fill:{patternType:'solid',fgColor:{rgb:'EEF2F8'}},border:border};
-      var footNum={font:{name:'맑은 고딕',sz:9,bold:true},alignment:{horizontal:'center',vertical:'center'},fill:{patternType:'solid',fgColor:{rgb:'EEF2F8'}},border:border,numFmt:acct};
-      var footPct={font:{name:'맑은 고딕',sz:9,bold:true},alignment:{horizontal:'center',vertical:'center'},fill:{patternType:'solid',fgColor:{rgb:'EEF2F8'}},border:border,numFmt:'0.0%'};
-      var titleStyle={font:{name:'맑은 고딕',sz:9,bold:true,color:{rgb:'1B3A6B'}},alignment:{horizontal:'left',vertical:'center'}};
-      var memoStyle={font:{name:'맑은 고딕',sz:9},alignment:{horizontal:'left',vertical:'center',wrapText:true}};   // 비고: 배경 없음
-      var numCols={4:1,6:1,7:1,9:1,11:1}; var pctCols={10:1,12:1};
-      var R=aoa.length, last=R-1, NC=13+_cxC.length;
-      var _memoRow=_qMemo?(R-1):-1;   // 비고는 (있으면) 맨 마지막 행
-      for(var r=0;r<R;r++){ for(var c=0;c<NC;c++){
-        var ref=XLSX.utils.encode_cell({r:r,c:c}); var cl=ws[ref]; if(!cl) continue;
-        if(r===0){ cl.s=titleStyle; }
-        else if(r===1){ cl.s=hStyle; }
-        else if(r===_memoRow){ cl.s=memoStyle; }
-        else if(r>=_footStart){ cl.s = pctCols[c] ? footPct : (numCols[c] ? footNum : foot); }
-        else { cl.s = pctCols[c] ? pct : (numCols[c] ? num : ctr); }
-      }}
-      var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'견적목록');
-      return wb;
-  }
-  // r218: PDF 와 같은 이름(견적서 <번호>.xlsx)으로 엑셀을 이어서 저장. 목록을 비우기 전에 미리 만들어 둔 워크북을 쓴다.
-  // r228: 아래 두 개와 _qBuildQuoteSheetWb 는 지금은 쓰지 않는다 (PDF 만 내려감). 고객용 견적서 엑셀을 다시 쓰려면 이 둘을 호출하면 된다.
+  // r229: 고객용 견적서(_qBuildQuoteSheetWb)는 [일반 엑셀] 버튼이 쓴다. 아래 두 개는 PDF 와 같이 내려보내던 r218 잔재로 지금은 쓰지 않는다
+  //       (r228 에서 동시 다운로드 중단). 다시 같이 내려보내려면 이 둘을 PDF 경로에서 호출하면 된다.
   async function _qPrepQuoteXlsx(){ try{ await _ensureXlsxLib(); return _qBuildQuoteSheetWb(); }catch(_e){ return null; } }   // r223: PDF 와 같은 모양의 고객용 견적서
   function _qSaveQuoteXlsx(wb, fn){ if(!wb) return; setTimeout(function(){ try{ XLSX.writeFile(wb, fn+'.xlsx'); }catch(_e){} }, 600); }
   window.qNegoSet = function(val){ if(!_guardW()) return; var v=String(val||'').replace(/[,\s]/g,''); if(v===''){ _qNego=null; } else { var n=Number(v); _qNego=isNaN(n)?null:n; } _qCartSave(); renderQCart(); };
