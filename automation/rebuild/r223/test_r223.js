@@ -30,12 +30,18 @@ function ok(c, msg){ if(c){ pass++; console.log('  ✓', msg); } else { fail++; 
     _qCols=[{id:'cx1',title:'코드',pos:'name'}]; _qNego=1000; _qMemo='납기는 발주 후 확정'; _qQuoteNo='주식회사 케이에스-20261008-01'; _qLoadedId='q_t'; _qPdfFontP=Promise.resolve({normal:'a',bold:'b'}); window.__DL=[];
     var mg=document.getElementById('qManager'); if(mg){ mg.disabled=false; mg.value='홍길동'; } 'ok'`);
 
-  console.log('▶ PDF 다운로드 → PDF + 고객용 견적서 엑셀');
+  console.log('▶ 다운로드는 PDF 만 (r228) · 고객용 견적서 워크북 내용');
   await setup();
   await T(`qDownloadPdf('p'); 'ok'`); await pg.waitForTimeout(1200);
   const dl = JSON.parse(await T(`JSON.stringify(__DL.map(function(d){ return {t:d.t,fn:d.fn,sheet:d.sheet}; }))`));
-  ok(dl.length===2 && dl[0].t==='pdf' && dl[1].t==='xlsx' && dl[1].fn==='견적서 주식회사 케이에스-20261008-01.xlsx', '파일 2개: PDF + 같은 이름의 .xlsx');
-  ok(dl[1].sheet==='견적서', '시트 이름 "견적서" (견적목록 아님)');
+  // r228: PDF 와 엑셀 동시 다운로드는 사용자 요청으로 되돌렸다 — 이제 PDF 하나만 내려간다.
+  ok(dl.length===1 && dl[0].t==='pdf', 'r228: 다운로드는 PDF 하나만');
+  // r223 의 고객용 견적서 워크북 생성기는 그대로 남아 있다 — 직접 만들어 내용을 검증한다.
+  await T(`(async function(){ var wb=await _qPrepQuoteXlsx(); _qSaveQuoteXlsx(wb, '견적서 주식회사 케이에스-20261008-01'); })(); 'ok'`);
+  await pg.waitForTimeout(1200);
+  const dl2 = JSON.parse(await T(`JSON.stringify(__DL.map(function(d){ return {t:d.t,fn:d.fn,sheet:d.sheet}; }))`));
+  ok(dl2.length===2 && dl2[1].t==='xlsx' && dl2[1].fn==='견적서 주식회사 케이에스-20261008-01.xlsx', '고객용 견적서 워크북 → 같은 이름의 .xlsx');
+  ok(dl2[1].sheet==='견적서', '시트 이름 "견적서" (견적목록 아님)');
   const ws = JSON.parse(await T(`JSON.stringify(__DL[1].ws)`));
   const V = ref => (ws[ref]||{}).v, Fm = ref => (ws[ref]||{}).f;
   const all = Object.keys(ws).filter(k=>k[0]!=='!');
