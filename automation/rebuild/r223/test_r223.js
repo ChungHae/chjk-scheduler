@@ -69,9 +69,9 @@ function ok(c, msg){ if(c){ pass++; console.log('  ✓', msg); } else { fail++; 
   ok((ws['!merges']||[]).length>10 && (ws['!cols']||[]).length===8 && !!ws['!ref'], '병합·열폭·범위 지정');
   if(dump){ fs.writeFileSync(dump, JSON.stringify(ws)); console.log('  · 워크시트 덤프:', dump); }
 
-  console.log('▶ 일반 엑셀 버튼은 여전히 견적목록');
-  await T(`window.__DL=[]; exportQuoteExcel(); 'ok'`); await pg.waitForTimeout(400);
-  ok(await T(`__DL.length===1 && __DL[0].sheet==='견적목록' && /^견적목록_/.test(__DL[0].fn)`), '견적목록 시트 · 견적목록_ 파일명');
+  console.log('▶ 일반 엑셀 버튼 = 고객용 견적서 (r229)');
+  await T(`window.__DL=[]; exportQuoteExcel(); 'ok'`); await pg.waitForTimeout(700);
+  ok(await T(`__DL.length===1 && __DL[0].sheet==='견적서' && /^견적서 /.test(__DL[0].fn)`), '견적서 시트 · 견적서 <번호>.xlsx 파일명');
   ok(errs.length===0, 'pageerror 0'+(errs.length?(' — '+errs.join(' | ')):''));
   console.log(`\n결과: ${pass}/${pass+fail}`);
   fs.unlinkSync(tmp); await br.close(); process.exit(fail?1:0);
