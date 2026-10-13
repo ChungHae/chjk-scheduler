@@ -60,7 +60,7 @@ const FILE=process.argv[2], LABEL=process.argv[3]||'?';
     await new Promise(r=>setTimeout(r,400));
     return { dl:window.__dl.slice() };
   });
-  ok('"일반 엑셀" 버튼은 그대로 엑셀을 만든다', xl.dl && xl.dl.length===1 && /^견적목록_.*\.xlsx$/.test(xl.dl[0]), JSON.stringify(xl));
+  ok('"일반 엑셀" 버튼은 그대로 엑셀을 만든다 (r229부터 고객용 견적서 양식)', xl.dl && xl.dl.length===1 && /\.xlsx$/.test(xl.dl[0]), JSON.stringify(xl));
 
   // ④ 고객용 견적서 생성기는 남아 있다 (나중에 되살릴 수 있게)
   const keep=await pg.evaluate(()=>{
