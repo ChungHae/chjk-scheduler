@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r224 2026-10-12 -->
+<!-- test build r225 2026-10-13 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -1821,6 +1821,18 @@
     .cu-sel.none { border-color:#f59e0b; background:#fffbeb; }
     .cu-chip { display:inline-block; font-size:10.5px; padding:1px 6px; border-radius:4px; background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
     .mm-smc.cu { border-color:#fde68a; background:#fffbeb; color:#92400e; }
+    #coMineOverlay table { width:100%; border-collapse:collapse; font-size:12.5px; }
+    #coMineOverlay th { background:#f8fafc; color:#6b7280; font-weight:600; padding:6px 8px; border-bottom:2px solid #d3dce6; white-space:nowrap; font-size:11.5px; text-align:left; }
+    #coMineOverlay td { padding:5px 8px; border-bottom:1px solid #eef2f7; vertical-align:middle; }
+    #coMineOverlay td.n, #coMineOverlay th.n { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    #coMineOverlay tr.tot td { font-weight:700; background:#f4f6f9; border-top:2px solid #c8d2de; }
+    #coMineOverlay .co-tag { display:inline-block; font-size:10.5px; padding:1px 6px; border:1px solid #c8d2de; color:#6b7280; margin-left:4px; }
+    #coMineOverlay .co-tag.m { border-color:#1B3A6B; color:#1B3A6B; }
+    #coMineOverlay select.co-sel { font-size:12px; padding:2px 4px; border:1px solid #c8d2de; background:#fff; }
+    #coMineOverlay .co-tiles { display:flex; gap:10px; padding:10px 14px; flex-wrap:wrap; border-bottom:1px solid #eef2f7; }
+    #coMineOverlay .co-tile { flex:1 1 140px; border:1px solid #d3dce6; padding:8px 10px; }
+    #coMineOverlay .co-tile b { display:block; font-size:11px; color:#6b7280; font-weight:600; margin-bottom:3px; }
+    #coMineOverlay .co-tile span { font-size:15px; font-weight:700; color:#1B3A6B; font-variant-numeric:tabular-nums; }
     #cuMineOverlay table { width:100%; border-collapse:collapse; font-size:12.5px; }
     #cuMineOverlay th { background:#f8fafc; color:#6b7280; font-weight:600; padding:6px 8px; border-bottom:2px solid #d3dce6; white-space:nowrap; font-size:11.5px; text-align:left; }
     #cuMineOverlay td { padding:5px 8px; border-bottom:1px solid #eef2f7; vertical-align:middle; }
@@ -2767,6 +2779,7 @@
       <label style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:#6b7280;cursor:pointer;user-select:none;white-space:nowrap;flex:0 0 auto"><input type="checkbox" id="mmShowDone" checked onchange="renderMemoPage(true)" style="width:13px;height:13px;accent-color:#1B3A6B;cursor:pointer">완료 표시</label>
       <span class="qic-div" style="width:1px;align-self:stretch;background:#d3dae4;margin:2px 4px"></span>
       <button class="qic" onclick="cuOpenMine()" data-tip="내 카드 사용" aria-label="내 카드 사용" style="border-color:#b45309;color:#b45309"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></button><!-- r224 -->
+      <button class="qic" onclick="coOpenMine()" data-tip="내 담당 업체 매출" aria-label="내 담당 업체 매출" style="border-color:#0f766e;color:#0f766e"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 4 3 5-7"/></svg></button><!-- r225 -->
       <button class="qic" onclick="mmHelp()" data-tip="적는 법" aria-label="적는 법" style="border-color:#5b7ba6;color:#5b7ba6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7"/><path d="M12 17h.01"/></svg></button>
     </div>
     <div class="mm-pad">
@@ -3755,6 +3768,7 @@
   let memoLines = load('sched_memos') ?? [];        // r179 메모장 줄 [{id,owner,text,parent,kind,vendor,to,name,phone,when,date,createdAt,done,doneAt,feedback,card,linked}]
   let memoCards = load('sched_memo_cards') ?? {};   // r179 명함 사진 {cardId: dataURL}
   let meetings = load('sched_meetings') ?? [];     // r187 회의록 [{id,date,time,place,room,title,author,attendees,agenda:[{id,title,text,done,doneAt,doneBy}],reports:[{name,items:[...]}]}]
+  let clientOwner = load('sched_client_owner') ?? {};   // r225 담당 업체 { m:{업체:{who,by,at}} 수동, a:{업체:{who,at}} 자동 기록 }
   let clientPend = load('sched_client_pend') ?? [];   // r217 업체 정보 등록 대기 [{id,name,by,at,quoteNo,status:wait|ok|skip,okBy,okAt}]
   let smcQueue = load('sched_smc_queue') ?? [];     // r181 SMC 가격 확인 대기열 [{id,spec,name,e,buy,vid,vname,by,at,quoteNo,status:wait|ok|skip,okE,okHp,okSm,okBy,okAt}]
   // 프로젝트 노트 [{id, memberId, authorName, title, content, createdAt, updatedAt}]
@@ -3901,6 +3915,7 @@
     save('sched_memo_cards', memoCards);
     save('sched_smc_queue', smcQueue);   // r181
     save('sched_client_pend', clientPend);   // r217
+    save('sched_client_owner', clientOwner);   // r225
     save('sched_meetings', meetings);   // r187
     localStorage.setItem('sched_local_ts', Date.now().toString()); // 로컬 변경 시각 기록
     debouncedFbSave();
@@ -4769,6 +4784,7 @@
         sched_memo_cards: memoCards,
         sched_smc_queue: smcQueue,   // r181
         sched_client_pend: clientPend,   // r217
+        sched_client_owner: clientOwner,   // r225
         sched_meetings: meetings,   // r187
         sched_comments: schedComments,
         sched_categories: schedCategories,
@@ -4844,7 +4860,7 @@
       const d = await _syncGet();
       if (!d || (d._updatedAt || 0) <= _fbLastUpdatedAt) return;
       _fbLastUpdatedAt = d._updatedAt || 0;
-      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_client_pend','sched_meetings','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
+      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_client_pend','sched_client_owner','sched_meetings','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
       KEYS.forEach(k => { if (d[k] !== undefined) save(k, d[k]); });
       // ── 바로가기(sched_links) 보호 ──
       // 키가 없을 때: sched_links_ts가 있으면 신버전 클라이언트의 정상 저장(목록이 비어서
@@ -4947,7 +4963,7 @@
       const d = await _syncGet();
       const fbTs    = (d && d._updatedAt) || 0;
       const localTs = parseInt(localStorage.getItem('sched_local_ts') || '0');
-      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_client_pend','sched_meetings','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
+      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_client_pend','sched_client_owner','sched_meetings','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
 
       // ── 올바른 팀원 ID 목록 (하드코딩) ──────────────────────
       const _VALID_MEMBER_IDS = defaultMembers().map(m => m.id);
@@ -5072,6 +5088,7 @@ function reloadState() {
     memoCards        = load('sched_memo_cards') ?? {};
     smcQueue         = load('sched_smc_queue') ?? [];   // r181
     clientPend       = load('sched_client_pend') ?? [];   // r217
+    clientOwner      = load('sched_client_owner') ?? {};   // r225
     meetings         = load('sched_meetings') ?? [];   // r187
     clientInfo       = _ciMigrate(_cliDecMap(load('sched_client_info') ?? {}));   // r161
     _ciVer++;
@@ -8349,7 +8366,157 @@ function reloadState() {
     else { quoteSaved.unshift({id:_qLoadedId, title:_qQuoteNo, vname:vn, vid:vid, count:_qCart.length, total:supply, nego:_qNego, memo:_qMemo, note:_qNote, savedBy:who, savedAt:Date.now(), cols:JSON.parse(JSON.stringify(_qCols||[]))}); }
     saveAll();
     try{ _qLogDoneMemo(_qQuoteNo, vn, _qCart.length, supply, who); }catch(_e){}   // r222: 작성자 일정에 완료된 업무로
+    try{ _coAfterQuote(vn, who); }catch(_e){}   // r225: 견적 5회 → 담당 편입
   }
+  // ─── r225: 담당 업체 (견적 5회 이상 → 자동 편입) + 개인 일정 '내 담당 업체 매출' ───
+  var _CO_MIN = 5;   // 같은 회사 견적을 이만큼 저장하면 담당
+  function _coMe(){ return (typeof _authUser!=='undefined'&&_authUser&&_authUser.name)?String(_authUser.name).trim():''; }
+  function _coFmt(n){ return Math.round(Number(n)||0).toLocaleString('ko-KR'); }
+  function _coIsMember(n){ return !!n && (members||[]).some(function(x){ return x.name===n; }); }
+  function _coStore(){ if(!clientOwner || typeof clientOwner!=='object' || Array.isArray(clientOwner)) clientOwner={}; if(!clientOwner.m) clientOwner.m={}; if(!clientOwner.a) clientOwner.a={}; return clientOwner; }
+  // 저장된 견적 → 업체별 {작성자: 건수}. 반환 { 업체명: {cnt:{who:n}, last:{who:savedAt}, total:n} }
+  function _coQuoteStats(){
+    var st={};
+    (quoteSaved||[]).forEach(function(q){
+      var vn=String(q.vname||'').trim(), who=String(q.savedBy||'').trim();
+      if(!vn || !who) return;
+      var s=st[vn]||(st[vn]={cnt:{}, last:{}, total:0});
+      s.cnt[who]=(s.cnt[who]||0)+1; s.total++;
+      var at=Number(q.savedAt)||0; if(!s.last[who] || at>s.last[who]) s.last[who]=at;
+    });
+    return st;
+  }
+  // 자동 담당: 건수 최다 1명(_CO_MIN 이상), 동률이면 최근 작성자
+  function _coAutoWho(s){
+    if(!s) return '';
+    var best='', bn=0, bl=0;
+    Object.keys(s.cnt).forEach(function(w){ var n=s.cnt[w], l=s.last[w]||0; if(n>bn || (n===bn && l>bl)){ best=w; bn=n; bl=l; } });
+    return (bn>=_CO_MIN && _coIsMember(best)) ? best : '';
+  }
+  // 전체 담당표: { 업체명: {who, mode:'manual'|'auto', n(견적 건수 — 그 사람), total} }
+  function _coMap(){
+    var st=_coQuoteStats(), S=_coStore(), out={};
+    Object.keys(st).forEach(function(vn){ var w=_coAutoWho(st[vn]); if(w) out[vn]={who:w, mode:'auto', n:st[vn].cnt[w]||0, total:st[vn].total}; });
+    Object.keys(S.m).forEach(function(vn){ var m=S.m[vn]; if(!m) return;
+      if(m.who && _coIsMember(m.who)) out[vn]={who:m.who, mode:'manual', n:(st[vn]&&st[vn].cnt[m.who])||0, total:(st[vn]&&st[vn].total)||0};
+      else delete out[vn];   // who 가 비면 '담당 없음'으로 고정 (자동 무시)
+    });
+    return out;
+  }
+  function _coOwnerOf(vn){ var m=_coMap()[vn]; return m?m.who:''; }
+  function _coMine(me){ var mp=_coMap(); return Object.keys(mp).filter(function(vn){ return mp[vn].who===me; }).map(function(vn){ var o=mp[vn]; o.vname=vn; return o; }); }
+  // 견적 저장 뒤 호출: 이 업체의 자동 담당이 바뀌었으면 기록하고, 새 담당 일정에 완료 줄을 남긴다
+  function _coAfterQuote(vn, who){
+    try{
+      vn=String(vn||'').trim(); if(!vn) return;
+      var S=_coStore(), st=_coQuoteStats(), w=_coAutoWho(st[vn]);
+      var prev=(S.a[vn]&&S.a[vn].who)||'';
+      if(w===prev) return;
+      S.a[vn]={who:w, at:Date.now()};
+      if(w && !S.m[vn] && _coIsMember(w)){
+        var now=Date.now();
+        memoLines.push({ id:'mm'+now.toString(36)+Math.random().toString(36).slice(2,6), owner:w, parent:'',
+                         text:'담당 업체 편입 · '+vn+' (견적 '+(st[vn].cnt[w]||0)+'회 작성 — 내 담당 업체에서 매출을 볼 수 있습니다)',
+                         kind:'memo', vendor:vn, to:'', name:'', phone:'', when:{date:'',time:''},
+                         date:_mmToday(), createdAt:now, done:true, doneAt:now, feedback:[], card:'', linked:{}, coRef:{vname:vn} });
+        _mmSave();
+      } else { saveAll(); }
+    }catch(_e){}
+  }
+  // 매출 집계: 업체명 → 연도별 공급가 합 (서울+화성, 매출계산서). vbiz 로 먼저 맞추고 이름으로 보조.
+  function _coSalesByYear(vnames, years){
+    var want={}; vnames.forEach(function(vn){ want[vn]=1; });
+    var byVbiz={};
+    vnames.forEach(function(vn){ ['서울','화성'].forEach(function(b){ try{ var vb=_fxClientVbiz(vn,b); if(vb) byVbiz[vb]=vn; }catch(_e){} }); });
+    var out={}; vnames.forEach(function(vn){ out[vn]={}; years.forEach(function(y){ out[vn][y]=0; }); });
+    (fxSalesInv||[]).forEach(function(e){
+      var vn=(e.vbiz && byVbiz[e.vbiz]) || (want[e.vendor]?e.vendor:'');
+      if(!vn) return;
+      var y=String(e.date||'').slice(0,4); if(!out[vn][y] && out[vn][y]!==0) return;
+      out[vn][y]+=Number(e.supply)||0;
+    });
+    return out;
+  }
+  function _coOverlay(id, maxW){
+    var ov=document.getElementById(id);
+    if(!ov){ ov=document.createElement('div'); ov.id=id; ov.style.cssText='position:fixed;inset:0;z-index:2000120;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px'; ov.addEventListener('click',function(e){ if(e.target===ov) ov.style.display='none'; }); document.body.appendChild(ov);
+      var st=document.createElement('style'); st.textContent='#'+id+' .co-ovbox{width:100%;max-width:'+maxW+'px;max-height:88vh;display:flex;flex-direction:column;background:#fff;border:1px solid #c8d2de;border-radius:0;overflow:hidden} #'+id+' .co-ovhd{padding:9px 14px;border-bottom:1px solid #c8d2de;background:#f4f6f9;display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;color:#1a1a1a} #'+id+' .co-ovbd{overflow:auto}'; document.head.appendChild(st); }
+    return ov;
+  }
+  var _coView='mine';   // mine | all (관리자)
+  window.coOpenMine = async function(view){
+    _coView=(view==='all' && _isAdmin())?'all':'mine';
+    var ov=_coOverlay('coMineOverlay', 900);
+    ov.innerHTML='<div class="co-ovbox"><div class="co-ovhd"><span id="coMineTitle">내 담당 업체 매출</span><span id="coMineSum" style="font-weight:500;color:#6b7280;font-size:12px"></span>'
+      +(_isAdmin()?'<button class="btn" id="coViewBtn" onclick="coOpenMine(\''+(_coView==='all'?'mine':'all')+'\')" style="margin-left:auto;padding:3px 10px">'+(_coView==='all'?'내 담당만':'전체 담당 현황')+'</button>':'')
+      +'<button class="btn" onclick="document.getElementById(\'coMineOverlay\').style.display=\'none\'" style="'+(_isAdmin()?'':'margin-left:auto;')+'padding:3px 10px">닫기</button></div><div class="co-ovbd" id="coMineBody" style="padding:0 0 8px"><div style="padding:30px;text-align:center;color:#bbb">불러오는 중…</div></div></div>';
+    ov.style.display='flex';
+    try{ await _fxEnsureData(); }catch(_e){}
+    _coRender();
+  };
+  function _coYears(){ var y=new Date().getFullYear(); return [String(y), String(y-1), String(y-2)]; }
+  function _coRender(){
+    var host=document.getElementById('coMineBody'); if(!host) return;
+    var me=_coMe(), years=_coYears(), adm=_isAdmin();
+    var tt=document.getElementById('coMineTitle'); if(tt) tt.textContent=(_coView==='all'?'전체 담당 현황':'내 담당 업체 매출');
+    var list;
+    if(_coView==='all'){ var mp=_coMap(); list=Object.keys(mp).map(function(vn){ var o=mp[vn]; o.vname=vn; return o; }); }
+    else list=me?_coMine(me):[];
+    if(!list.length){
+      host.innerHTML='<div style="padding:30px;text-align:center;color:#bbb;line-height:1.7">'+(me?('"'+esc(me)+'" 님이 담당하는 업체가 아직 없습니다.<br>같은 회사 견적을 <b>'+_CO_MIN+'회</b> 이상 저장하면 그 회사 담당으로 자동 편입됩니다.'):'로그인 후 표시됩니다.')+'</div>';
+      if(adm && _coView==='mine') host.innerHTML+=_coAssignBox();
+      var sm0=document.getElementById('coMineSum'); if(sm0) sm0.textContent='';
+      return;
+    }
+    var sales=_coSalesByYear(list.map(function(o){ return o.vname; }), years);
+    list.sort(function(a,b){ return (sales[b.vname][years[0]]||0)-(sales[a.vname][years[0]]||0) || (b.n-a.n); });
+    var tot={}; years.forEach(function(y){ tot[y]=0; }); var totN=0;
+    list.forEach(function(o){ years.forEach(function(y){ tot[y]+=sales[o.vname][y]||0; }); totN+=o.n; });
+    var h='<div class="co-tiles">'
+      +'<div class="co-tile"><b>담당 업체</b><span>'+list.length+'곳</span></div>'
+      +years.map(function(y,i){ return '<div class="co-tile"><b>'+y+'년 매출'+(i===0?' (올해)':'')+'</b><span>'+_coFmt(tot[y])+'원</span></div>'; }).join('')
+      +'</div>';
+    h+='<table><thead><tr><th>업체</th>'+(_coView==='all'?'<th>담당</th>':'')+'<th class="n">견적</th>'+years.map(function(y){ return '<th class="n">'+y+'</th>'; }).join('')+'<th>근거</th>'+(adm?'<th>담당 변경</th>':'')+'</tr></thead><tbody>';
+    list.forEach(function(o){
+      h+='<tr><td>'+esc(o.vname)+'</td>'+(_coView==='all'?'<td>'+esc(o.who)+'</td>':'')+'<td class="n">'+o.n+(o.total>o.n?'<span style="color:#9ca3af">/'+o.total+'</span>':'')+'</td>'
+        +years.map(function(y){ var v=sales[o.vname][y]||0; return '<td class="n"'+(v?'':' style="color:#c0c6cf"')+'>'+_coFmt(v)+'</td>'; }).join('')
+        +'<td>'+(o.mode==='manual'?'<span class="co-tag m">지정</span>':'<span class="co-tag">견적 '+_CO_MIN+'회+</span>')+'</td>'
+        +(adm?'<td>'+_coOwnerSel(o.vname, o.who)+'</td>':'')+'</tr>';
+    });
+    h+='<tr class="tot"><td>합계</td>'+(_coView==='all'?'<td></td>':'')+'<td class="n">'+totN+'</td>'+years.map(function(y){ return '<td class="n">'+_coFmt(tot[y])+'</td>'; }).join('')+'<td></td>'+(adm?'<td></td>':'')+'</tr>';
+    h+='</tbody></table>';
+    h+='<div style="padding:8px 14px;font-size:11.5px;color:#6b7280">매출 = 매출계산서 공급가액(서울+화성 합산). 견적 = 내가 저장한 건수'+(_coView==='all'?'(/전체)':'')+'.</div>';
+    if(adm) h+=_coAssignBox();
+    host.innerHTML=h;
+    var sm=document.getElementById('coMineSum'); if(sm) sm.textContent=(_coView==='all'?'':me+' · ')+list.length+'곳 · '+years[0]+'년 '+_coFmt(tot[years[0]])+'원';
+  }
+  function _coOwnerSel(vn, cur){
+    var S=_coStore(), isM=!!S.m[vn];
+    var h='<select class="co-sel" onchange="coSetOwner(\''+esc(vn).replace(/'/g,'&#39;')+'\', this.value)"><option value="">(담당 없음)</option>';
+    (members||[]).forEach(function(m){ h+='<option value="'+esc(m.name)+'"'+(m.name===cur?' selected':'')+'>'+esc(m.name)+'</option>'; });
+    h+='</select>'+(isM?'<a onclick="coClearOwner(\''+esc(vn).replace(/'/g,'&#39;')+'\')" style="margin-left:6px;font-size:11px;color:#6b7280;cursor:pointer;text-decoration:underline">자동으로</a>':'');
+    return h;
+  }
+  function _coAssignBox(){
+    var names=[]; try{ names=_fxClientOpts().map(function(x){ return x.name; }); }catch(_e){ names=(allClients()||[]).map(function(c){ return c&&c[0]; }).filter(Boolean); }
+    var h='<div style="padding:10px 14px;border-top:1px solid #eef2f7;background:#fafbfc;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12.5px"><b style="color:#1B3A6B">담당 수동 지정</b>'
+      +'<input id="coAsgVn" list="coAsgList" placeholder="업체명" style="font-size:12.5px;padding:3px 6px;border:1px solid #c8d2de;min-width:200px"><datalist id="coAsgList">'+names.slice(0,3000).map(function(n){ return '<option value="'+esc(n)+'">'; }).join('')+'</datalist>'
+      +'<select id="coAsgWho" class="co-sel"><option value="">(담당 없음)</option>'+(members||[]).map(function(m){ return '<option value="'+esc(m.name)+'">'+esc(m.name)+'</option>'; }).join('')+'</select>'
+      +'<button class="btn" onclick="coAssign()" style="padding:3px 10px">지정</button><span style="color:#9ca3af">수동 지정은 견적 횟수보다 우선합니다. "(담당 없음)"으로 지정하면 자동 편입도 막습니다.</span></div>';
+    return h;
+  }
+  window.coSetOwner = function(vn, who){
+    if(!_isAdmin()) return;
+    var S=_coStore(); S.m[vn]={who:String(who||''), by:_coMe(), at:Date.now()};
+    saveAll(); _coRender();
+  };
+  window.coClearOwner = function(vn){ if(!_isAdmin()) return; var S=_coStore(); delete S.m[vn]; saveAll(); _coRender(); };
+  window.coAssign = function(){
+    if(!_isAdmin()) return;
+    var vi=document.getElementById('coAsgVn'), wi=document.getElementById('coAsgWho');
+    var vn=vi?String(vi.value||'').trim():''; if(!vn){ showInfoModal('담당 지정','업체명을 입력해 주세요.'); return; }
+    coSetOwner(vn, wi?wi.value:'');
+  };
   // r222: 견적서 저장 → 작성자 일정에 '완료된 업무'로 기록 (같은 견적을 다시 저장하면 그 줄을 갱신)
   function _qLogDoneMemo(no, vn, cnt, supply, who){
     try{
@@ -9050,7 +9217,7 @@ function reloadState() {
 
           // 복사한 상태를 화면에 즉시 반영 (_pollSync 와 동일한 적용 경로 + sched_links 포함)
           _lmStatus('화면 반영 중…','#9ca3af');
-          var KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_client_pend','sched_meetings'];
+          var KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_client_pend','sched_client_owner','sched_meetings'];
           KEYS.forEach(function(k){ if(prod[k]!==undefined) save(k, prod[k]); });
           // r134: 매입매출 규칙은 정식에 없으면 빈 값으로 리셋 (스테이지 로컬 잔재 제거)
           ['sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'].forEach(function(k){
@@ -11324,6 +11491,7 @@ function reloadState() {
       sched_memos: memoLines, sched_memo_cards: memoCards,   // r179
       sched_smc_queue: smcQueue,   // r181
       sched_client_pend: clientPend,   // r217
+      sched_client_owner: clientOwner,   // r225
       sched_meetings: meetings,   // r187
       // r157: 매입매출 설정 5종 — 빠져 있어서 복원 시 미배정 매칭 작업이 통째로 사라졌다
       sched_fx_alias: fxAlias, sched_fx_openings: fxOpenings, sched_fx_adjusts: fxAdjusts,
