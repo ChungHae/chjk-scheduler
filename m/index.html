@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1B3A6B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>충해 가격조회</title>
+<!-- m1 2026-10-14: 모바일 가격조회 — 사내전산(index.html)과 같은 Firebase 계정으로 로그인, 가격표(SMC·CDC·NITTA·CONVUM…)를 읽어 품번 자동완성 → 매입가 + 마진 → 판매가.
+     가격 자료는 이 파일에 없다(Firebase 에서 로그인 후 읽음). 저장소는 공개. -->
+<style>
+  :root{ --navy:#1B3A6B; --ink:#1a1a1a; --mute:#6b7280; --line:#d3dce6; --bg:#f4f6f9; --teal:#0f766e; --amber:#b45309; --red:#b91c1c; }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,"Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif; font-size:15px; -webkit-text-size-adjust:100%; }
+  .top{ position:sticky; top:0; z-index:5; background:var(--navy); color:#fff; padding:10px 14px; display:flex; align-items:center; gap:10px; padding-top:calc(10px + env(safe-area-inset-top)); }
+  .top b{ font-size:16px; letter-spacing:-.2px; }
+  .top .who{ margin-left:auto; font-size:12px; opacity:.85; }
+  .top button{ background:transparent; border:1px solid rgba(255,255,255,.5); color:#fff; font-size:12px; padding:4px 8px; }
+  .wrap{ padding:12px 12px 40px; max-width:560px; margin:0 auto; }
+  .card{ background:#fff; border:1px solid var(--line); padding:14px; margin-bottom:12px; }
+  label{ display:block; font-size:12px; color:var(--mute); margin:0 0 4px; font-weight:600; }
+  input[type=text],input[type=password],input[type=number],input[type=search]{ width:100%; font-size:17px; padding:11px 12px; border:1px solid var(--line); background:#fff; font-family:inherit; }
+  input:focus{ outline:2px solid var(--navy); outline-offset:-1px; }
+  .btn{ display:block; width:100%; padding:12px; background:var(--navy); color:#fff; border:0; font-size:16px; font-weight:700; margin-top:10px; font-family:inherit; }
+  .btn.sub{ background:#fff; color:var(--navy); border:1px solid var(--navy); }
+  .err{ color:var(--red); font-size:13px; margin-top:8px; min-height:18px; }
+  .note{ font-size:12px; color:var(--mute); line-height:1.6; }
+  /* 검색 */
+  .srch{ position:relative; }
+  .srch input{ font-size:18px; font-weight:700; letter-spacing:.3px; text-transform:uppercase; padding-right:40px; }
+  input[type=search]::-webkit-search-cancel-button{ -webkit-appearance:none; display:none; }
+  .srch .clr{ position:absolute; right:6px; top:50%; transform:translateY(-50%); border:0; background:transparent; font-size:20px; color:var(--mute); padding:4px 8px; }
+  .ac{ position:absolute; left:0; right:0; top:100%; background:#fff; border:1px solid var(--line); border-top:0; max-height:52vh; overflow:auto; z-index:4; box-shadow:0 8px 20px rgba(15,23,42,.12); }
+  .ac div{ padding:10px 12px; border-bottom:1px solid #eef2f7; display:flex; gap:8px; align-items:baseline; }
+  .ac div:active{ background:#eef2f6; }
+  .ac .sp{ font-weight:700; font-size:15px; }
+  .ac .mk{ font-size:11px; color:#fff; background:var(--mute); padding:1px 6px; }
+  .ac .mk.smc{ background:var(--navy); } .ac .mk.cdc{ background:#7c3aed; } .ac .mk.nitta{ background:#ea580c; } .ac .mk.convum{ background:#c4372a; }
+  .ac .nm{ margin-left:auto; font-size:11.5px; color:var(--mute); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:45%; }
+  /* 결과 */
+  .res .hd{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+  .res .hd .sp{ font-size:20px; font-weight:800; letter-spacing:.2px; word-break:break-all; }
+  .res .hd .mk{ font-size:11px; color:#fff; background:var(--navy); padding:2px 7px; }
+  .res .hd .mk.cdc{ background:#7c3aed; } .res .hd .mk.nitta{ background:#ea580c; } .res .hd .mk.convum{ background:#c4372a; }
+  .res .nm{ font-size:12.5px; color:var(--mute); margin-top:2px; }
+  .rows{ margin-top:10px; border-top:1px solid #eef2f7; }
+  .row{ display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-bottom:1px solid #eef2f7; gap:10px; }
+  .row .k{ font-size:13px; color:var(--mute); }
+  .row .v{ font-size:17px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .row .v.dim{ color:#9ca3af; font-weight:500; }
+  .row .v small{ font-size:11px; color:var(--mute); font-weight:500; margin-left:4px; }
+  .row input{ width:92px; text-align:right; font-size:17px; padding:7px 8px; }
+  .sell{ margin-top:12px; background:#eef2f6; border:1px solid #c8d2de; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .sell .k{ font-size:13px; color:var(--navy); font-weight:700; }
+  .sell .v{ font-size:26px; font-weight:800; color:var(--navy); font-variant-numeric:tabular-nums; }
+  .sell .v small{ font-size:12px; font-weight:600; margin-left:4px; }
+  .sell.na{ background:#fffbeb; border-color:#fde68a; } .sell.na .v{ font-size:14px; color:var(--amber); font-weight:600; }
+  .tag{ display:inline-block; font-size:11px; padding:1px 6px; border:1px solid var(--line); color:var(--mute); margin-left:6px; vertical-align:middle; }
+  .tag.lock{ border-color:var(--teal); color:var(--teal); }
+  .mg{ display:flex; gap:6px; margin-top:10px; align-items:center; }
+  .mg .pre{ display:flex; gap:4px; flex:1; }
+  .mg .pre button{ flex:1; padding:7px 0; border:1px solid var(--line); background:#fff; font-size:13px; font-family:inherit; }
+  .mg .pre button.on{ background:var(--navy); color:#fff; border-color:var(--navy); }
+  .mg input{ width:72px; text-align:right; }
+  .recent{ display:flex; flex-wrap:wrap; gap:6px; }
+  .recent button{ border:1px solid var(--line); background:#fff; padding:6px 10px; font-size:13px; font-family:inherit; }
+  .st{ font-size:12px; color:var(--mute); display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .st .bar{ flex:1; height:4px; background:#e5e7eb; } .st .bar i{ display:block; height:100%; background:var(--navy); width:0; transition:width .2s; }
+  .hide{ display:none !important; }
+  .mkchips{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+  .mkchips span{ font-size:11.5px; padding:2px 8px; border:1px solid var(--line); color:var(--mute); }
+  .mkchips span.ok{ border-color:var(--teal); color:var(--teal); }
+</style>
+</head>
+<body>
+<div class="top"><b>충해 가격조회</b><span class="who" id="who"></span><button id="btnOut" class="hide" onclick="logout()">로그아웃</button></div>
+<div class="wrap">
+
+  <div class="card" id="loginCard">
+    <label>성명</label><input type="text" id="lid" autocomplete="username" autocapitalize="off">
+    <label style="margin-top:10px">비밀번호</label><input type="password" id="lpw" autocomplete="current-password">
+    <button class="btn" id="btnLogin" onclick="login()">로그인</button>
+    <div class="err" id="lerr"></div>
+    <div class="note">사내전산(업무 관리 시스템)과 같은 성명·비밀번호입니다. 로그인하면 이 폰에서는 계속 유지됩니다.</div>
+  </div>
+
+  <div id="app" class="hide">
+    <div class="card">
+      <div class="st"><span id="stTxt">가격표 불러오는 중…</span><span class="bar"><i id="stBar"></i></span><button class="btn sub" style="width:auto;margin:0;padding:5px 10px;font-size:12px" onclick="reload(true)">새로고침</button></div>
+      <div class="mkchips" id="mkChips"></div>
+    </div>
+    <div class="card">
+      <label>품번 (앞글자만 쳐도 됩니다)</label>
+      <div class="srch"><input type="search" id="q" placeholder="예: KQ2L08-02, CDQ2B32-30DZ, PF-20" autocomplete="off" autocapitalize="characters" spellcheck="false" oninput="onQ()" onkeydown="onQKey(event)"><button class="clr" onclick="clearQ()">×</button><div class="ac hide" id="ac"></div></div>
+      <div class="mg"><span class="k" style="font-size:13px;color:var(--mute);font-weight:600">마진</span>
+        <div class="pre" id="mgPre"></div><input type="number" id="mgIn" inputmode="decimal" step="1" min="0" max="90" onchange="setMargin(this.value)"><span style="font-size:13px">%</span></div>
+    </div>
+    <div id="result"></div>
+    <div class="card" id="recentCard" style="display:none"><label>최근 조회</label><div class="recent" id="recent"></div></div>
+    <div class="note" style="padding:0 4px">매입가는 가격표 기준(대략). 판매가 = 매입가 ÷ (1−마진) → 10원 올림. SMC는 확판가·소물가가 있으면 그 값을 매입가로 쓰고, 없으면 DC율을 넣어야 계산됩니다. 정확한 견적은 사내전산에서.</div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script>
+(function(){
+  'use strict';
+  var DB='https://chjk-scheduler-default-rtdb.asia-southeast1.firebasedatabase.app';
+  var BASE='teamdata_test';
+  var FB_CFG={ apiKey:"AIzaSyBTYey9GzRIRRqiiZoQ3gpxI-Ty1BhXyZU", authDomain:"chjk-scheduler.firebaseapp.com", databaseURL:DB, projectId:"chjk-scheduler", storageBucket:"chjk-scheduler.firebasestorage.app", messagingSenderId:"539351694456", appId:"1:539351694456:web:95f38d75256202c798818d" };
+  var WANT=[ ['SMC',/SMC/], ['CDC',/CDC/], ['NITTA',/NITTA|닛다/], ['CONVUM',/CONVUM|컴범/] ];   // 보여줄 메이커(가격표 이름으로 판별)
+  var CACHE_MS=12*3600*1000;
+  var $=function(id){ return document.getElementById(id); };
+  var fmt=function(n){ return (n==null||n===''||isNaN(n))?'-':Math.round(Number(n)).toLocaleString('ko-KR'); };
+  var norm=function(s){ return String(s||'').toLowerCase().replace(/[\s\-_.]/g,''); };
+  async function sha256(str){ var buf=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str)); return Array.prototype.map.call(new Uint8Array(buf), function(b){ return b.toString(16).padStart(2,'0'); }).join(''); }
+  async function synthEmail(id){ var h=await sha256(String(id||'')); return 'u'+h.slice(0,32)+'@chjk-scheduler.web.app'; }
+
+  var fbReady=false; try{ if(!(firebase.apps&&firebase.apps.length)) firebase.initializeApp(FB_CFG); fbReady=true; }catch(e){}
+  async function token(){ try{ var u=fbReady&&firebase.auth().currentUser; if(u) return await u.getIdToken(); }catch(e){} return ''; }
+  async function get(path){ var t=await token(); var r=await fetch(DB+'/'+path+'.json'+(t?('?auth='+encodeURIComponent(t)):'')); if(!r.ok) throw new Error('HTTP '+r.status); return await r.json(); }
+
+  // ── 세션 ──
+  var me=null;
+  try{ me=JSON.parse(localStorage.getItem('m_auth')||'null'); }catch(e){}
+  function setWho(){ $('who').textContent=me?me.name:''; $('btnOut').classList.toggle('hide', !me); }
+  window.login=async function(){
+    var id=$('lid').value.trim(), pw=$('lpw').value; var err=$('lerr'); err.textContent='';
+    if(!id||!pw){ err.textContent='성명과 비밀번호를 입력하세요.'; return; }
+    $('btnLogin').disabled=true; $('btnLogin').textContent='확인 중…';
+    try{
+      var email=await synthEmail(id), fpw=await sha256(pw);
+      try{ await firebase.auth().signInWithEmailAndPassword(email, fpw); }catch(e){ throw new Error('성명 또는 비밀번호가 올바르지 않습니다.'); }
+      var acc=await get(BASE+'_accounts'); var u=acc&&acc[id];
+      if(!u || u.pwHash!==fpw){ try{ await firebase.auth().signOut(); }catch(_){ } throw new Error('성명 또는 비밀번호가 올바르지 않습니다.'); }
+      if(u.mustChange){ throw new Error('비밀번호를 먼저 사내전산에서 바꿔 주세요 (첫 로그인).'); }
+      me={ id:id, name:u.name||id, role:u.role||'user' };
+      localStorage.setItem('m_auth', JSON.stringify(me));
+      $('lpw').value='';
+      showApp();
+    }catch(e){ err.textContent=(e&&e.message)||String(e); }
+    finally{ $('btnLogin').disabled=false; $('btnLogin').textContent='로그인'; }
+  };
+  window.logout=function(){ try{ firebase.auth().signOut(); }catch(e){} localStorage.removeItem('m_auth'); me=null; setWho(); $('app').classList.add('hide'); $('loginCard').classList.remove('hide'); };
+
+  // ── IndexedDB 캐시 ──
+  function idb(){ return new Promise(function(res,rej){ var r=indexedDB.open('chjk_m',1); r.onupgradeneeded=function(){ r.result.createObjectStore('kv'); }; r.onsuccess=function(){ res(r.result); }; r.onerror=function(){ rej(r.error); }; }); }
+  async function kvGet(k){ try{ var d=await idb(); return await new Promise(function(res){ var t=d.transaction('kv').objectStore('kv').get(k); t.onsuccess=function(){ res(t.result); }; t.onerror=function(){ res(null); }; }); }catch(e){ return null; } }
+  async function kvSet(k,v){ try{ var d=await idb(); await new Promise(function(res){ var t=d.transaction('kv','readwrite'); t.objectStore('kv').put(v,k); t.oncomplete=res; t.onerror=res; }); }catch(e){} }
+
+  // ── 가격표 ──
+  var makers=[], IDX=[], KEYS=[];   // IDX: [{k(norm), spec, mk, cls, row}]
+  function mkCls(name){ for(var i=0;i<WANT.length;i++){ if(WANT[i][1].test(String(name||'').toUpperCase())) return WANT[i][0]; } return ''; }
+  function setSt(txt, pct){ $('stTxt').textContent=txt; $('stBar').style.width=(pct||0)+'%'; }
+  window.reload=async function(force){
+    try{
+      setSt('가격표 목록 읽는 중…', 5);
+      var pm=await get(BASE+'/sched_price_makers'); pm=Array.isArray(pm)?pm:Object.keys(pm||{}).map(function(k){ return pm[k]; });
+      makers=pm.filter(function(m){ return m && m.id && mkCls(m.name); });
+      IDX=[]; var chips=[];
+      for(var i=0;i<makers.length;i++){
+        var m=makers[i], cls=mkCls(m.name), ck='price_'+m.id, rows=null;
+        setSt(m.name+' 읽는 중…', 10+Math.round(80*i/makers.length));
+        if(!force){ var c=await kvGet(ck); if(c && c.at && Date.now()-c.at<CACHE_MS && Array.isArray(c.rows)) rows=c.rows; }
+        if(!rows){ rows=await get(BASE+'_price/'+m.id); rows=Array.isArray(rows)?rows:[]; await kvSet(ck,{at:Date.now(),rows:rows}); }
+        var n=0;
+        for(var j=0;j<rows.length;j++){ var r=rows[j]; if(!r||!r.spec) continue; if(/차단/.test(String(r.st||''))) continue; if(r.qr) continue; IDX.push({ k:norm(r.spec), spec:String(r.spec).trim(), mk:m.name, cls:cls, row:r }); n++; }
+        chips.push('<span class="ok">'+esc(m.name)+' '+n.toLocaleString()+'</span>');
+      }
+      IDX.sort(function(a,b){ return a.k<b.k?-1:(a.k>b.k?1:0); });
+      $('mkChips').innerHTML=chips.join('')||'<span>가격표가 없습니다</span>';
+      setSt('가격표 '+IDX.length.toLocaleString()+'건 준비됨'+(force?' (새로 받음)':''), 100);
+      if(!makers.length) setSt('SMC·CDC·NITTA·CONVUM 가격표를 찾지 못했습니다', 100);
+    }catch(e){ setSt('불러오기 실패: '+((e&&e.message)||e)+' — 다시 로그인해 보세요', 0); }
+  };
+  function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  // ── 가격 계산 (사내전산 _qPriceVals 와 같은 규칙) ──
+  function gx(r,k){ return (r.extra&&r.extra[k]!=null&&r.extra[k]!=='')?Number(r.extra[k]):null; }
+  function vals(it){
+    var r=it.row, cls=it.cls, ega=(r.ega!=null&&r.ega!=='')?Number(r.ega):null, buy=(r.buy!=null&&Number(r.buy)>0)?Number(r.buy):null;
+    if(cls==='SMC'){
+      var hp=gx(r,'1DR3확판(개당)'), sm=gx(r,'LRY확판(개당)');
+      return { e:ega, hp:hp, sm:sm, buy:(hp!=null?hp:(sm!=null?sm:null)), lock:(hp!=null||sm!=null), needDc:(hp==null&&sm==null) };
+    }
+    if(cls==='NITTA'){ var rate=0.57; var b=buy!=null?buy:ega; return { e:(ega!=null?Math.ceil(ega/rate):null), buy:b, lock:false, needDc:false, nitta:true }; }
+    var lry=gx(r,'LRY확판(개당)');
+    return { e:ega, buy:(buy!=null?buy:(lry!=null?lry:ega)), lock:false, needDc:false };
+  }
+  function sellOf(buy, m){ if(buy==null||isNaN(buy)) return null; if(m>=100) return null; return Math.ceil((buy/(1-m/100))/10)*10; }
+
+  // ── 마진 ──
+  var margin=20; try{ var mm=Number(localStorage.getItem('m_margin')); if(mm>0&&mm<100) margin=mm; }catch(e){}
+  var PRE=[10,15,20,25,30];
+  function renderMg(){ $('mgPre').innerHTML=PRE.map(function(p){ return '<button class="'+(p===margin?'on':'')+'" onclick="setMargin('+p+')">'+p+'%</button>'; }).join(''); $('mgIn').value=margin; }
+  window.setMargin=function(v){ var n=Number(String(v).replace(/[^0-9.]/g,'')); if(isNaN(n)||n<0||n>=100) n=20; margin=n; try{ localStorage.setItem('m_margin',String(n)); }catch(e){} renderMg(); renderResult(); };
+
+  // ── 검색·자동완성 ──
+  var cur=null, acList=[], acSel=-1, dc=null;   // dc: SMC DC율(%) 입력값
+  function search(q){
+    var k=norm(q); if(!k) return [];
+    var out=[], lo=0, hi=IDX.length;
+    while(lo<hi){ var mid=(lo+hi)>>1; if(IDX[mid].k<k) lo=mid+1; else hi=mid; }   // 접두 일치 (정렬 색인 이진탐색)
+    for(var i=lo;i<IDX.length&&out.length<30;i++){ if(IDX[i].k.indexOf(k)!==0) break; out.push(IDX[i]); }
+    if(out.length<30){ for(var j=0;j<IDX.length&&out.length<30;j++){ if(IDX[j].k.indexOf(k)>0) out.push(IDX[j]); } }   // 부분 일치는 뒤에
+    return out;
+  }
+  window.onQ=function(){ var q=$('q').value; acList=search(q); acSel=-1; var ac=$('ac');
+    if(!acList.length){ ac.classList.add('hide'); ac.innerHTML=''; return; }
+    ac.innerHTML=acList.map(function(it,i){ return '<div data-i="'+i+'" onclick="pick('+i+')"><span class="sp">'+esc(it.spec)+'</span><span class="mk '+it.cls.toLowerCase()+'">'+esc(it.cls)+'</span><span class="nm">'+esc(it.row.name||'')+'</span></div>'; }).join('');
+    ac.classList.remove('hide');
+  };
+  window.onQKey=function(e){ if(e.key==='Enter'){ e.preventDefault(); if(acList.length){ pick(acSel>=0?acSel:0); } } else if(e.key==='Escape'){ $('ac').classList.add('hide'); } };
+  window.pick=function(i){ var it=acList[i]; if(!it) return; cur=it; dc=null; $('q').value=it.spec; $('ac').classList.add('hide'); $('q').blur(); addRecent(it.spec); renderResult(); };
+  window.clearQ=function(){ $('q').value=''; $('ac').classList.add('hide'); cur=null; $('result').innerHTML=''; $('q').focus(); };
+  window.setDc=function(v){ var n=Number(String(v).replace(/[^0-9.]/g,'')); dc=(isNaN(n)||n<=0||n>=100)?null:n; renderResult(true); };
+
+  function renderResult(keepDc){
+    var host=$('result'); if(!cur){ host.innerHTML=''; return; }
+    var v=vals(cur), r=cur.row, buy=v.buy, src='';
+    if(cur.cls==='SMC'){
+      if(v.hp!=null) src='확판가'; else if(v.sm!=null) src='소물가';
+      else if(dc!=null && v.e!=null){ buy=Math.ceil((v.e*(1-dc/100))/10)*10; src='E가 −'+dc+'%'; }
+      else buy=null;
+    } else if(v.nitta) src='닛다 매입가'; else if(r.buy!=null&&Number(r.buy)>0) src='매입가'; else src='대리점가';
+    var sell=sellOf(buy, margin);
+    var h='<div class="card res"><div class="hd"><span class="sp">'+esc(cur.spec)+'</span><span class="mk '+cur.cls.toLowerCase()+'">'+esc(cur.mk)+'</span>'+(v.lock?'<span class="tag lock">확판/소물</span>':'')+'</div>'
+      +(r.name?'<div class="nm">'+esc(r.name)+'</div>':'')+'<div class="rows">';
+    if(cur.cls==='SMC'){
+      h+='<div class="row"><span class="k">E가 (대리점가)</span><span class="v">'+fmt(v.e)+'<small>원</small></span></div>';
+      if(v.hp!=null) h+='<div class="row"><span class="k">확판가</span><span class="v">'+fmt(v.hp)+'<small>원</small></span></div>';
+      if(v.sm!=null) h+='<div class="row"><span class="k">소물가</span><span class="v">'+fmt(v.sm)+'<small>원</small></span></div>';
+      if(v.needDc) h+='<div class="row"><span class="k">DC율 <small style="color:#9ca3af">(E가 기준)</small></span><span class="v"><input type="number" inputmode="decimal" placeholder="예: 40" value="'+(dc!=null?dc:'')+'" onchange="setDc(this.value)"> %</span></div>';
+    } else if(v.nitta){
+      h+='<div class="row"><span class="k">대리점가 (역산)</span><span class="v dim">'+fmt(v.e)+'<small>원</small></span></div>';
+    } else {
+      h+='<div class="row"><span class="k">대리점가</span><span class="v'+(r.buy!=null&&Number(r.buy)>0?' dim':'')+'">'+fmt(v.e)+'<small>원</small></span></div>';
+      if(r.buy!=null&&Number(r.buy)>0) h+='<div class="row"><span class="k">매입가</span><span class="v">'+fmt(r.buy)+'<small>원</small></span></div>';
+    }
+    if(r.extra&&r.extra['정가']) h+='<div class="row"><span class="k">정가</span><span class="v dim">'+fmt(r.extra['정가'])+'<small>원</small></span></div>';
+    if(r.extra&&r.extra['로트']) h+='<div class="row"><span class="k">최소 로트</span><span class="v dim">'+esc(r.extra['로트'])+'</span></div>';
+    if(r.unit||r.box) h+='<div class="row"><span class="k">단위 / 박스</span><span class="v dim">'+esc(r.unit||'')+(r.box?(' / '+esc(r.box)):'')+'</span></div>';
+    if(r.st) h+='<div class="row"><span class="k">상태</span><span class="v dim">'+esc(r.st)+'</span></div>';
+    h+='<div class="row"><span class="k">매입가 기준'+(src?'<span class="tag">'+esc(src)+'</span>':'')+'</span><span class="v">'+fmt(buy)+(buy!=null?'<small>원</small>':'')+'</span></div>';
+    h+='</div>';
+    if(sell!=null) h+='<div class="sell"><span class="k">판매가 <small>(마진 '+margin+'%)</small></span><span class="v">'+fmt(sell)+'<small>원</small></span></div>';
+    else h+='<div class="sell na"><span class="k">판매가</span><span class="v">'+(cur.cls==='SMC'&&v.needDc?'DC율을 넣으면 계산됩니다':'매입가가 없어 계산할 수 없습니다')+'</span></div>';
+    if(sell!=null) h+='<div class="note" style="margin-top:8px">부가세 별도 · 부가세 포함 '+fmt(sell+Math.round(sell*0.1))+'원 · 마진은 매입가 대비</div>';
+    h+='</div>';
+    host.innerHTML=h;
+    if(keepDc){ var di=host.querySelector('input[type=number]'); if(di){ try{ di.blur(); }catch(e){} } }
+  }
+
+  // ── 최근 조회 ──
+  var recent=[]; try{ recent=JSON.parse(localStorage.getItem('m_recent')||'[]'); }catch(e){ recent=[]; }
+  function addRecent(sp){ recent=[sp].concat(recent.filter(function(x){ return x!==sp; })).slice(0,12); try{ localStorage.setItem('m_recent',JSON.stringify(recent)); }catch(e){} renderRecent(); }
+  function renderRecent(){ var c=$('recentCard'); if(!recent.length){ c.style.display='none'; return; } c.style.display=''; $('recent').innerHTML=recent.map(function(s){ return '<button onclick="goRecent(\''+esc(s).replace(/'/g,'&#39;')+'\')">'+esc(s)+'</button>'; }).join(''); }
+  window.goRecent=function(sp){ $('q').value=sp; acList=search(sp); var i=-1; for(var j=0;j<acList.length;j++){ if(acList[j].spec===sp){ i=j; break; } } if(i>=0) pick(i); else onQ(); };
+
+  // ── 시작 ──
+  async function showApp(){ setWho(); $('loginCard').classList.add('hide'); $('app').classList.remove('hide'); renderMg(); renderRecent(); await reload(false); $('q').focus(); }
+  document.addEventListener('click', function(e){ if(!e.target.closest('.srch')) $('ac').classList.add('hide'); });
+  (async function(){
+    setWho();
+    if(me && fbReady){
+      // Firebase 세션이 살아 있으면 바로, 아니면 다시 로그인
+      await new Promise(function(res){ var done=false; try{ firebase.auth().onAuthStateChanged(function(){ if(!done){ done=true; res(); } }); }catch(e){ res(); } setTimeout(function(){ if(!done){ done=true; res(); } }, 4000); });
+      if(firebase.auth().currentUser){ showApp(); return; }
+      me=null; localStorage.removeItem('m_auth'); setWho();
+    }
+    $('lid').value=(function(){ try{ return localStorage.getItem('m_last_id')||''; }catch(e){ return ''; } })();
+    $('lid').addEventListener('change', function(){ try{ localStorage.setItem('m_last_id', $('lid').value.trim()); }catch(e){} });
+    $('lpw').addEventListener('keydown', function(e){ if(e.key==='Enter') login(); });
+  })();
+  // 테스트 훅: window.__mInject({me, makers, blobs}) 로 로그인 없이 자료를 넣는다
+  window.__mInject=async function(o){ me=o.me||{id:'t',name:'테스트',role:'user'}; var mk=o.makers||[]; var blobs=o.blobs||{};
+    window.__mGetOrig=get; get=async function(path){ if(path===BASE+'/sched_price_makers') return mk; var m=path.match(/_price\/(.+)$/); if(m) return blobs[m[1]]||[]; throw new Error('no '+path); };
+    for(var k in blobs){ await kvSet('price_'+k, null); }
+    await showApp(); };
+})();
+</script>
+</body>
+</html>
