@@ -31,7 +31,7 @@ function ok(c, msg){ if(c){ pass++; console.log('  ✓', msg); } else { fail++; 
               {id:'mt2',date:'${d(-29)}',time:'10:00',place:'서울',title:'9월 초 회의',author:'김재성',attendees:['김재성'],agenda:[],reports:[]}];
     memoLines=[{id:'n1',owner:'함현식',text:'신규 대한정밀 견적 방문',kind:'newbiz',vendor:'대한정밀',parent:'',date:'${d(0)}',createdAt:Date.now(),done:false,when:{date:'',time:''},feedback:[],linked:{}},
                {id:'n2',owner:'김재성',text:'신규 한빛테크 상담',kind:'newbiz',vendor:'',parent:'',date:'${d(-1)}',createdAt:Date.now()-86400000,done:true,doneAt:Date.now()-3600000,when:{date:'',time:''},feedback:[],linked:{}},
-               {id:'n3',owner:'김재성',text:'신규 옛날업체',kind:'newbiz',vendor:'옛날업체',parent:'',date:'${d(-10)}',createdAt:Date.now()-10*86400000,done:true,doneAt:Date.now()-5*86400000,when:{date:'',time:''},feedback:[],linked:{}},
+               {id:'n3',owner:'김재성',text:'신규 옛날업체',kind:'newbiz',vendor:'옛날업체',parent:'',date:'${d(-10)}',createdAt:Date.now()-10*86400000,done:true,doneAt:Date.now()-2*86400000,when:{date:'',time:''},feedback:[],linked:{}},
                {id:'ag1',owner:'김재성',text:'회의 안건(9월 회의) · 안건1: x',kind:'meeting',vendor:'',parent:'',date:'${d(-25)}',createdAt:Date.now()-25*86400000,done:false,when:{date:'${d(-25)}',time:''},feedback:[],linked:{},mtRef:{mid:'mt1',iid:'a1'}},
                {id:'m1',owner:'김재성',text:'오늘 할 일',kind:'memo',vendor:'',parent:'',date:'${d(0)}',createdAt:Date.now(),done:false,when:{date:'',time:''},feedback:[],linked:{}}];
     'ok'`);
@@ -46,7 +46,7 @@ function ok(c, msg){ if(c){ pass++; console.log('  ✓', msg); } else { fail++; 
   await T(`switchPage('memo'); 'ok'`); await pg.waitForTimeout(600);
   let nb = await T(`[...document.querySelectorAll('#pageMemo .mm-smc.nb')].map(function(e){ return e.className+'|'+e.innerText.replace(/\\s+/g,' '); }).join(' || ')`);
   ok(nb.indexOf('신규 영업 진행 중!')>=0 && nb.indexOf('함현식님 → 대한정밀')>=0 && nb.indexOf('함께 응원해요')>=0, '진행 중 배너: 함현식 → 대한정밀 ('+nb+')');
-  ok(nb.indexOf('신규 등록 축하!')>=0 && nb.indexOf('김재성님 한빛테크 상담')>=0 && nb.indexOf('옛날업체')<0, '축하 배너: 1시간 전 완료 건만 (5일 전 완료는 제외)');
+  ok(nb.indexOf('신규 등록 축하!')>=0 && nb.indexOf('김재성님 한빛테크 상담')>=0 && nb.indexOf('옛날업체')<0, '축하 배너: 1시간 전 완료 건만 (2일 전 완료는 제외)');
   await T(`_authUser={id:'h',name:'함현식',role:'user'}; renderMemoPage(true); 'ok'`); await pg.waitForTimeout(200);
   ok(await T(`document.querySelectorAll('#pageMemo .mm-smc.nb').length===2`), '다른 사람(함현식) 메모장에도 같은 배너');
   await T(`_authUser={id:'kjs',name:'김재성',role:'admin'}; 'ok'`);
