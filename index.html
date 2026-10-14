@@ -20030,7 +20030,8 @@ function reloadState() {
         + inner + '</div>';
     };
     body.innerHTML =
-      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">'
+      '<div id="fxUpStat"></div>'   // r230: 적재 현황 (자료가 로드된 뒤 채움)
+      + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">'
       + _upCard('홈택스 세금계산서',
                 '홈택스 조회 목록 엑셀 — 매출/매입·사업장 자동 판별 · 여러 파일 가능 · 재업로드 안전',
                 _lblBtn('fxImportHometax','.xls,.xlsx',true))
@@ -20052,7 +20053,7 @@ function reloadState() {
       + '<div id="fxUnasg" style="margin-top:14px"></div>';
     _fxEnsureData().then(function(){
       if(_fxTab!=='up') return;
-      _fxMetaRefresh();
+      _fxMetaRefresh();   // r230: 안에서 _fxUpStat() 도 그린다
       _fxRenderUnasg();
     });
   }
@@ -20466,9 +20467,64 @@ function reloadState() {
     var out=document.getElementById('fxUpResult');
     if(out) out.innerHTML='<div style="background:#fff;border:1px solid #d6deea;padding:14px 16px;font-size:12.5px;color:#374151;line-height:1.8">'+html+'</div>';
   }
+  // r230→r231: 자료 업로드 맨 위 '적재 현황' — 원천별 × 사업장별 마지막 거래일 (칩 세 줄, 최소 높이)
+  function _fxUpStat(){
+    var host=document.getElementById('fxUpStat'); if(!host) return;
+    var BZ=['서울','화성'], rows=[], idx={};
+    function slot(key, label, grp){
+      if(!idx[key]){ idx[key]={key:key, label:label, grp:grp, c:{'서울':{d:'',n:0}, '화성':{d:'',n:0}}}; rows.push(idx[key]); }
+      return idx[key];
+    }
+    function put(key, label, grp, biz, date){
+      if(BZ.indexOf(biz)<0) return;
+      var s=slot(key, label, grp).c[biz];
+      s.n++; if(date && date>s.d) s.d=date;
+    }
+    slot('1A','매출','계산서'); slot('1B','매입','계산서');
+    (fxSalesInv||[]).forEach(function(e){ put('1A','매출','계산서', e.biz, e.date); });
+    (fxPurchInv||[]).forEach(function(e){ put('1B','매입','계산서', e.biz, e.date); });
+    (fxDeposits||[]).forEach(function(e){
+      var isNote=(e.kind==='note');
+      var nm=e.bank||(isNote?'어음':'기타');
+      put((isNote?'3':'2')+nm, nm, isNote?'어음':'입금', e.biz, e.date);
+    });
+    rows.sort(function(a,b){ return a.key<b.key?-1:(a.key>b.key?1:0); });
+    var today=new Date(); today.setHours(12,0,0,0);
+    function agoOf(d){ return Math.round((today-new Date(d+'T12:00:00'))/86400000); }
+    function shortD(d){ return String(d||'').replace(/-/g,'.'); }   // r232: 0000.00.00 (년.월.일)
+    function part(r, biz){
+      var s=r.c[biz];
+      if(!s.d) return '';
+      var ago=agoOf(s.d), old=(ago>45);
+      return '<span title="'+esc(r.label)+' · '+biz+' — '+shortD(s.d)+' · '+(ago<=0?'오늘':(ago+'일 전'))+' · '+_fxFmt(s.n)+'건" style="margin-left:6px;white-space:nowrap">'
+        + '<span style="color:#9ca3af">'+biz.slice(0,2)+'</span> '
+        + '<span style="color:'+(old?'#dc2626':'#14305c')+';font-weight:'+(old?'700':'600')+'">'+shortD(s.d)+'</span>'
+        + '</span>';
+    }
+    function chip(r){
+      var p=part(r,'서울')+part(r,'화성');
+      if(!p) return '';
+      return '<span style="display:inline-flex;align-items:baseline;border:1px solid #e3e9f0;background:#fff;padding:2px 8px;margin:0 4px 4px 0;font-size:11.5px;line-height:1.5">'
+        + '<b style="color:#14305c">'+esc(r.label)+'</b>'+p+'</span>';
+    }
+    var GRP=['계산서','입금','어음'], line='';
+    GRP.forEach(function(g){
+      var html=rows.filter(function(r){ return r.grp===g; }).map(chip).join('');
+      if(!html) return;
+      line += '<div style="display:flex;align-items:flex-start;gap:6px;margin-top:3px">'
+        + '<span style="flex:0 0 42px;font-size:11px;color:#8a94a6;padding-top:4px">'+g+'</span>'
+        + '<span style="flex:1;min-width:0">'+html+'</span></div>';
+    });
+    host.innerHTML =
+      '<div style="border:1px solid #d6deea;background:#fbfcfe;padding:7px 10px 4px;margin-bottom:10px">'
+      + '<div style="font-size:11px;color:#8a94a6">적재 현황 · 자료가 들어 있는 <b style="color:#14305c">마지막 거래일</b> — 다음 날짜부터 올리면 됩니다 (겹쳐도 중복은 자동 제외)</div>'
+      + line
+      + '</div>';
+  }
   function _fxMetaRefresh(){
     var meta=document.getElementById('fxMeta');
     if(meta) meta.textContent='매출 '+fxSalesInv.length+'건 · 매입 '+fxPurchInv.length+'건 · 입금 '+fxDeposits.length+'건';
+    try{ _fxUpStat(); }catch(_e){}   // r230: 업로드가 끝나면 적재 현황도 같이 갱신
   }
   // ── 홈택스 세금계산서 목록 (매출/매입·사업장 자동 판별) ──
   window.fxImportHometax = async function(inp){
