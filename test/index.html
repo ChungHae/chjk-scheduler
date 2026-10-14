@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r233 2026-10-14 -->
+<!-- test build r234 2026-10-14 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -7636,7 +7636,7 @@ function reloadState() {
         <tbody>${rows}</tbody>
       </table>
       <div style="display:flex;gap:26px;align-items:stretch;margin-top:18px;border-top:1px solid #e3eaf3;padding-top:13px">
-        <div style="flex:1;font-size:11.5px;color:#9ca3af;line-height:1.95;align-self:center">${_qMemo?('<span style=\'color:#4b5563\'>· 비고 : '+esc(_qMemo).replace(/\n/g,'<br>')+'</span><br>'):''}· 본 견적서의 유효기간은 발행일로부터 30일입니다.<br>· 상기 금액은 부가가치세 별도 금액입니다.<br>· 결제 및 납기 조건은 협의에 따릅니다. — ${SUP.corp}</div>
+        <div style="flex:1;font-size:11.5px;color:#9ca3af;line-height:1.95;align-self:center">${_qMemo?('<span style=\'color:#4b5563\'>· 비고 : '+esc(_qMemo).replace(/\n/g,'<br>')+'</span><br>'):''}· 본 견적서의 유효기간은 발행일로부터 30일입니다.<br>· 상기 금액은 부가가치세 별도 금액입니다.<br>· 결제 및 납기 조건은 협의에 따릅니다.<br>· 온라인몰 <b>airmall24.co.kr</b> 에서도 바로 주문하실 수 있습니다. — ${SUP.corp}</div>
         <div class="tot" style="margin-top:0;width:300px">
           <div class="row"><span>공급가액</span><span>${fmt(finalSupply)} 원</span></div>
           <div class="row"><span>부가세 (10%)</span><span>${fmt(vat)} 원</span></div>
@@ -7853,7 +7853,7 @@ function reloadState() {
     put(TOTV,tL,'부가세 포함',S.totSL); put(TOTV,tL+1,'',S.totSL); mg(TOTV,tL,TOTV,tL+1); put(TOTV,tV,'',S.totSV,{t:'n',f:L(tV)+(SUPPLY+1)+'+'+L(tV)+(VAT+1)});
     [SUPPLY,VAT,TOT,TOTV].forEach(function(x){ rows[x]={hpt:(x===TOT)?24:18}; });
     var notes=[]; if(_qMemo) notes.push('· 비고 : '+String(_qMemo));
-    notes.push('· 본 견적서의 유효기간은 발행일로부터 30일입니다.'); notes.push('· 상기 금액은 부가가치세 별도 금액입니다.'); notes.push('· 결제 및 납기 조건은 협의에 따릅니다. — '+SUP.corp);
+    notes.push('· 본 견적서의 유효기간은 발행일로부터 30일입니다.'); notes.push('· 상기 금액은 부가가치세 별도 금액입니다.'); notes.push('· 결제 및 납기 조건은 협의에 따릅니다.'); notes.push('· 온라인몰 airmall24.co.kr 에서도 바로 주문하실 수 있습니다. — '+SUP.corp);
     notes.forEach(function(t,i){ var rr=B+i; put(rr,0,t,S.note); mg(rr,0,rr,tL-1); });
     // 견적금액(머리) — 합계 셀 참조 수식
     var totRef=L(tV)+(TOT+1), totvRef=L(tV)+(TOTV+1);
@@ -8083,9 +8083,9 @@ function reloadState() {
     if(_qMemo) noteLines.push({text:'· 비고 : '+String(_qMemo), color:'#4b5563'});
     noteLines.push({text:'· 본 견적서의 유효기간은 발행일로부터 30일입니다.'});
     noteLines.push({text:'· 상기 금액은 부가가치세 별도 금액입니다.'});
-    noteLines.push({text:'· 결제 및 납기 조건은 협의에 따릅니다. — '+SUP.corp});
+    noteLines.push({text:'· 결제 및 납기 조건은 협의에 따릅니다.'}); noteLines.push({text:'· 온라인몰 airmall24.co.kr 에서도 바로 주문하실 수 있습니다. — '+SUP.corp});
     // 안내문을 합계 박스에 대해 세로 중앙 배치 (인쇄판 align-self:center)
-    var _noteN=3+(_qMemo?String(_qMemo).split('\n').length:0);
+    var _noteN=4+(_qMemo?String(_qMemo).split('\n').length:0);   // r234: 온라인몰 안내 한 줄 추가
     var _noteH=_noteN*8.625*1.95;
     var _totH=2*(9.75*1.2+10.5)+(12*1.2+12.75)+(9*1.2+12.75);   // +부가세 포함 소행
     var _notePad=Math.max(0,Math.floor((_totH-_noteH)/2));
@@ -8991,7 +8991,8 @@ function reloadState() {
       '상기 금액은 <b>부가가치세 별도</b>이며, 합계 수량 <b>'+qtySum.toLocaleString()+' EA</b> 기준입니다.',
       '유효기간은 발행일로부터 <b>30일</b>입니다. 납기는 발주 확정 후 안내드리며, 결제 조건은 협의에 따릅니다.',
       '품목표의 <b>자료</b> 칸을 누르면 메이커 카탈로그·제품 페이지·2D/3D 도면으로 바로 연결됩니다. (인터넷 연결 필요)',
-      '표기 품번 외 옵션(오토스위치·포트 나사·스트로크 등) 변경이 필요하시면 알려주십시오. 추가 견적드리겠습니다.'
+      '표기 품번 외 옵션(오토스위치·포트 나사·스트로크 등) 변경이 필요하시면 알려주십시오. 추가 견적드리겠습니다.',
+      '온라인몰 <a href="https://airmall24.co.kr" target="_blank" rel="noopener" style="color:#1B3A6B;font-weight:700">airmall24.co.kr</a> 에서도 바로 주문하실 수 있습니다.'
     ];
     var CSS='*{box-sizing:border-box}body{margin:0;background:#eef1f5;color:#1f2937;font-family:"Malgun Gothic","맑은 고딕","Apple SD Gothic Neo",sans-serif;font-size:13px;line-height:1.5}'
       +'.pg{max-width:860px;margin:18px auto;background:#fff;padding:36px 40px 30px;box-shadow:0 2px 14px rgba(27,58,107,.10)}'
@@ -9043,7 +9044,7 @@ function reloadState() {
       +'<div class="sec">공급자</div><div class="sup"><div class="t"><div class="corp">'+esc(SUP.corp)+'</div><div class="ln">대표이사 '+esc(SUP.ceo.replace(/\s+/g,''))+' · 사업자등록번호 '+esc(SUP.biz)+'</div><div class="ln">'+esc(SUP.addr.replace(/\n/g,' '))+'</div><div class="ln">TEL '+esc(SUP.tel)+' · FAX '+esc(SUP.fax)+' · '+esc(SUP.mail)+'</div>'
       +(staff?'<div class="stf">담당 <b>'+esc(staff)+'</b>'+(staffPhone?' · '+esc(staffPhone):'')+'</div>':'')+'</div>'
       +(st&&st.b64?'<img class="st" src="data:image/png;base64,'+st.b64+'" alt="">':'')+(sl&&sl.b64?'<img class="sl" src="data:image/png;base64,'+sl.b64+'" alt="">':'')+'</div>'
-      +'<div class="ft">· 본 견적서의 유효기간은 발행일로부터 30일입니다. · 상기 금액은 부가가치세 별도 금액입니다. · 결제 및 납기 조건은 협의에 따릅니다.<br>· 자료 링크는 각 메이커(SMC·CONVUM 등)의 공개 카탈로그·도면 자료로 연결됩니다. — '+esc(SUP.corp)+'</div>'
+      +'<div class="ft">· 본 견적서의 유효기간은 발행일로부터 30일입니다. · 상기 금액은 부가가치세 별도 금액입니다. · 결제 및 납기 조건은 협의에 따릅니다. · 온라인몰 airmall24.co.kr<br>· 자료 링크는 각 메이커(SMC·CONVUM 등)의 공개 카탈로그·도면 자료로 연결됩니다. — '+esc(SUP.corp)+'</div>'
       +'</div><div id="zm"><img alt=""></div><script>'+JSX+'<\/script></body></html>';
     return html;
   }
