@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r231 2026-10-14 -->
+<!-- test build r232 2026-10-14 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -20839,14 +20839,13 @@ function reloadState() {
     });
     rows.sort(function(a,b){ return a.key<b.key?-1:(a.key>b.key?1:0); });
     var today=new Date(); today.setHours(12,0,0,0);
-    var thisY=String(today.getFullYear());
     function agoOf(d){ return Math.round((today-new Date(d+'T12:00:00'))/86400000); }
-    function shortD(d){ var y=d.slice(0,4); return (y===thisY?'':("'"+y.slice(2)+" "))+d.slice(5).replace('-','-'); }
+    function shortD(d){ return String(d||'').replace(/-/g,'.'); }   // r232: 0000.00.00 (년.월.일)
     function part(r, biz){
       var s=r.c[biz];
       if(!s.d) return '';
       var ago=agoOf(s.d), old=(ago>45);
-      return '<span title="'+esc(r.label)+' · '+biz+' — '+s.d+' · '+(ago<=0?'오늘':(ago+'일 전'))+' · '+_fxFmt(s.n)+'건" style="margin-left:6px;white-space:nowrap">'
+      return '<span title="'+esc(r.label)+' · '+biz+' — '+shortD(s.d)+' · '+(ago<=0?'오늘':(ago+'일 전'))+' · '+_fxFmt(s.n)+'건" style="margin-left:6px;white-space:nowrap">'
         + '<span style="color:#9ca3af">'+biz.slice(0,2)+'</span> '
         + '<span style="color:'+(old?'#dc2626':'#14305c')+';font-weight:'+(old?'700':'600')+'">'+shortD(s.d)+'</span>'
         + '</span>';
