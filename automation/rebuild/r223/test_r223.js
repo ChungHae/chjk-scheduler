@@ -65,7 +65,7 @@ function ok(c, msg){ if(c){ pass++; console.log('  ✓', msg); } else { fail++; 
   ok(Fm('G'+(sr+1))==='ROUND(G'+sr+'*0.1,0)' && Fm('G'+(sr+2))==='G'+sr && Fm('G'+(sr+3))==='G'+sr+'+G'+(sr+1), '부가세·합계·부가세 포함 수식');
   const amtRef = all.find(k=>/^"견적금액/.test(ws[k].f||''));
   ok(!!amtRef && (ws[amtRef].f||'').indexOf('TEXT(G'+(sr+2))>=0, '머리 견적금액은 합계 셀 참조 수식');
-  ok(txt.indexOf('· 비고 : 납기는 발주 후 확정')>=0 && txt.indexOf('유효기간은 발행일로부터 30일')>=0 && txt.indexOf('협의에 따릅니다. — 충해전기㈜ 화성영업소')>=0, '안내문 + 비고');
+  ok(txt.indexOf('· 비고 : 납기는 발주 후 확정')>=0 && txt.indexOf('유효기간은 발행일로부터 30일')>=0 && txt.indexOf('협의에 따릅니다.')>=0 && txt.indexOf('airmall24.co.kr 에서도 바로 주문하실 수 있습니다. — 충해전기㈜ 화성영업소')>=0, '안내문 + 비고 (r234: 온라인몰 줄이 마지막)');
   ok((ws['!merges']||[]).length>10 && (ws['!cols']||[]).length===8 && !!ws['!ref'], '병합·열폭·범위 지정');
   if(dump){ fs.writeFileSync(dump, JSON.stringify(ws)); console.log('  · 워크시트 덤프:', dump); }
 
