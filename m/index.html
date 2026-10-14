@@ -71,6 +71,13 @@
   .mkchips{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
   .mkchips span{ font-size:11.5px; padding:2px 8px; border:1px solid var(--line); color:var(--mute); }
   .mkchips span.ok{ border-color:var(--teal); color:var(--teal); }
+  .cat{ margin-top:10px; border-top:1px solid #eef2f7; padding-top:10px; }
+  .cat .k{ font-size:12px; color:var(--mute); font-weight:600; margin-bottom:6px; }
+  .cat .btns{ display:flex; flex-wrap:wrap; gap:6px; }
+  .cat a{ display:inline-block; padding:7px 10px; border:1px solid var(--navy); color:var(--navy); text-decoration:none; font-size:13px; font-weight:600; background:#fff; }
+  .cat a.g{ border-color:var(--line); color:var(--mute); font-weight:500; }
+  .cat img{ display:block; max-width:100%; max-height:180px; border:1px solid var(--line); margin-bottom:8px; background:#fff; }
+  .cat .wait{ font-size:12px; color:#9ca3af; }
 </style>
 </head>
 <body>
@@ -112,6 +119,10 @@
   var FB_CFG={ apiKey:"AIzaSyBTYey9GzRIRRqiiZoQ3gpxI-Ty1BhXyZU", authDomain:"chjk-scheduler.firebaseapp.com", databaseURL:DB, projectId:"chjk-scheduler", storageBucket:"chjk-scheduler.firebasestorage.app", messagingSenderId:"539351694456", appId:"1:539351694456:web:95f38d75256202c798818d" };
   var WANT=[ ['SMC',/SMC/], ['CDC',/CDC/], ['NITTA',/NITTA|닛다/], ['CONVUM',/CONVUM|컨범/] ];   // 보여줄 메이커(가격표 이름으로 판별)
   var CACHE_MS=12*3600*1000;
+  // 카탈로그: CONVUM 은 컨범 스토어와 같은 도면 DB(공개 읽기 키) + 시리즈/전체 PDF, SMC 는 smcworld 웹카탈로그, 나머지는 검색
+  var CV_API='https://rjilxlopauzwzwqmdcre.supabase.co', CV_KEY='sb_publishable_i3pCGKzhZigmcdzMLG5T4w_WytHiH1-', CV_STORE=CV_API+'/storage/v1/object/public/';
+  var CV_PDF_MAIN=CV_STORE+'catalogs/pdfs/1775023892314_PRODCUT_SELETION_2026_260211_____.pdf';
+  var CV_PDF_SER={ 'CVD':'catalogs/pdfs/1775023871808_24_29_BCVZ.pdf','CVL':'catalogs/pdfs/1775023871808_24_29_BCVZ.pdf','CVG':'catalogs/pdfs/1775023871808_24_29_BCVZ.pdf','CVZ':'catalogs/pdfs/1775023871808_24_29_BCVZ.pdf','MC':'catalogs/pdfs/1775023872882_30_35_BMC22.pdf','MPV':'catalogs/pdfs/1775023551677_BMPV42.pdf' };
   var $=function(id){ return document.getElementById(id); };
   var fmt=function(n){ return (n==null||n===''||isNaN(n))?'-':Math.round(Number(n)).toLocaleString('ko-KR'); };
   var norm=function(s){ return String(s||'').toLowerCase().replace(/[\s\-_.]/g,''); };
@@ -248,11 +259,56 @@
     if(sell!=null) h+='<div class="sell"><span class="k">판매가 <small>(마진 '+margin+'%)</small></span><span class="v">'+fmt(sell)+'<small>원</small></span></div>';
     else h+='<div class="sell na"><span class="k">판매가</span><span class="v">'+(cur.cls==='SMC'&&v.needDc?'DC율을 넣으면 계산됩니다':'매입가가 없어 계산할 수 없습니다')+'</span></div>';
     if(sell!=null) h+='<div class="note" style="margin-top:8px">부가세 별도 · 부가세 포함 '+fmt(sell+Math.round(sell*0.1))+'원 · 마진은 매입가 대비</div>';
-    h+='</div>';
+    h+=catalogHtml(cur)+'</div>';
     host.innerHTML=h;
+    if(cur.cls==='CONVUM') cvDraw(cur.spec);
     if(keepDc){ var di=host.querySelector('input[type=number]'); if(di){ try{ di.blur(); }catch(e){} } }
   }
 
+  // ── 카탈로그 ──
+  function catalogHtml(it){
+    var pn=it.spec, u=pn.toUpperCase(), q=encodeURIComponent(pn);
+    var h='<div class="cat"><div class="k">카탈로그 · 도면</div>';
+    if(it.cls==='CONVUM'){
+      var core=u.replace(/^B/,''), ser=null, best=''; for(var k in CV_PDF_SER){ if(core.indexOf(k)===0 && k.length>best.length){ best=k; ser=CV_PDF_SER[k]; } }
+      h+='<div id="cvDraw"><span class="wait">도면 DB 확인 중…</span></div><div class="btns">'
+        +(ser?'<a href="'+esc(CV_STORE+ser)+'" target="_blank" rel="noopener">'+esc(best)+' 시리즈 PDF</a>':'')
+        +'<a href="'+esc(CV_PDF_MAIN)+'" target="_blank" rel="noopener">CONVUM 전체 카탈로그</a>'
+        +'<a class="g" href="https://www.google.com/search?q='+q+'+CONVUM" target="_blank" rel="noopener">검색</a></div>';
+    } else if(it.cls==='SMC'){
+      h+='<div class="btns"><a href="https://www.smcworld.com/webcatalog/ko-jp/detail/?partNumber='+q+'" target="_blank" rel="noopener">SMC 웹카탈로그</a>'
+        +'<a href="https://www.smckorea.co.kr/ppis/source/admin/mdnm_split_list.asp" target="_blank" rel="noopener">SMC 품번조회(재고)</a>'
+        +'<a class="g" href="https://www.google.com/search?q=SMC+'+q+'" target="_blank" rel="noopener">검색</a></div>';
+    } else {
+      h+='<div class="btns"><a class="g" href="https://www.google.com/search?q='+q+'+'+encodeURIComponent(it.cls)+'+카탈로그" target="_blank" rel="noopener">'+esc(it.cls)+' '+esc(pn)+' 검색</a></div>';
+    }
+    return h+'</div>';
+  }
+  var cvCache={};
+  async function cvFetch(pn){
+    var key=norm(pn); if(cvCache[key]) return cvCache[key];
+    var p=(async function(){
+      try{
+        var hd={ apikey:CV_KEY, authorization:'Bearer '+CV_KEY }, q=encodeURIComponent(pn.trim());
+        var sel='select=model_name,cad_2d_url,cad_3d_url,pdf_url,thumbnail_url&is_active=eq.true';
+        var r=await fetch(CV_API+'/rest/v1/drawings?'+sel+'&model_name=eq.'+q,{headers:hd}); var rows=r.ok?await r.json():[];
+        if(!rows.length){ var r2=await fetch(CV_API+'/rest/v1/drawings?'+sel+'&model_name=ilike.'+q+'*&limit=8',{headers:hd}); rows=r2.ok?await r2.json():[]; }
+        var m={thumb:null,d2:null,d3:null,pdf:null,exact:false};
+        rows.forEach(function(x){ if(norm(x.model_name)===key) m.exact=true; if(x.thumbnail_url&&!m.thumb) m.thumb=x.thumbnail_url; if(x.cad_2d_url&&!m.d2) m.d2=x.cad_2d_url; if(x.cad_3d_url&&!m.d3) m.d3=x.cad_3d_url; if(x.pdf_url&&!m.pdf) m.pdf=x.pdf_url; });
+        return (m.thumb||m.d2||m.d3||m.pdf)?m:null;
+      }catch(e){ return null; }
+    })();
+    cvCache[key]=p; return p;
+  }
+  function cvDraw(pn){
+    cvFetch(pn).then(function(m){
+      var el=$('cvDraw'); if(!el || !cur || cur.spec!==pn) return;
+      if(!m){ el.innerHTML='<span class="wait">이 형번의 도면 자료는 없음 (시리즈 PDF 참고)</span>'; return; }
+      var abs=function(u){ return /^https?:\/\//.test(u)?u:(CV_STORE+u); };
+      var ab=function(u,label){ return u?'<a href="'+esc(abs(u))+'" target="_blank" rel="noopener">'+label+'</a>':''; };
+      el.innerHTML=(m.thumb?'<img src="'+esc(abs(m.thumb))+'" alt="" loading="lazy">':'')+'<div class="btns" style="margin-bottom:6px">'+ab(m.pdf,'제품 PDF')+ab(m.d2,'2D 도면')+ab(m.d3,'3D')+'</div>'+(m.exact?'':'<span class="wait">※ 비슷한 형번의 자료</span>');
+    });
+  }
   // ── 최근 조회 ──
   var recent=[]; try{ recent=JSON.parse(localStorage.getItem('m_recent')||'[]'); }catch(e){ recent=[]; }
   function addRecent(sp){ recent=[sp].concat(recent.filter(function(x){ return x!==sp; })).slice(0,12); try{ localStorage.setItem('m_recent',JSON.stringify(recent)); }catch(e){} renderRecent(); }
