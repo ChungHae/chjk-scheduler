@@ -7971,9 +7971,7 @@ function reloadState() {
     var FONT=await _qPdfFontLoad(pm);
     var dd=_qBuildPdfDoc({ orient:window._qPdfOrient, font:FONT });
     var _fn=('견적서 '+(_qQuoteNo||'')).replace(/[<>:"/\\|?*]/g,' ').replace(/\s+/g,' ').trim();
-    var _xwb=await _qPrepQuoteXlsx();   // r218
-    pm.createPdf(dd).download(_fn+'.pdf');
-    _qSaveQuoteXlsx(_xwb, _fn);   // r218
+    pm.createPdf(dd).download(_fn+'.pdf');   // r228: PDF 만 (엑셀 동시 저장 제거)
   };
   window.qPreviewPdf = async function(orient){
     if(!_qCart.length || !_qCartHasContent()){ showInfoModal('견적 목록', '견적 목록이 비어 있습니다.'); return; }
@@ -8121,17 +8119,15 @@ function reloadState() {
         }
         var dl=document.getElementById('qPvDlBtn');
         if(dl) dl.onclick=function(){
-          showConfirmModal('견적서 저장', '견적번호 <b>'+esc(no)+'</b> 로 저장 후 PDF 와 엑셀 파일을 함께 다운로드합니다.\n\n파일명 · 견적서 '+esc(no)+'.pdf / .xlsx', function(){ (async function(){
+          showConfirmModal('견적서 저장', '견적번호 <b>'+esc(no)+'</b> 로 저장 후 PDF 파일을 다운로드합니다.\n\n파일명 · 견적서 '+esc(no)+'.pdf', function(){ (async function(){
             var _saved=true;   // r186
-            var _xwb=await _qPrepQuoteXlsx();   // r218
             try{ await _qPersistQuote(); }catch(_pe){ _saved=false; showInfoModal('견적 저장 실패', (_pe&&_pe.message||String(_pe))+'\n\n다운로드는 계속 진행하지만, 이 견적은 저장되지 않았습니다.'); }
             try{
               var _fn=('견적서 '+no).replace(/[<>:"/\\|?*]/g,' ').replace(/\s+/g,' ').trim();
               var a=document.createElement('a'); a.href=window._qPvUrl; a.download=_fn+'.pdf';
               document.body.appendChild(a); a.click(); a.remove();
-              _qSaveQuoteXlsx(_xwb, _fn);   // r218
               window._qPdfPreviewClose();
-              if(_saved){ _qResetQuoteScreen(); showInfoModal('저장 완료', '"'+esc(no)+'" 견적을 저장하고 PDF·엑셀로 내려받았습니다.\n새 견적을 작성할 수 있게 목록을 비웠습니다.'); }   // r186
+              if(_saved){ _qResetQuoteScreen(); showInfoModal('저장 완료', '"'+esc(no)+'" 견적을 저장하고 PDF 로 내려받았습니다.\n새 견적을 작성할 수 있게 목록을 비웠습니다.'); }   // r186
             }catch(_de){ showInfoModal('PDF 다운로드 실패', (_de&&_de.message||String(_de))); }
           })(); }, 'PDF 다운로드', '#1B3A6B');
         };
@@ -8151,10 +8147,10 @@ function reloadState() {
     window._qPdfOrient=(orient==='l')?'l':'p';
     _qEnsureQuoteNo();
     var no=_qQuoteNo||'';
-    showConfirmModal('견적서 저장', '견적번호 <b>'+esc(no)+'</b> 로 저장 후 PDF 와 엑셀 파일을 함께 다운로드합니다.\n\n파일명 · 견적서 '+esc(no)+'.pdf / .xlsx', function(){ (async function(){
+    showConfirmModal('견적서 저장', '견적번호 <b>'+esc(no)+'</b> 로 저장 후 PDF 파일을 다운로드합니다.\n\n파일명 · 견적서 '+esc(no)+'.pdf', function(){ (async function(){
       var _saved=true;   // r186
       try{ await _qPersistQuote(); }catch(_pe){ _saved=false; showInfoModal('견적 저장 실패', (_pe&&_pe.message||String(_pe))+'\n\n다운로드는 계속 진행하지만, 이 견적은 저장되지 않았습니다.'); }
-      try{ await window.qDownloadPdf(window._qPdfOrient); if(_saved){ _qResetQuoteScreen(); showInfoModal('저장 완료', '"'+esc(no)+'" 견적을 저장하고 PDF·엑셀로 내려받았습니다.\n새 견적을 작성할 수 있게 목록을 비웠습니다.'); } }   // r186
+      try{ await window.qDownloadPdf(window._qPdfOrient); if(_saved){ _qResetQuoteScreen(); showInfoModal('저장 완료', '"'+esc(no)+'" 견적을 저장하고 PDF 로 내려받았습니다.\n새 견적을 작성할 수 있게 목록을 비웠습니다.'); } }   // r186
       catch(_de){ showInfoModal('PDF 생성 실패', (_de&&_de.message||String(_de))+'\n\n브라우저 인쇄창 방식으로 대신 진행합니다.'); try{ qExportPdf(true); }catch(_e2){} }
     })(); }, 'PDF 다운로드', '#1B3A6B');
   };
@@ -8742,70 +8738,14 @@ function reloadState() {
     try{
       await _ensureXlsxLib();
       try{ await _qPersistQuote(); }catch(_pe){ showInfoModal('견적 저장 실패', (_pe&&_pe.message||String(_pe))+'\n\n엑셀은 계속 만들지만, 이 견적은 저장되지 않았습니다.'); }
-      var wb=_qBuildQuoteXlsxWb();   // r218
-      var vn=(_qCart[0].vname||'견적'); var d=new Date();
-      var ds=d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
-      XLSX.writeFile(wb,'견적목록_'+vn+'_'+ds+'.xlsx');
+      var wb=_qBuildQuoteSheetWb();   // r229: 고객용 견적서(PDF 와 같은 모양 · 수식)
+      var _fn=('견적서 '+(_qQuoteNo||(_qCart[0].vname||'견적'))).replace(/[<>:"/\\|?*]/g,' ').replace(/\s+/g,' ').trim();
+      XLSX.writeFile(wb, _fn+'.xlsx');
       if(_qQuoteNo) showInfoModal('자동 저장', '이 견적은 "'+esc(_qQuoteNo)+'" 번호로 자동 저장되었습니다.');
     }catch(e){ showInfoModal('알림', '엑셀 내보내기 실패: '+e.message); }
   };
-  function _qBuildQuoteXlsxWb(){   // r218: 견적목록 엑셀 워크북 — 일반 엑셀 버튼과 PDF 동시 다운로드가 같이 쓴다 (XLSX 로드 후 호출)
-      var totalBuy=0, totalSell=0, totalQty=0;
-      var _cxC=(typeof _qCols!=='undefined'&&_qCols)?_qCols:[];
-      var _isSynapse=(((_qCart[0]&&_qCart[0].vname)||'').indexOf('시냅스이미징')>=0);
-      var aoa=[['NO','거래처','품목','규격','수량','단위','판매가','금액','예상납기','E가','DC율','구매가','마진율'].concat(_cxC.map(function(x){return x.title;}))];
-      _qCart.forEach(function(c,i){
-        var qty=Number(c.qty)||1; totalQty+=qty;
-        var _hasSpec=(c.spec!=null&&String(c.spec).trim()!=='');   // 규격 없으면 수량칸 빈칸
-        var hasSell=(c.sell!=null&&c.sell!=='');
-        var amt=hasSell?Number(c.sell)*qty:null; if(amt!=null) totalSell+=amt;
-        if(hasSell && c.buy!=null && c.buy!=='') totalBuy+=Number(c.buy)*qty;
-        var dc=_qDcOf(c.e,c.buy); var mg=hasSell?_qMarginOf(c.buy,c.sell):null;
-        var _dtx2=_qDiscText(c.disc);
-        var sellCell = hasSell ? Number(c.sell) : '';     // 단종/변경 문구는 금액 칸에만
-        aoa.push([ i+1, c.vname||'', c.name||'', c.spec||'', (_hasSpec?qty:''), 'EA', sellCell, (amt!=null?amt:_dtx2),
-          c.eta||'', (c.e!=null&&c.e!==''?Number(c.e):''), (dc!=null?dc:''),
-          (c.buy!=null&&c.buy!==''?Number(c.buy):''), (mg!=null?mg:'') ].concat(_cxC.map(function(x){ var _v=(c.cx&&c.cx[x.id]!=null)?c.cx[x.id]:''; if(_isSynapse && String(x.title||'').trim()==='코드' && _v!=='' && _v!=null){ _v='('+_v+')'; } return _v; })));
-      });
-      var marginPct = totalSell>0 ? (1-totalBuy/totalSell) : '';
-      aoa.push(['합계','','','', totalQty, '', '', totalSell, '', '', '', totalBuy, marginPct].concat(_cxC.map(function(){return '';})));
-      var _nego=(_qNego!=null)?Number(_qNego):0;
-      if(_nego){ var _fs=totalSell-_nego; var _fm=(totalBuy>0&&_fs>0)?(1-totalBuy/_fs):''; aoa.push(['NEGO 할인','','','','', '', '', -_nego, '', '', '', '', ''].concat(_cxC.map(function(){return '';}))); aoa.push(['최종 금액','','','','', '', '', _fs, '', '', '', '', _fm].concat(_cxC.map(function(){return '';}))); }
-      if(_qMemo){ aoa.push(['비고 : '+String(_qMemo)]); }
-      aoa.unshift([(_qQuoteNo||'')]);
-      var _footStart=_qCart.length+2;
-      var ws=XLSX.utils.aoa_to_sheet(aoa);
-      var _lastCol=12+_cxC.length;
-      ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:_lastCol}}];
-      if(_qMemo){ ws['!merges'].push({s:{r:aoa.length-1,c:0},e:{r:aoa.length-1,c:_lastCol}}); }   // 비고: 전체 열 병합
-      ws['!cols']=[{wch:11},{wch:16},{wch:18},{wch:22},{wch:7},{wch:6},{wch:12},{wch:13},{wch:18},{wch:11},{wch:8},{wch:11},{wch:8}].concat(_cxC.map(function(){return {wch:14};}));
-      var thin={style:'thin',color:{rgb:'808080'}};
-      var border={top:thin,bottom:thin,left:thin,right:thin};
-      var acct='_-* #,##0_-;-* #,##0_-;_-* "-"_-;_-@_-';
-      var hStyle={font:{name:'맑은 고딕',sz:9,bold:true},alignment:{horizontal:'center',vertical:'center',wrapText:true},fill:{patternType:'solid',fgColor:{rgb:'FFFF00'}},border:border};
-      var ctr={font:{name:'맑은 고딕',sz:9},alignment:{horizontal:'center',vertical:'center'},border:border};
-      var num={font:{name:'맑은 고딕',sz:9},alignment:{horizontal:'center',vertical:'center'},border:border,numFmt:acct};
-      var pct={font:{name:'맑은 고딕',sz:9},alignment:{horizontal:'center',vertical:'center'},border:border,numFmt:'0.0%'};
-      var foot={font:{name:'맑은 고딕',sz:9,bold:true},alignment:{horizontal:'center',vertical:'center'},fill:{patternType:'solid',fgColor:{rgb:'EEF2F8'}},border:border};
-      var footNum={font:{name:'맑은 고딕',sz:9,bold:true},alignment:{horizontal:'center',vertical:'center'},fill:{patternType:'solid',fgColor:{rgb:'EEF2F8'}},border:border,numFmt:acct};
-      var footPct={font:{name:'맑은 고딕',sz:9,bold:true},alignment:{horizontal:'center',vertical:'center'},fill:{patternType:'solid',fgColor:{rgb:'EEF2F8'}},border:border,numFmt:'0.0%'};
-      var titleStyle={font:{name:'맑은 고딕',sz:9,bold:true,color:{rgb:'1B3A6B'}},alignment:{horizontal:'left',vertical:'center'}};
-      var memoStyle={font:{name:'맑은 고딕',sz:9},alignment:{horizontal:'left',vertical:'center',wrapText:true}};   // 비고: 배경 없음
-      var numCols={4:1,6:1,7:1,9:1,11:1}; var pctCols={10:1,12:1};
-      var R=aoa.length, last=R-1, NC=13+_cxC.length;
-      var _memoRow=_qMemo?(R-1):-1;   // 비고는 (있으면) 맨 마지막 행
-      for(var r=0;r<R;r++){ for(var c=0;c<NC;c++){
-        var ref=XLSX.utils.encode_cell({r:r,c:c}); var cl=ws[ref]; if(!cl) continue;
-        if(r===0){ cl.s=titleStyle; }
-        else if(r===1){ cl.s=hStyle; }
-        else if(r===_memoRow){ cl.s=memoStyle; }
-        else if(r>=_footStart){ cl.s = pctCols[c] ? footPct : (numCols[c] ? footNum : foot); }
-        else { cl.s = pctCols[c] ? pct : (numCols[c] ? num : ctr); }
-      }}
-      var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'견적목록');
-      return wb;
-  }
-  // r218: PDF 와 같은 이름(견적서 <번호>.xlsx)으로 엑셀을 이어서 저장. 목록을 비우기 전에 미리 만들어 둔 워크북을 쓴다.
+  // r229: 고객용 견적서(_qBuildQuoteSheetWb)는 [일반 엑셀] 버튼이 쓴다. 아래 두 개는 PDF 와 같이 내려보내던 r218 잔재로 지금은 쓰지 않는다
+  //       (r228 에서 동시 다운로드 중단). 다시 같이 내려보내려면 이 둘을 PDF 경로에서 호출하면 된다.
   async function _qPrepQuoteXlsx(){ try{ await _ensureXlsxLib(); return _qBuildQuoteSheetWb(); }catch(_e){ return null; } }   // r223: PDF 와 같은 모양의 고객용 견적서
   function _qSaveQuoteXlsx(wb, fn){ if(!wb) return; setTimeout(function(){ try{ XLSX.writeFile(wb, fn+'.xlsx'); }catch(_e){} }, 600); }
   window.qNegoSet = function(val){ if(!_guardW()) return; var v=String(val||'').replace(/[,\s]/g,''); if(v===''){ _qNego=null; } else { var n=Number(v); _qNego=isNaN(n)?null:n; } _qCartSave(); renderQCart(); };
@@ -20249,7 +20189,8 @@ function reloadState() {
         + inner + '</div>';
     };
     body.innerHTML =
-      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">'
+      '<div id="fxUpStat"></div>'   // r230: 적재 현황 (자료가 로드된 뒤 채움)
+      + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">'
       + _upCard('홈택스 세금계산서',
                 '홈택스 조회 목록 엑셀 — 매출/매입·사업장 자동 판별 · 여러 파일 가능 · 재업로드 안전',
                 _lblBtn('fxImportHometax','.xls,.xlsx',true))
@@ -20271,7 +20212,7 @@ function reloadState() {
       + '<div id="fxUnasg" style="margin-top:14px"></div>';
     _fxEnsureData().then(function(){
       if(_fxTab!=='up') return;
-      _fxMetaRefresh();
+      _fxMetaRefresh();   // r230: 안에서 _fxUpStat() 도 그린다
       _fxRenderUnasg();
     });
   }
@@ -20685,9 +20626,64 @@ function reloadState() {
     var out=document.getElementById('fxUpResult');
     if(out) out.innerHTML='<div style="background:#fff;border:1px solid #d6deea;padding:14px 16px;font-size:12.5px;color:#374151;line-height:1.8">'+html+'</div>';
   }
+  // r230→r231: 자료 업로드 맨 위 '적재 현황' — 원천별 × 사업장별 마지막 거래일 (칩 세 줄, 최소 높이)
+  function _fxUpStat(){
+    var host=document.getElementById('fxUpStat'); if(!host) return;
+    var BZ=['서울','화성'], rows=[], idx={};
+    function slot(key, label, grp){
+      if(!idx[key]){ idx[key]={key:key, label:label, grp:grp, c:{'서울':{d:'',n:0}, '화성':{d:'',n:0}}}; rows.push(idx[key]); }
+      return idx[key];
+    }
+    function put(key, label, grp, biz, date){
+      if(BZ.indexOf(biz)<0) return;
+      var s=slot(key, label, grp).c[biz];
+      s.n++; if(date && date>s.d) s.d=date;
+    }
+    slot('1A','매출','계산서'); slot('1B','매입','계산서');
+    (fxSalesInv||[]).forEach(function(e){ put('1A','매출','계산서', e.biz, e.date); });
+    (fxPurchInv||[]).forEach(function(e){ put('1B','매입','계산서', e.biz, e.date); });
+    (fxDeposits||[]).forEach(function(e){
+      var isNote=(e.kind==='note');
+      var nm=e.bank||(isNote?'어음':'기타');
+      put((isNote?'3':'2')+nm, nm, isNote?'어음':'입금', e.biz, e.date);
+    });
+    rows.sort(function(a,b){ return a.key<b.key?-1:(a.key>b.key?1:0); });
+    var today=new Date(); today.setHours(12,0,0,0);
+    function agoOf(d){ return Math.round((today-new Date(d+'T12:00:00'))/86400000); }
+    function shortD(d){ return String(d||'').replace(/-/g,'.'); }   // r232: 0000.00.00 (년.월.일)
+    function part(r, biz){
+      var s=r.c[biz];
+      if(!s.d) return '';
+      var ago=agoOf(s.d), old=(ago>45);
+      return '<span title="'+esc(r.label)+' · '+biz+' — '+shortD(s.d)+' · '+(ago<=0?'오늘':(ago+'일 전'))+' · '+_fxFmt(s.n)+'건" style="margin-left:6px;white-space:nowrap">'
+        + '<span style="color:#9ca3af">'+biz.slice(0,2)+'</span> '
+        + '<span style="color:'+(old?'#dc2626':'#14305c')+';font-weight:'+(old?'700':'600')+'">'+shortD(s.d)+'</span>'
+        + '</span>';
+    }
+    function chip(r){
+      var p=part(r,'서울')+part(r,'화성');
+      if(!p) return '';
+      return '<span style="display:inline-flex;align-items:baseline;border:1px solid #e3e9f0;background:#fff;padding:2px 8px;margin:0 4px 4px 0;font-size:11.5px;line-height:1.5">'
+        + '<b style="color:#14305c">'+esc(r.label)+'</b>'+p+'</span>';
+    }
+    var GRP=['계산서','입금','어음'], line='';
+    GRP.forEach(function(g){
+      var html=rows.filter(function(r){ return r.grp===g; }).map(chip).join('');
+      if(!html) return;
+      line += '<div style="display:flex;align-items:flex-start;gap:6px;margin-top:3px">'
+        + '<span style="flex:0 0 42px;font-size:11px;color:#8a94a6;padding-top:4px">'+g+'</span>'
+        + '<span style="flex:1;min-width:0">'+html+'</span></div>';
+    });
+    host.innerHTML =
+      '<div style="border:1px solid #d6deea;background:#fbfcfe;padding:7px 10px 4px;margin-bottom:10px">'
+      + '<div style="font-size:11px;color:#8a94a6">적재 현황 · 자료가 들어 있는 <b style="color:#14305c">마지막 거래일</b> — 다음 날짜부터 올리면 됩니다 (겹쳐도 중복은 자동 제외)</div>'
+      + line
+      + '</div>';
+  }
   function _fxMetaRefresh(){
     var meta=document.getElementById('fxMeta');
     if(meta) meta.textContent='매출 '+fxSalesInv.length+'건 · 매입 '+fxPurchInv.length+'건 · 입금 '+fxDeposits.length+'건';
+    try{ _fxUpStat(); }catch(_e){}   // r230: 업로드가 끝나면 적재 현황도 같이 갱신
   }
   // ── 홈택스 세금계산서 목록 (매출/매입·사업장 자동 판별) ──
   window.fxImportHometax = async function(inp){
