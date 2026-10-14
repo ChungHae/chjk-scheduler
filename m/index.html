@@ -110,7 +110,7 @@
   var DB='https://chjk-scheduler-default-rtdb.asia-southeast1.firebasedatabase.app';
   var BASE='teamdata_test';
   var FB_CFG={ apiKey:"AIzaSyBTYey9GzRIRRqiiZoQ3gpxI-Ty1BhXyZU", authDomain:"chjk-scheduler.firebaseapp.com", databaseURL:DB, projectId:"chjk-scheduler", storageBucket:"chjk-scheduler.firebasestorage.app", messagingSenderId:"539351694456", appId:"1:539351694456:web:95f38d75256202c798818d" };
-  var WANT=[ ['SMC',/SMC/], ['CDC',/CDC/], ['NITTA',/NITTA|닛다/], ['CONVUM',/CONVUM|컴범/] ];   // 보여줄 메이커(가격표 이름으로 판별)
+  var WANT=[ ['SMC',/SMC/], ['CDC',/CDC/], ['NITTA',/NITTA|닛다/], ['CONVUM',/CONVUM|컨범/] ];   // 보여줄 메이커(가격표 이름으로 판별)
   var CACHE_MS=12*3600*1000;
   var $=function(id){ return document.getElementById(id); };
   var fmt=function(n){ return (n==null||n===''||isNaN(n))?'-':Math.round(Number(n)).toLocaleString('ko-KR'); };
