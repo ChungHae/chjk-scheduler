@@ -1729,7 +1729,7 @@
     .wk-it { display:block; margin:2px 0; padding:1px 6px; border-radius:3px; font-size:11.5px; line-height:18px; white-space:normal; word-break:break-word; }
     .wk-it.k-meeting { background:#dbeafe; color:#1e40af; } .wk-it.k-delivery { background:#ffedd5; color:#9a3412; } .wk-it.k-project { background:#dcfce7; color:#166534; }
     .wk-it.k-vac { background:#e5e7eb; color:#374151; } .wk-it.k-etc { background:#fef3c7; color:#92400e; }
-    .wk-it.done { text-decoration:line-through; opacity:.55; }
+    .wk-it.done { text-decoration:none; opacity:1; }   /* r227: 완료 건도 그대로 보이게 (✓ 로만 구분) */
     .mm-vc { padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px; margin:6px 0; cursor:pointer; }
     .mm-vc:hover { background:#f4f6f9; border-color:#c8d2de; }
     .wk-it.k-done { background:#f3f4f6; color:#374151; }   /* r185 완료한 메모 */
@@ -1820,6 +1820,24 @@
     .cu-sel.none { border-color:#f59e0b; background:#fffbeb; }
     .cu-chip { display:inline-block; font-size:10.5px; padding:1px 6px; border-radius:4px; background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
     .mm-smc.cu { border-color:#fde68a; background:#fffbeb; color:#92400e; }
+    .mm-smc.co { border-color:#99f6e4; background:#f0fdfa; color:#0f766e; cursor:pointer; }   /* r226 내 담당 업체 매출 카드 */
+    .mm-smc.co .co-amt { font-weight:700; font-variant-numeric:tabular-nums; }
+    .qpb-badge { display:inline-flex; align-items:center; gap:4px; font-size:11.5px; font-weight:700; padding:3px 8px; border:1px solid #c8d2de; background:#fff; color:#374151; cursor:pointer; white-space:nowrap; }
+    .qpb-badge.hp { border-color:#1B3A6B; color:#1B3A6B; background:#eef2f6; }
+    .qpb-badge.sm { border-color:#0f766e; color:#0f766e; background:#f0fdfa; }
+    .qpb-badge.none { border-color:#f59e0b; color:#b45309; background:#fffbeb; }
+    #qpbOverlay .qpb-opt { display:block; height:auto; min-height:0; white-space:normal; border-radius:0; flex:1; border:1px solid #c8d2de; background:#fff; padding:12px 14px; cursor:pointer; text-align:left; font-size:13px; line-height:1.5; color:#374151; }
+    #qpbOverlay .qpb-opt b { display:block; font-size:14px; margin-bottom:4px; }
+    #qpbOverlay .qpb-opt.on { border-color:#1B3A6B; background:#eef2f6; }
+    #qpbOverlay .qpb-opt.on.sm { border-color:#0f766e; background:#f0fdfa; }
+    .mm-smc.nb { border-color:#fbcfe8; background:#fdf2f8; color:#9d174d; }   /* r227 신규 영업 응원 */
+    .mm-smc.nb.ok { border-color:#bbf7d0; background:#f0fdf4; color:#166534; }
+    .mm-smc.mt { border-color:#fecaca; background:#fef2f2; color:#b91c1c; }   /* r227 업무회의 필요 */
+    #pageMeeting .mt-due { margin:10px 16px 0; padding:10px 14px; border:1px solid #fecaca; background:#fef2f2; color:#b91c1c; font-size:13px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    #pageMeeting .mt-due b { font-weight:700; }
+    #pageMeeting .mt-due a { margin-left:auto; font-weight:700; text-decoration:underline; cursor:pointer; color:inherit; }
+    #pageMeeting .mt-past-tg { padding:8px 16px 0; font-size:12.5px; }
+    #pageMeeting .mt-past-tg a { color:#1B3A6B; text-decoration:underline; cursor:pointer; }
     #coMineOverlay table { width:100%; border-collapse:collapse; font-size:12.5px; }
     #coMineOverlay th { background:#f8fafc; color:#6b7280; font-weight:600; padding:6px 8px; border-bottom:2px solid #d3dce6; white-space:nowrap; font-size:11.5px; text-align:left; }
     #coMineOverlay td { padding:5px 8px; border-bottom:1px solid #eef2f7; vertical-align:middle; }
@@ -3600,6 +3618,7 @@
   let memoLines = load('sched_memos') ?? [];        // r179 메모장 줄 [{id,owner,text,parent,kind,vendor,to,name,phone,when,date,createdAt,done,doneAt,feedback,card,linked}]
   let memoCards = load('sched_memo_cards') ?? {};   // r179 명함 사진 {cardId: dataURL}
   let meetings = load('sched_meetings') ?? [];     // r187 회의록 [{id,date,time,place,room,title,author,attendees,agenda:[{id,title,text,done,doneAt,doneBy}],reports:[{name,items:[...]}]}]
+  let clientPBase = load('sched_client_pbase') ?? {};   // r226 업체별 소물류 기준가 { 업체명:{base:'hp'|'sm',by,at} }
   let clientOwner = load('sched_client_owner') ?? {};   // r225 담당 업체 { m:{업체:{who,by,at}} 수동, a:{업체:{who,at}} 자동 기록 }
   let clientPend = load('sched_client_pend') ?? [];   // r217 업체 정보 등록 대기 [{id,name,by,at,quoteNo,status:wait|ok|skip,okBy,okAt}]
   let smcQueue = load('sched_smc_queue') ?? [];     // r181 SMC 가격 확인 대기열 [{id,spec,name,e,buy,vid,vname,by,at,quoteNo,status:wait|ok|skip,okE,okHp,okSm,okBy,okAt}]
@@ -3748,6 +3767,7 @@
     save('sched_smc_queue', smcQueue);   // r181
     save('sched_client_pend', clientPend);   // r217
     save('sched_client_owner', clientOwner);   // r225
+    save('sched_client_pbase', clientPBase);   // r226
     save('sched_meetings', meetings);   // r187
     localStorage.setItem('sched_local_ts', Date.now().toString()); // 로컬 변경 시각 기록
     debouncedFbSave();
@@ -4617,6 +4637,7 @@
         sched_smc_queue: smcQueue,   // r181
         sched_client_pend: clientPend,   // r217
         sched_client_owner: clientOwner,   // r225
+        sched_client_pbase: clientPBase,   // r226
         sched_meetings: meetings,   // r187
         sched_comments: schedComments,
         sched_categories: schedCategories,
@@ -4692,7 +4713,7 @@
       const d = await _syncGet();
       if (!d || (d._updatedAt || 0) <= _fbLastUpdatedAt) return;
       _fbLastUpdatedAt = d._updatedAt || 0;
-      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_client_pend','sched_client_owner','sched_meetings','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
+      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_client_pend','sched_client_owner','sched_client_pbase','sched_meetings','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
       KEYS.forEach(k => { if (d[k] !== undefined) save(k, d[k]); });
       // ── 바로가기(sched_links) 보호 ──
       // 키가 없을 때: sched_links_ts가 있으면 신버전 클라이언트의 정상 저장(목록이 비어서
@@ -4795,7 +4816,7 @@
       const d = await _syncGet();
       const fbTs    = (d && d._updatedAt) || 0;
       const localTs = parseInt(localStorage.getItem('sched_local_ts') || '0');
-      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_client_pend','sched_client_owner','sched_meetings','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
+      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_client_pend','sched_client_owner','sched_client_pbase','sched_meetings','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
 
       // ── 올바른 팀원 ID 목록 (하드코딩) ──────────────────────
       const _VALID_MEMBER_IDS = defaultMembers().map(m => m.id);
@@ -4921,6 +4942,7 @@ function reloadState() {
     smcQueue         = load('sched_smc_queue') ?? [];   // r181
     clientPend       = load('sched_client_pend') ?? [];   // r217
     clientOwner      = load('sched_client_owner') ?? {};   // r225
+    clientPBase      = load('sched_client_pbase') ?? {};   // r226
     meetings         = load('sched_meetings') ?? [];   // r187
     clientInfo       = _ciMigrate(_cliDecMap(load('sched_client_info') ?? {}));   // r161
     _ciVer++;
@@ -7949,7 +7971,9 @@ function reloadState() {
     var FONT=await _qPdfFontLoad(pm);
     var dd=_qBuildPdfDoc({ orient:window._qPdfOrient, font:FONT });
     var _fn=('견적서 '+(_qQuoteNo||'')).replace(/[<>:"/\\|?*]/g,' ').replace(/\s+/g,' ').trim();
-    pm.createPdf(dd).download(_fn+'.pdf');   // r228: PDF 만 (엑셀 동시 저장 제거)
+    var _xwb=await _qPrepQuoteXlsx();   // r218
+    pm.createPdf(dd).download(_fn+'.pdf');
+    _qSaveQuoteXlsx(_xwb, _fn);   // r218
   };
   window.qPreviewPdf = async function(orient){
     if(!_qCart.length || !_qCartHasContent()){ showInfoModal('견적 목록', '견적 목록이 비어 있습니다.'); return; }
@@ -8097,15 +8121,17 @@ function reloadState() {
         }
         var dl=document.getElementById('qPvDlBtn');
         if(dl) dl.onclick=function(){
-          showConfirmModal('견적서 저장', '견적번호 <b>'+esc(no)+'</b> 로 저장 후 PDF 파일을 다운로드합니다.\n\n파일명 · 견적서 '+esc(no)+'.pdf', function(){ (async function(){
+          showConfirmModal('견적서 저장', '견적번호 <b>'+esc(no)+'</b> 로 저장 후 PDF 와 엑셀 파일을 함께 다운로드합니다.\n\n파일명 · 견적서 '+esc(no)+'.pdf / .xlsx', function(){ (async function(){
             var _saved=true;   // r186
+            var _xwb=await _qPrepQuoteXlsx();   // r218
             try{ await _qPersistQuote(); }catch(_pe){ _saved=false; showInfoModal('견적 저장 실패', (_pe&&_pe.message||String(_pe))+'\n\n다운로드는 계속 진행하지만, 이 견적은 저장되지 않았습니다.'); }
             try{
               var _fn=('견적서 '+no).replace(/[<>:"/\\|?*]/g,' ').replace(/\s+/g,' ').trim();
               var a=document.createElement('a'); a.href=window._qPvUrl; a.download=_fn+'.pdf';
               document.body.appendChild(a); a.click(); a.remove();
+              _qSaveQuoteXlsx(_xwb, _fn);   // r218
               window._qPdfPreviewClose();
-              if(_saved){ _qResetQuoteScreen(); showInfoModal('저장 완료', '"'+esc(no)+'" 견적을 저장하고 PDF 로 내려받았습니다.\n새 견적을 작성할 수 있게 목록을 비웠습니다.'); }   // r186
+              if(_saved){ _qResetQuoteScreen(); showInfoModal('저장 완료', '"'+esc(no)+'" 견적을 저장하고 PDF·엑셀로 내려받았습니다.\n새 견적을 작성할 수 있게 목록을 비웠습니다.'); }   // r186
             }catch(_de){ showInfoModal('PDF 다운로드 실패', (_de&&_de.message||String(_de))); }
           })(); }, 'PDF 다운로드', '#1B3A6B');
         };
@@ -8125,10 +8151,10 @@ function reloadState() {
     window._qPdfOrient=(orient==='l')?'l':'p';
     _qEnsureQuoteNo();
     var no=_qQuoteNo||'';
-    showConfirmModal('견적서 저장', '견적번호 <b>'+esc(no)+'</b> 로 저장 후 PDF 파일을 다운로드합니다.\n\n파일명 · 견적서 '+esc(no)+'.pdf', function(){ (async function(){
+    showConfirmModal('견적서 저장', '견적번호 <b>'+esc(no)+'</b> 로 저장 후 PDF 와 엑셀 파일을 함께 다운로드합니다.\n\n파일명 · 견적서 '+esc(no)+'.pdf / .xlsx', function(){ (async function(){
       var _saved=true;   // r186
       try{ await _qPersistQuote(); }catch(_pe){ _saved=false; showInfoModal('견적 저장 실패', (_pe&&_pe.message||String(_pe))+'\n\n다운로드는 계속 진행하지만, 이 견적은 저장되지 않았습니다.'); }
-      try{ await window.qDownloadPdf(window._qPdfOrient); if(_saved){ _qResetQuoteScreen(); showInfoModal('저장 완료', '"'+esc(no)+'" 견적을 저장하고 PDF 로 내려받았습니다.\n새 견적을 작성할 수 있게 목록을 비웠습니다.'); } }   // r186
+      try{ await window.qDownloadPdf(window._qPdfOrient); if(_saved){ _qResetQuoteScreen(); showInfoModal('저장 완료', '"'+esc(no)+'" 견적을 저장하고 PDF·엑셀로 내려받았습니다.\n새 견적을 작성할 수 있게 목록을 비웠습니다.'); } }   // r186
       catch(_de){ showInfoModal('PDF 생성 실패', (_de&&_de.message||String(_de))+'\n\n브라우저 인쇄창 방식으로 대신 진행합니다.'); try{ qExportPdf(true); }catch(_e2){} }
     })(); }, 'PDF 다운로드', '#1B3A6B');
   };
@@ -8196,6 +8222,122 @@ function reloadState() {
     try{ _qLogDoneMemo(_qQuoteNo, vn, _qCart.length, supply, who); }catch(_e){}   // r222: 작성자 일정에 완료된 업무로
     try{ _coAfterQuote(vn, who); }catch(_e){}   // r225: 견적 5회 → 담당 편입
   }
+  // ─── r227: 신규 영업 응원 배너 · 업무회의 2주 주기 ───
+  var _MT_CYCLE_DAYS=14, _NB_CHEER_DAYS=1, _mtShowPast=false;
+  function _nbLabel(l){ var v=String(l.vendor||'').trim(); if(v) return v; var t=String(l.text||'').replace(/^\s*(신규영업|신규)\s*/,'').trim(); return t.length>24?(t.slice(0,24)+'…'):t; }
+  function _nbBanner(){
+    var now=Date.now(), act=[], done=[];
+    (memoLines||[]).forEach(function(l){
+      if(!l || l.parent || l.kind!=='newbiz') return;
+      if(!l.done) act.push(l);
+      else if(l.doneAt && (now-l.doneAt) < _NB_CHEER_DAYS*86400000) done.push(l);
+    });
+    var h='';
+    if(act.length){
+      var who={}; act.forEach(function(l){ var o=l.owner||''; (who[o]=who[o]||[]).push(_nbLabel(l)); });
+      var parts=Object.keys(who).map(function(o){ return '<b>'+_mmEsc(o)+'</b>님 → '+_mmEsc(who[o].filter(Boolean).join(', ')); });
+      h+='<div class="mm-smc nb"><b>신규 영업 진행 중!</b><span>'+parts.join(' · ')+'</span><span style="margin-left:auto;font-weight:700">함께 응원해요 — 우리도 신규 한 곳씩!</span></div>';
+    }
+    if(done.length){
+      var ps=done.map(function(l){ return '<b>'+_mmEsc(l.owner||'')+'</b>님 '+_mmEsc(_nbLabel(l)); });
+      h+='<div class="mm-smc nb ok"><b>신규 등록 축하!</b><span>'+ps.join(' · ')+'</span><span style="margin-left:auto">박수 — 다음은 우리 차례</span></div>';
+    }
+    return h;
+  }
+  function _mtLastDate(){ var t=_mmToday(), best=''; (meetings||[]).forEach(function(m){ var d=String(m.date||''); if(d && d<=t && d>best) best=d; }); return best; }
+  function _mtDaysSince(){ var d=_mtLastDate(); if(!d) return null; var p=d.split('-'); var a=new Date(+p[0],+p[1]-1,+p[2]); var b=new Date(); b.setHours(0,0,0,0); return Math.round((b-a)/86400000); }
+  function _mtHasUpcoming(){ var t=_mmToday(); return (meetings||[]).some(function(m){ return String(m.date||'')>t; }); }
+  function _mtDueInfo(){ var n=_mtDaysSince(); if(_mtHasUpcoming()) return null; if(n==null) return {days:null, last:''}; if(n>=_MT_CYCLE_DAYS) return {days:n, last:_mtLastDate()}; return null; }
+  function _mtDueBanner(){
+    var d=_mtDueInfo(); if(!d) return '';
+    var msg=(d.days==null)?'아직 업무회의 기록이 없습니다':('마지막 업무회의가 <b>'+_mmEsc(_mtFmtD(d.last))+'</b> — <b>'+d.days+'일째</b> 회의가 없습니다');
+    return '<div class="mm-smc mt"><b>업무회의 필요</b><span>'+msg+' · 2주마다 진행해요</span><a onclick="switchPage(\'meeting\')">회의록 만들기 →</a></div>';
+  }
+  function _mtDueHtml(){
+    var d=_mtDueInfo(); if(!d) return '';
+    var msg=(d.days==null)?'아직 업무회의 기록이 없습니다.':('마지막 업무회의 <b>'+_mtEsc(_mtFmtD(d.last))+'</b> 이후 <b>'+d.days+'일</b>이 지났습니다.');
+    return '<div class="mt-due"><b>업무회의 필요</b><span>'+msg+' 2주마다 진행합니다 — 새 회의록을 만들어 일정을 잡아 주세요.</span><a onclick="mtNew()">+ 새 회의록</a></div>';
+  }
+  window.mtTogglePast = function(){ _mtShowPast=!_mtShowPast; try{ renderMeetingPage(true); }catch(_e){} };
+  // 일정(메모장)에서 지난 회의의 안건 줄은 숨긴다 (회의록에는 그대로 남는다)
+  function _mmPastMeetingLine(l){
+    try{ if(!l || !l.mtRef || !l.mtRef.mid) return false; var m=(meetings||[]).find(function(x){ return x.id===l.mtRef.mid; }); if(!m) return false; var d=String(m.date||''); return !!d && d<_mmToday(); }catch(_e){ return false; }
+  }
+  // ─── r226: 업체별 소물류 기준가 (확판가 hp / 소물가 sm) ───
+  var _qpbAsked={};
+  function _qpbStore(){ if(!clientPBase || typeof clientPBase!=='object' || Array.isArray(clientPBase)) clientPBase={}; return clientPBase; }
+  function _qpbGet(vn){ var S=_qpbStore(); var o=S[String(vn||'').trim()]; return (o && (o.base==='hp'||o.base==='sm')) ? o.base : null; }   // null = 아직 안 정함
+  function _qpbEff(vn){ return _qpbGet(vn)||'hp'; }   // 미정이면 확판가
+  function _qpbCurVn(){ try{ return _qVName(_qCurId)||((_qCart&&_qCart[0]&&_qCart[0].vname)||''); }catch(_e){ return ''; } }
+  // 견적 줄에 기준 적용: 잠금(SMC) 줄만. 원래 확판가는 c.hp 에 보관.
+  function _qpbApplyRow(c, vn){
+    if(!c || !c.pl) return;
+    var base=_qpbEff(vn||c.vname||_qpbCurVn());
+    if(c.hp==null || c.hp==='') { if(!(base==='sm' && c.small!=null && c.small!=='' && c.buy!=null && Number(c.buy)===Number(c.small) && c._hpSet)) c.hp=c.buy; }
+    var hasSm=(c.small!=null && c.small!=='');
+    if(base==='sm' && hasSm){ c.buy=Number(c.small); c._hpSet=true; }
+    else { if(c.hp!=null && c.hp!=='') c.buy=c.hp; }
+  }
+  window.qpbSet = function(vn, base){
+    vn=String(vn||'').trim(); if(!vn) return;
+    var S=_qpbStore();
+    if(base==='hp'||base==='sm') S[vn]={base:base, by:((typeof _authUser!=='undefined'&&_authUser&&_authUser.name)||''), at:Date.now()}; else delete S[vn];
+    saveAll();
+    try{ renderQCart(); }catch(_e){}
+    try{ _qRenderMetaInfo(); }catch(_e){}
+    var ov=document.getElementById('qpbOverlay'); if(ov) ov.style.display='none';
+  };
+  window.qpbChoose = function(auto){
+    var vn=_qpbCurVn(); if(!vn) return;
+    var cur=_qpbGet(vn);
+    var ov=document.getElementById('qpbOverlay');
+    if(!ov){ ov=document.createElement('div'); ov.id='qpbOverlay'; ov.style.cssText='position:fixed;inset:0;z-index:2000130;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px'; ov.addEventListener('click',function(e){ if(e.target===ov) ov.style.display='none'; }); document.body.appendChild(ov); }
+    var nSm=(_qCart||[]).filter(function(c){ return c&&c.pl&&c.small!=null&&c.small!==''; }).length;
+    var nNoSm=(_qCart||[]).filter(function(c){ return c&&c.pl&&(c.small==null||c.small===''); }).length;
+    ov.innerHTML='<div style="width:100%;max-width:560px;background:#fff;border:1px solid #c8d2de;padding:0">'
+      +'<div style="padding:10px 14px;border-bottom:1px solid #c8d2de;background:#f4f6f9;font-weight:700;font-size:13.5px">'+esc(vn)+' — 소물류 구매가 기준'+(auto?' <span style="font-weight:500;color:#6b7280;font-size:12px">(이 업체 첫 견적)</span>':'')+'</div>'
+      +'<div style="padding:12px 14px;font-size:12.5px;color:#374151;line-height:1.6">SMC 소물류(확판/소물 가격이 있는 규격)의 <b>구매가</b>를 어느 가격으로 잡을지 업체별로 정합니다. 나중에 견적번호 옆 배지를 눌러 바꿀 수 있습니다.'
+      +(nSm||nNoSm?('<div style="margin-top:6px;color:#6b7280">지금 목록: 소물가 있는 규격 '+nSm+'줄'+(nNoSm?(' · 확판가만 있는 규격 '+nNoSm+'줄 (소물가 기준이어도 확판가로 계산)'):'')+'</div>'):'')+'</div>'
+      +'<div style="display:flex;gap:10px;padding:0 14px 14px">'
+      +'<button class="qpb-opt'+(cur==='hp'?' on':'')+'" onclick="qpbSet(\''+esc(vn).replace(/'/g,'&#39;')+'\',\'hp\')"><b>확판가 기준</b>구매가 = 확판가(1DR3). 기본값.</button>'
+      +'<button class="qpb-opt sm'+(cur==='sm'?' on':'')+'" onclick="qpbSet(\''+esc(vn).replace(/'/g,'&#39;')+'\',\'sm\')"><b>소물가 기준</b>구매가 = 소물가(LRY). 소물가가 없는 규격은 확판가.</button>'
+      +'</div>'
+      +'<div style="padding:0 14px 12px;display:flex;gap:8px;justify-content:flex-end">'+(cur?'<button class="btn" onclick="qpbSet(\''+esc(vn).replace(/'/g,'&#39;')+'\',\'\')" style="padding:3px 10px;color:#6b7280">설정 지우기</button>':'')+'<button class="btn" onclick="document.getElementById(\'qpbOverlay\').style.display=\'none\'" style="padding:3px 10px">닫기</button></div>'
+      +'</div>';
+    ov.style.display='flex';
+  };
+  function _qpbBadge(){
+    var vn=_qpbCurVn(); if(!vn) return '';
+    var hasLocked=(_qCart||[]).some(function(c){ return c&&c.pl; });
+    var b=_qpbGet(vn);
+    if(!b && !hasLocked) return '';
+    var cls=b||'none', txt=b==='sm'?'소물가 기준':(b==='hp'?'확판가 기준':'기준가 미정');
+    return '<span class="qpb-badge '+cls+'" onclick="qpbChoose()" title="이 업체의 SMC 소물류 구매가 기준 — 눌러서 변경">'+txt+' ▾</span>';
+  }
+  function _qpbAutoAsk(){
+    try{
+      var vn=_qpbCurVn(); if(!vn || _qpbGet(vn) || _qpbAsked[vn]) return;
+      if(!(_qCart||[]).some(function(c){ return c&&c.pl&&c.small!=null&&c.small!==''; })) return;
+      if(typeof _isViewer==='function' && _isViewer()) return;
+      _qpbAsked[vn]=1; qpbChoose(true);
+    }catch(_e){}
+  }
+  // ─── r226: 메모장 맨 위 '내 담당 업체 매출' 카드 ───
+  var _coWarmed=false;
+  function _coBanner(){
+    var me=_coMe(); if(!me) return '';
+    var mine=_coMine(me); if(!mine.length) return '';
+    var years=_coYears();
+    var h='<div class="mm-smc co" onclick="coOpenMine()"><b>내 담당 업체 '+mine.length+'곳</b>';
+    if(_fxLoaded){
+      var s=_coSalesByYear(mine.map(function(o){ return o.vname; }), years); var t0=0,t1=0;
+      mine.forEach(function(o){ t0+=s[o.vname][years[0]]||0; t1+=s[o.vname][years[1]]||0; });
+      h+='<span>'+years[0]+'년 매출 <span class="co-amt">'+_coFmt(t0)+'원</span> · '+years[1]+'년 <span class="co-amt">'+_coFmt(t1)+'원</span></span>';
+    } else { h+='<span style="color:#6b7280">매출 불러오는 중…</span>'; }
+    h+='<a>자세히 →</a></div>';
+    return h;
+  }
+  function _coWarmForMemo(){ if(_coWarmed || !_fbDbUrl || !_coMe()) return; if(!_coMine(_coMe()).length) return; _coWarmed=true; _fxEnsureData().then(function(){ try{ if(document.getElementById('pageMemo') && document.getElementById('pageMemo').classList.contains('active')) renderMemoPage(true); }catch(_e){} }).catch(function(){}); }
   // ─── r225: 담당 업체 (견적 5회 이상 → 자동 편입) + 개인 일정 '내 담당 업체 매출' ───
   var _CO_MIN = 5;   // 같은 회사 견적을 이만큼 저장하면 담당
   function _coMe(){ return (typeof _authUser!=='undefined'&&_authUser&&_authUser.name)?String(_authUser.name).trim():''; }
@@ -8600,14 +8742,70 @@ function reloadState() {
     try{
       await _ensureXlsxLib();
       try{ await _qPersistQuote(); }catch(_pe){ showInfoModal('견적 저장 실패', (_pe&&_pe.message||String(_pe))+'\n\n엑셀은 계속 만들지만, 이 견적은 저장되지 않았습니다.'); }
-      var wb=_qBuildQuoteSheetWb();   // r229: 고객용 견적서(PDF 와 같은 모양 · 수식)
-      var _fn=('견적서 '+(_qQuoteNo||(_qCart[0].vname||'견적'))).replace(/[<>:"/\\|?*]/g,' ').replace(/\s+/g,' ').trim();
-      XLSX.writeFile(wb, _fn+'.xlsx');
+      var wb=_qBuildQuoteXlsxWb();   // r218
+      var vn=(_qCart[0].vname||'견적'); var d=new Date();
+      var ds=d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
+      XLSX.writeFile(wb,'견적목록_'+vn+'_'+ds+'.xlsx');
       if(_qQuoteNo) showInfoModal('자동 저장', '이 견적은 "'+esc(_qQuoteNo)+'" 번호로 자동 저장되었습니다.');
     }catch(e){ showInfoModal('알림', '엑셀 내보내기 실패: '+e.message); }
   };
-  // r229: 고객용 견적서(_qBuildQuoteSheetWb)는 [일반 엑셀] 버튼이 쓴다. 아래 두 개는 PDF 와 같이 내려보내던 r218 잔재로 지금은 쓰지 않는다
-  //       (r228 에서 동시 다운로드 중단). 다시 같이 내려보내려면 이 둘을 PDF 경로에서 호출하면 된다.
+  function _qBuildQuoteXlsxWb(){   // r218: 견적목록 엑셀 워크북 — 일반 엑셀 버튼과 PDF 동시 다운로드가 같이 쓴다 (XLSX 로드 후 호출)
+      var totalBuy=0, totalSell=0, totalQty=0;
+      var _cxC=(typeof _qCols!=='undefined'&&_qCols)?_qCols:[];
+      var _isSynapse=(((_qCart[0]&&_qCart[0].vname)||'').indexOf('시냅스이미징')>=0);
+      var aoa=[['NO','거래처','품목','규격','수량','단위','판매가','금액','예상납기','E가','DC율','구매가','마진율'].concat(_cxC.map(function(x){return x.title;}))];
+      _qCart.forEach(function(c,i){
+        var qty=Number(c.qty)||1; totalQty+=qty;
+        var _hasSpec=(c.spec!=null&&String(c.spec).trim()!=='');   // 규격 없으면 수량칸 빈칸
+        var hasSell=(c.sell!=null&&c.sell!=='');
+        var amt=hasSell?Number(c.sell)*qty:null; if(amt!=null) totalSell+=amt;
+        if(hasSell && c.buy!=null && c.buy!=='') totalBuy+=Number(c.buy)*qty;
+        var dc=_qDcOf(c.e,c.buy); var mg=hasSell?_qMarginOf(c.buy,c.sell):null;
+        var _dtx2=_qDiscText(c.disc);
+        var sellCell = hasSell ? Number(c.sell) : '';     // 단종/변경 문구는 금액 칸에만
+        aoa.push([ i+1, c.vname||'', c.name||'', c.spec||'', (_hasSpec?qty:''), 'EA', sellCell, (amt!=null?amt:_dtx2),
+          c.eta||'', (c.e!=null&&c.e!==''?Number(c.e):''), (dc!=null?dc:''),
+          (c.buy!=null&&c.buy!==''?Number(c.buy):''), (mg!=null?mg:'') ].concat(_cxC.map(function(x){ var _v=(c.cx&&c.cx[x.id]!=null)?c.cx[x.id]:''; if(_isSynapse && String(x.title||'').trim()==='코드' && _v!=='' && _v!=null){ _v='('+_v+')'; } return _v; })));
+      });
+      var marginPct = totalSell>0 ? (1-totalBuy/totalSell) : '';
+      aoa.push(['합계','','','', totalQty, '', '', totalSell, '', '', '', totalBuy, marginPct].concat(_cxC.map(function(){return '';})));
+      var _nego=(_qNego!=null)?Number(_qNego):0;
+      if(_nego){ var _fs=totalSell-_nego; var _fm=(totalBuy>0&&_fs>0)?(1-totalBuy/_fs):''; aoa.push(['NEGO 할인','','','','', '', '', -_nego, '', '', '', '', ''].concat(_cxC.map(function(){return '';}))); aoa.push(['최종 금액','','','','', '', '', _fs, '', '', '', '', _fm].concat(_cxC.map(function(){return '';}))); }
+      if(_qMemo){ aoa.push(['비고 : '+String(_qMemo)]); }
+      aoa.unshift([(_qQuoteNo||'')]);
+      var _footStart=_qCart.length+2;
+      var ws=XLSX.utils.aoa_to_sheet(aoa);
+      var _lastCol=12+_cxC.length;
+      ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:_lastCol}}];
+      if(_qMemo){ ws['!merges'].push({s:{r:aoa.length-1,c:0},e:{r:aoa.length-1,c:_lastCol}}); }   // 비고: 전체 열 병합
+      ws['!cols']=[{wch:11},{wch:16},{wch:18},{wch:22},{wch:7},{wch:6},{wch:12},{wch:13},{wch:18},{wch:11},{wch:8},{wch:11},{wch:8}].concat(_cxC.map(function(){return {wch:14};}));
+      var thin={style:'thin',color:{rgb:'808080'}};
+      var border={top:thin,bottom:thin,left:thin,right:thin};
+      var acct='_-* #,##0_-;-* #,##0_-;_-* "-"_-;_-@_-';
+      var hStyle={font:{name:'맑은 고딕',sz:9,bold:true},alignment:{horizontal:'center',vertical:'center',wrapText:true},fill:{patternType:'solid',fgColor:{rgb:'FFFF00'}},border:border};
+      var ctr={font:{name:'맑은 고딕',sz:9},alignment:{horizontal:'center',vertical:'center'},border:border};
+      var num={font:{name:'맑은 고딕',sz:9},alignment:{horizontal:'center',vertical:'center'},border:border,numFmt:acct};
+      var pct={font:{name:'맑은 고딕',sz:9},alignment:{horizontal:'center',vertical:'center'},border:border,numFmt:'0.0%'};
+      var foot={font:{name:'맑은 고딕',sz:9,bold:true},alignment:{horizontal:'center',vertical:'center'},fill:{patternType:'solid',fgColor:{rgb:'EEF2F8'}},border:border};
+      var footNum={font:{name:'맑은 고딕',sz:9,bold:true},alignment:{horizontal:'center',vertical:'center'},fill:{patternType:'solid',fgColor:{rgb:'EEF2F8'}},border:border,numFmt:acct};
+      var footPct={font:{name:'맑은 고딕',sz:9,bold:true},alignment:{horizontal:'center',vertical:'center'},fill:{patternType:'solid',fgColor:{rgb:'EEF2F8'}},border:border,numFmt:'0.0%'};
+      var titleStyle={font:{name:'맑은 고딕',sz:9,bold:true,color:{rgb:'1B3A6B'}},alignment:{horizontal:'left',vertical:'center'}};
+      var memoStyle={font:{name:'맑은 고딕',sz:9},alignment:{horizontal:'left',vertical:'center',wrapText:true}};   // 비고: 배경 없음
+      var numCols={4:1,6:1,7:1,9:1,11:1}; var pctCols={10:1,12:1};
+      var R=aoa.length, last=R-1, NC=13+_cxC.length;
+      var _memoRow=_qMemo?(R-1):-1;   // 비고는 (있으면) 맨 마지막 행
+      for(var r=0;r<R;r++){ for(var c=0;c<NC;c++){
+        var ref=XLSX.utils.encode_cell({r:r,c:c}); var cl=ws[ref]; if(!cl) continue;
+        if(r===0){ cl.s=titleStyle; }
+        else if(r===1){ cl.s=hStyle; }
+        else if(r===_memoRow){ cl.s=memoStyle; }
+        else if(r>=_footStart){ cl.s = pctCols[c] ? footPct : (numCols[c] ? footNum : foot); }
+        else { cl.s = pctCols[c] ? pct : (numCols[c] ? num : ctr); }
+      }}
+      var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'견적목록');
+      return wb;
+  }
+  // r218: PDF 와 같은 이름(견적서 <번호>.xlsx)으로 엑셀을 이어서 저장. 목록을 비우기 전에 미리 만들어 둔 워크북을 쓴다.
   async function _qPrepQuoteXlsx(){ try{ await _ensureXlsxLib(); return _qBuildQuoteSheetWb(); }catch(_e){ return null; } }   // r223: PDF 와 같은 모양의 고객용 견적서
   function _qSaveQuoteXlsx(wb, fn){ if(!wb) return; setTimeout(function(){ try{ XLSX.writeFile(wb, fn+'.xlsx'); }catch(_e){} }, 600); }
   window.qNegoSet = function(val){ if(!_guardW()) return; var v=String(val||'').replace(/[,\s]/g,''); if(v===''){ _qNego=null; } else { var n=Number(v); _qNego=isNaN(n)?null:n; } _qCartSave(); renderQCart(); };
@@ -8751,7 +8949,8 @@ function reloadState() {
     var totalSell=0, totalBuy=0;
     var rows=_qCart.map(function(c,i){
       // 가격표 SMC 확판/소물 규격 → 이미 담긴 항목에도 확판가·소물가·잠금 강제 반영
-      if(_priceSyncMap){ var _pv=_priceSyncMap[_pKey(c.spec)]; if(_pv&&typeof _pv==='object'&&_pv.locked){ c.e=_pv.e; c.buy=_pv.buy; c.small=_pv.small; c.pl=true; } }
+      if(_priceSyncMap){ var _pv=_priceSyncMap[_pKey(c.spec)]; if(_pv&&typeof _pv==='object'&&_pv.locked){ c.e=_pv.e; c.buy=_pv.buy; c.small=_pv.small; c.pl=true; c.hp=_pv.buy; } }
+      try{ _qpbApplyRow(c); }catch(_e){}   // r226 업체 기준(확판/소물)
       var qty=Number(c.qty)||1;
       var _hasSpec=(c.spec!=null&&String(c.spec).trim()!=='');   // 규격 없으면 수량칸 빈칸
       var qtyDisp=_hasSpec?qty.toLocaleString():'';
@@ -8776,8 +8975,9 @@ function reloadState() {
       var cDc=c.pl
         ? ('<input class="qc-in" value="'+_lmPct(_qDcOf(c.e,c.buy))+'" readonly tabindex="-1" onkeydown="qCartGridKey(event,this)" style="'+_iR+';color:#0d9488;background:#f6f7f9">')
         : ('<input class="qc-in" value="'+_lmPct(_qDcOf(c.e,c.buy))+'" onchange="qCartField('+i+',\'dc\',this.value)" onkeydown="qCartGridKey(event,this)" style="'+_iR+';color:#0d9488">');
+      var _pbSm=(c.pl && _qpbEff(c.vname||_qpbCurVn())==='sm' && c.small!=null && c.small!=='');   // r226
       var cBuy=c.pl
-        ? ('<input class="qc-in" value="'+(c.buy!=null?_qFmt(c.buy):'')+'" readonly tabindex="-1" onkeydown="qCartGridKey(event,this)" style="'+_iR+';background:#f6f7f9">')
+        ? ('<input class="qc-in" value="'+(c.buy!=null?_qFmt(c.buy):'')+'" readonly tabindex="-1" onkeydown="qCartGridKey(event,this)" title="'+(_pbSm?'소물가 기준':'확판가 기준')+'" style="'+_iR+';background:'+(_pbSm?'#f0fdfa;color:#0f766e':'#f6f7f9')+'">')
         : ('<input class="qc-in" value="'+(c.buy!=null?_qFmt(c.buy):'')+'" inputmode="numeric" oninput="_qNumInput(this)" onchange="qCartField('+i+',\'buy\',this.value)" onkeydown="qCartGridKey(event,this)" style="'+_iR+'">');
       var cSmall='<input class="qc-in" value="'+(c.small!=null?_qFmt(c.small):'')+'" readonly tabindex="-1" onkeydown="qCartGridKey(event,this)" style="'+_iR+';background:#f6f7f9">';
       var cMg=_m?('<input class="qc-in" value="'+(c.disc?'':(hasSell?_lmPct(_qMarginOf(c.buy,c.sell)):''))+'" onchange="qCartField('+i+',\'margin\',this.value)" onkeydown="qCartGridKey(event,this)" style="'+_iR+';color:#0d9488">'):(c.disc?'-':(hasSell?_qPct(_qMarginOf(c.buy,c.sell)):'-'));
@@ -8844,6 +9044,7 @@ function reloadState() {
     _qRenderMetaInfo();
     _qFitDiscCells();
     _qFitInputs();
+    try{ _qpbAutoAsk(); }catch(_e){}   // r226
     if(!_qcFocusWanted() && _fp){   // 이동 목표가 없으면 원래 있던 칸으로 복귀
       var _g=_qcGrid(), _row=_g[_fp.r];
       if(_row){ var _t=_row[Math.min(_fp.c, _row.length-1)]; if(_t){ _t.focus(); try{ _t.select(); }catch(_e){} } }
@@ -8883,7 +9084,8 @@ function reloadState() {
     var _vendorSel=!!(_qCurId && (typeof quoteVendors!=='undefined'&&quoteVendors) && quoteVendors.find(function(v){return v.id===_qCurId;}));
     if(!_vendorSel){ box.innerHTML=''; return; }
     box.innerHTML=(_qQuoteNo?'<span class="qq-no" style="font-size:12px;color:#0f172a;font-weight:700;background:#eef2f6;border-left:3px solid #334155;border-radius:0;padding:4px 9px">'+esc(_qQuoteNo)+'</span>':'')
-      +'<span style="font-size:12px;color:#6b7280;font-weight:600">'+_n+'건</span>';
+      +'<span style="font-size:12px;color:#6b7280;font-weight:600">'+_n+'건</span>'
+      +_qpbBadge();   // r226
   }
   window.renderQCart = renderQCart;
   window.qSpecKey = function(e){
@@ -9865,7 +10067,7 @@ function reloadState() {
       row.spec=c.spec;
       row.name=c.name||'';
       row.e   =(c.e!=null&&c.e!=='')?Number(c.e):null;
-      row.buy =(c.buy!=null&&c.buy!=='')?Number(c.buy):null;
+      row.buy =(c.pl&&c.hp!=null&&c.hp!=='')?Number(c.hp):((c.buy!=null&&c.buy!=='')?Number(c.buy):null);   // r226 원장은 확판가
       row.small=(c.small!=null&&c.small!=='')?Number(c.small):null;
       if(c.pl) row.pl=true; else if(row.pl) delete row.pl;
       row.sell=(c.sell!=null&&c.sell!=='')?Number(c.sell):null;
@@ -11244,6 +11446,7 @@ function reloadState() {
       sched_smc_queue: smcQueue,   // r181
       sched_client_pend: clientPend,   // r217
       sched_client_owner: clientOwner,   // r225
+      sched_client_pbase: clientPBase,   // r226
       sched_meetings: meetings,   // r187
       // r157: 매입매출 설정 5종 — 빠져 있어서 복원 시 미배정 매칭 작업이 통째로 사라졌다
       sched_fx_alias: fxAlias, sched_fx_openings: fxOpenings, sched_fx_adjusts: fxAdjusts,
@@ -14096,6 +14299,7 @@ function reloadState() {
     }
     if (page === 'carduse'){ renderCardUsePage(); }   // r224
     if (page === 'memo'){ try{ _cuWarmForMemo(); }catch(_e){} }   // r224: 내 카드 미분류 배너
+    if (page === 'memo'){ try{ _coWarmForMemo(); }catch(_e){} }   // r226: 담당 업체 매출 카드
   }
   document.querySelectorAll('.page-tab[data-page], .sub-tab').forEach(tab => {
     tab.addEventListener('click', () => switchPage(tab.dataset.page));
@@ -14220,6 +14424,7 @@ function reloadState() {
     return r;
   }
   function _mmVisible(l, showDone){
+    if(_mmPastMeetingLine(l)) return false;   // r227 지난 회의 안건은 일정에서 숨김
     if(!l.done) return true;
     if(!showDone) return false;
     if(!l.doneAt) return true;
@@ -14352,6 +14557,9 @@ function reloadState() {
     try{ h+=_mmSmcBanner(); }catch(_e){}   // r181 SMC 확인 대기 배너
     try{ h+=_pendBanner(); }catch(_e){}   // r217 업체 정보 등록 대기 배너
     try{ h+=_cuBanner(); }catch(_e){}   // r224 내 카드 미분류 배너
+    try{ h+=_coBanner(); }catch(_e){}   // r226 내 담당 업체 매출 카드
+    try{ h+=_mtDueBanner(); }catch(_e){}   // r227 업무회의 2주 주기
+    try{ h+=_nbBanner(); }catch(_e){}   // r227 신규 영업 응원
     // ① 공지 — 모든 사람 것
     var notices=(memoLines||[]).filter(function(l){ return l.kind==='notice' && !l.parent && _mmVisible(l, showDone); }).sort(function(a,b){ return (a.createdAt||0)-(b.createdAt||0); });
     if(notices.length){
@@ -14823,8 +15031,18 @@ function reloadState() {
     var list=(meetings||[]).filter(function(m){ if(plf && m.place!==plf) return false; if(q){ var all=[m.title,m.room].concat((m.agenda||[]).map(function(a){ return (a.title||'')+' '+(a.text||''); })).concat([].concat.apply([], (m.reports||[]).map(function(r){ return (r.items||[]).map(function(i){ return i.text||''; }); }))).join(' '); if(_qNorm(all).indexOf(q)<0) return false; } return true; })
       .sort(function(a,b){ return (b.date||'')<(a.date||'')?-1:((b.date||'')>(a.date||'')?1:(b.createdAt||0)-(a.createdAt||0)); });
     if(cnt) cnt.textContent = list.length ? (list.length+'건') : '';
-    if(!list.length){ host.innerHTML='<div class="mt-empty">'+(q||plf?'해당하는 회의록이 없습니다.':'아직 회의록이 없습니다. [+ 새 회의록] 으로 시작하세요.')+'</div>'; return; }
-    var h='<div class="mt-list"><table><thead><tr><th>No.</th><th>일시</th><th>장소</th><th>회의명</th><th>작성자</th><th>참석자</th><th>진행</th></tr></thead><tbody>';
+    var _dueH=_mtDueHtml();   // r227 회의 필요 안내
+    if(!list.length){ host.innerHTML=_dueH+'<div class="mt-empty">'+(q||plf?'해당하는 회의록이 없습니다.':'아직 회의록이 없습니다. [+ 새 회의록] 으로 시작하세요.')+'</div>'; return; }
+    // r227: 지난 회의(날짜 지난 것)는 접어 두고 [지난 회의 N건 보기]로 펼친다 (검색·장소 필터 중에는 전부)
+    var _pastTg='';
+    if(!q && !plf){
+      var _tdy=_mmToday(), _allL=list, _upL=_allL.filter(function(m){ return String(m.date||'')>=_tdy; }), _pastN=_allL.length-_upL.length;
+      if(_mtShowPast){ if(_pastN) _pastTg='<div class="mt-past-tg"><a onclick="mtTogglePast()">지난 회의 접기</a></div>'; }
+      else { list=_upL; if(_pastN) _pastTg='<div class="mt-past-tg"><a onclick="mtTogglePast()">지난 회의 '+_pastN+'건 보기</a></div>'; }
+      if(cnt) cnt.textContent = list.length ? (list.length+'건') : '';
+      if(!list.length){ host.innerHTML=_dueH+_pastTg+'<div class="mt-empty">예정된 회의가 없습니다. [+ 새 회의록] 으로 다음 회의를 잡아 주세요.</div>'; return; }
+    }
+    var h=_dueH+_pastTg+'<div class="mt-list"><table><thead><tr><th>No.</th><th>일시</th><th>장소</th><th>회의명</th><th>작성자</th><th>참석자</th><th>진행</th></tr></thead><tbody>';
     list.forEach(function(m, i){ var p=_mtProg(m);
       h+='<tr class="mt-row" onclick="mtOpen(\''+m.id+'\')"><td>'+(list.length-i)+'</td><td>'+_mtEsc(_mtFmtD(m.date))+' '+_mtEsc(m.time||'')+'</td><td>'+_mtEsc(m.place||'')+'</td><td class="mt-t">'+_mtEsc(m.title||'')+(m.status==='final'?' <span class="mt-badge fin">확정</span>':' <span class="mt-badge draft">작성중</span>')+'</td><td>'+_mtEsc(m.author||'')+'</td><td>'+_mtEsc((m.attendees||[]).join(', '))+'</td><td><span class="mt-prog'+(p.t&&p.d===p.t?' all':'')+'">'+(p.t?(p.d+' / '+p.t):'-')+'</span></td></tr>';
     });
@@ -15127,7 +15345,7 @@ function reloadState() {
       if(!mineS) return;
       var sd=s.date, ed=s.endDate||s.date; if(!(sd<=dStr && dStr<=ed)) return;
       var k = s.category==='미팅'?'k-meeting':(s.category==='납품'?'k-delivery':'k-etc');
-      out.push({ cls:k+(s.done?' done':''), text:(s.time&&s.time!=='종일'?(s.time+' '):'')+(s.bizName?(s.bizName+' · '):'')+(s.title||''), ts:(s.time||'') });
+      out.push({ cls:k+(s.done?' done':''), text:(s.done?'✓ ':'')+(s.time&&s.time!=='종일'?(s.time+' '):'')+(s.bizName?(s.bizName+' · '):'')+(s.title||''), ts:(s.time||'') });   // r227 ✓
     });
     (projectsList||[]).forEach(function(p){
       if(!(p.memberId===m.id || (p.authorName && p.authorName===m.name))) return;   // r185
@@ -15234,15 +15452,16 @@ function reloadState() {
     if(!list.length){ h+='<div class="smc-empty">'+(_smcFilter==='wait'?'확인 대기 중인 품목이 없습니다. 견적을 저장할 때 가격표에 없는 규격에 E가를 넣으면 여기에 모입니다.':'해당하는 항목이 없습니다.')+'</div>'; }
     else {
       var isWait=(_smcFilter==='wait');
-      h+='<table><thead><tr><th>No.</th><th>규격</th><th>품목명</th><th>E가</th><th>확판가</th><th>소물가</th><th>거래처</th><th>작성자</th><th>날짜</th><th>견적번호</th><th>'+(isWait?'처리':'상태')+'</th></tr></thead><tbody>';
+      h+='<table><thead><tr><th>No.</th><th>규격</th><th>품목명</th><th>E가</th><th>견적가</th><th>확판가</th><th>소물가</th><th>거래처</th><th>작성자</th><th>날짜</th><th>견적번호</th><th>'+(isWait?'처리':'상태')+'</th></tr></thead><tbody>';
       list.forEach(function(q,ix){
         h+='<tr data-id="'+q.id+'"><td>'+(ix+1)+'</td><td><b>'+esc(q.spec)+'</b> <button class="smc-btn" title="규격 복사" onclick="smcCopy(\''+q.id+'\')" style="padding:1px 6px">복사</button></td><td>'+esc(q.name||'')+'</td>';
         if(isWait){
           h+='<td><input class="smc-in" data-f="e" value="'+(q.e!=null?q.e:'')+'"></td>'
-            +'<td><input class="smc-in" data-f="hp" value="" placeholder="'+(q.buy!=null?('견적 '+_qFmt(q.buy)):'')+'" title="SMC 사이트에서 확인한 확판가 (회색 값은 견적에 넣었던 구매가 — 참고용)"></td>'   // r182
+            +'<td style="text-align:right;color:#6b7280" title="견적에 넣었던 구매가 (참고용)">'+(q.buy!=null?_qFmt(q.buy):'')+'</td>'   // r226 견적가
+            +'<td><input class="smc-in" data-f="hp" value="" title="SMC 사이트에서 확인한 확판가"></td>'   // r182 → r226 안내값 제거
             +'<td><input class="smc-in" data-f="sm" value="" title="SMC 사이트에서 확인한 소물가"></td>';
         } else {
-          h+='<td style="text-align:right">'+_qFmt(q.okE!=null?q.okE:q.e)+'</td><td style="text-align:right">'+_qFmt(q.okHp)+'</td><td style="text-align:right">'+_qFmt(q.okSm)+'</td>';
+          h+='<td style="text-align:right">'+_qFmt(q.okE!=null?q.okE:q.e)+'</td><td style="text-align:right;color:#6b7280">'+_qFmt(q.buy)+'</td><td style="text-align:right">'+_qFmt(q.okHp)+'</td><td style="text-align:right">'+_qFmt(q.okSm)+'</td>';
         }
         h+='<td>'+esc(q.vname||'')+'</td><td>'+esc(q.by||'')+'</td><td>'+_smcFmtD(q.at)+'</td><td>'+esc(q.quoteNo||'')+'</td>';
         if(isWait) h+='<td><button class="smc-btn ok" onclick="smcRegister(\''+q.id+'\')">등록</button><button class="smc-btn" onclick="smcSkip(\''+q.id+'\')">제외</button></td>';
@@ -20030,8 +20249,7 @@ function reloadState() {
         + inner + '</div>';
     };
     body.innerHTML =
-      '<div id="fxUpStat"></div>'   // r230: 적재 현황 (자료가 로드된 뒤 채움)
-      + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">'
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">'
       + _upCard('홈택스 세금계산서',
                 '홈택스 조회 목록 엑셀 — 매출/매입·사업장 자동 판별 · 여러 파일 가능 · 재업로드 안전',
                 _lblBtn('fxImportHometax','.xls,.xlsx',true))
@@ -20053,7 +20271,7 @@ function reloadState() {
       + '<div id="fxUnasg" style="margin-top:14px"></div>';
     _fxEnsureData().then(function(){
       if(_fxTab!=='up') return;
-      _fxMetaRefresh();   // r230: 안에서 _fxUpStat() 도 그린다
+      _fxMetaRefresh();
       _fxRenderUnasg();
     });
   }
@@ -20467,64 +20685,9 @@ function reloadState() {
     var out=document.getElementById('fxUpResult');
     if(out) out.innerHTML='<div style="background:#fff;border:1px solid #d6deea;padding:14px 16px;font-size:12.5px;color:#374151;line-height:1.8">'+html+'</div>';
   }
-  // r230→r231: 자료 업로드 맨 위 '적재 현황' — 원천별 × 사업장별 마지막 거래일 (칩 세 줄, 최소 높이)
-  function _fxUpStat(){
-    var host=document.getElementById('fxUpStat'); if(!host) return;
-    var BZ=['서울','화성'], rows=[], idx={};
-    function slot(key, label, grp){
-      if(!idx[key]){ idx[key]={key:key, label:label, grp:grp, c:{'서울':{d:'',n:0}, '화성':{d:'',n:0}}}; rows.push(idx[key]); }
-      return idx[key];
-    }
-    function put(key, label, grp, biz, date){
-      if(BZ.indexOf(biz)<0) return;
-      var s=slot(key, label, grp).c[biz];
-      s.n++; if(date && date>s.d) s.d=date;
-    }
-    slot('1A','매출','계산서'); slot('1B','매입','계산서');
-    (fxSalesInv||[]).forEach(function(e){ put('1A','매출','계산서', e.biz, e.date); });
-    (fxPurchInv||[]).forEach(function(e){ put('1B','매입','계산서', e.biz, e.date); });
-    (fxDeposits||[]).forEach(function(e){
-      var isNote=(e.kind==='note');
-      var nm=e.bank||(isNote?'어음':'기타');
-      put((isNote?'3':'2')+nm, nm, isNote?'어음':'입금', e.biz, e.date);
-    });
-    rows.sort(function(a,b){ return a.key<b.key?-1:(a.key>b.key?1:0); });
-    var today=new Date(); today.setHours(12,0,0,0);
-    function agoOf(d){ return Math.round((today-new Date(d+'T12:00:00'))/86400000); }
-    function shortD(d){ return String(d||'').replace(/-/g,'.'); }   // r232: 0000.00.00 (년.월.일)
-    function part(r, biz){
-      var s=r.c[biz];
-      if(!s.d) return '';
-      var ago=agoOf(s.d), old=(ago>45);
-      return '<span title="'+esc(r.label)+' · '+biz+' — '+shortD(s.d)+' · '+(ago<=0?'오늘':(ago+'일 전'))+' · '+_fxFmt(s.n)+'건" style="margin-left:6px;white-space:nowrap">'
-        + '<span style="color:#9ca3af">'+biz.slice(0,2)+'</span> '
-        + '<span style="color:'+(old?'#dc2626':'#14305c')+';font-weight:'+(old?'700':'600')+'">'+shortD(s.d)+'</span>'
-        + '</span>';
-    }
-    function chip(r){
-      var p=part(r,'서울')+part(r,'화성');
-      if(!p) return '';
-      return '<span style="display:inline-flex;align-items:baseline;border:1px solid #e3e9f0;background:#fff;padding:2px 8px;margin:0 4px 4px 0;font-size:11.5px;line-height:1.5">'
-        + '<b style="color:#14305c">'+esc(r.label)+'</b>'+p+'</span>';
-    }
-    var GRP=['계산서','입금','어음'], line='';
-    GRP.forEach(function(g){
-      var html=rows.filter(function(r){ return r.grp===g; }).map(chip).join('');
-      if(!html) return;
-      line += '<div style="display:flex;align-items:flex-start;gap:6px;margin-top:3px">'
-        + '<span style="flex:0 0 42px;font-size:11px;color:#8a94a6;padding-top:4px">'+g+'</span>'
-        + '<span style="flex:1;min-width:0">'+html+'</span></div>';
-    });
-    host.innerHTML =
-      '<div style="border:1px solid #d6deea;background:#fbfcfe;padding:7px 10px 4px;margin-bottom:10px">'
-      + '<div style="font-size:11px;color:#8a94a6">적재 현황 · 자료가 들어 있는 <b style="color:#14305c">마지막 거래일</b> — 다음 날짜부터 올리면 됩니다 (겹쳐도 중복은 자동 제외)</div>'
-      + line
-      + '</div>';
-  }
   function _fxMetaRefresh(){
     var meta=document.getElementById('fxMeta');
     if(meta) meta.textContent='매출 '+fxSalesInv.length+'건 · 매입 '+fxPurchInv.length+'건 · 입금 '+fxDeposits.length+'건';
-    try{ _fxUpStat(); }catch(_e){}   // r230: 업로드가 끝나면 적재 현황도 같이 갱신
   }
   // ── 홈택스 세금계산서 목록 (매출/매입·사업장 자동 판별) ──
   window.fxImportHometax = async function(inp){
