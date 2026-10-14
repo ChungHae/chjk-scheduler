@@ -76,7 +76,14 @@
   .cat .btns{ display:flex; flex-wrap:wrap; gap:6px; }
   .cat a{ display:inline-block; padding:7px 10px; border:1px solid var(--navy); color:var(--navy); text-decoration:none; font-size:13px; font-weight:600; background:#fff; }
   .cat a.g{ border-color:var(--line); color:var(--mute); font-weight:500; }
-  .cat img{ display:block; max-width:100%; max-height:180px; border:1px solid var(--line); margin-bottom:8px; background:#fff; }
+  .cat img{ display:block; width:100%; max-width:100%; border:1px solid var(--line); margin-bottom:8px; background:#fff; cursor:zoom-in; }
+  #zoomOv{ position:fixed; inset:0; z-index:9000; background:#111; display:none; flex-direction:column; }
+  #zoomOv .zb{ display:flex; align-items:center; gap:10px; padding:10px 12px; background:#1B3A6B; color:#fff; font-size:13px; }
+  #zoomOv .zb a, #zoomOv .zb button{ color:#fff; background:rgba(255,255,255,.15); border:0; border-radius:6px; padding:6px 10px; font-size:13px; text-decoration:none; font-family:inherit; }
+  #zoomOv .zb button{ margin-left:auto; }
+  #zoomOv .zs{ flex:1; overflow:auto; -webkit-overflow-scrolling:touch; touch-action:pan-x pan-y pinch-zoom; }
+  #zoomOv .zs img{ display:block; width:100%; min-width:100%; background:#fff; }
+  #zoomOv .zs img.big{ width:auto; max-width:none; min-width:200%; }
   .cat .wait{ font-size:12px; color:#9ca3af; }
 </style>
 </head>
@@ -306,9 +313,14 @@
       if(!m){ el.innerHTML='<span class="wait">이 형번의 도면 자료는 없음 (시리즈 PDF 참고)</span>'; return; }
       var abs=function(u){ return /^https?:\/\//.test(u)?u:(CV_STORE+u); };
       var ab=function(u,label){ return u?'<a href="'+esc(abs(u))+'" target="_blank" rel="noopener">'+label+'</a>':''; };
-      el.innerHTML=(m.thumb?'<img src="'+esc(abs(m.thumb))+'" alt="" loading="lazy">':'')+'<div class="btns" style="margin-bottom:6px">'+ab(m.pdf,'제품 PDF')+ab(m.d2,'2D 도면')+ab(m.d3,'3D')+'</div>'+(m.exact?'':'<span class="wait">※ 비슷한 형번의 자료</span>');
+      el.innerHTML=(m.thumb?'<img src="'+esc(abs(m.thumb))+'" alt="" loading="lazy" onclick="zoomOpen(this.src)"><div class="wait" style="margin:-4px 0 6px">도면을 누르면 크게 볼 수 있습니다</div>':'')+'<div class="btns" style="margin-bottom:6px">'+ab(m.pdf,'제품 PDF')+ab(m.d2,'2D 도면')+ab(m.d3,'3D')+'</div>'+(m.exact?'':'<span class="wait">※ 비슷한 형번의 자료</span>');
     });
   }
+  // ── 도면 확대 보기 ──
+  window.zoomOpen=function(src){ var ov=$('zoomOv'); if(!ov){ ov=document.createElement('div'); ov.id='zoomOv'; ov.innerHTML='<div class="zb"><span>도면</span><a id="zoomRaw" href="#" target="_blank" rel="noopener">원본 열기</a><button type="button" onclick="zoomBig()">확대 ×2</button><button type="button" onclick="zoomClose()">닫기</button></div><div class="zs"><img id="zoomImg" alt=""></div>'; document.body.appendChild(ov); }
+    $('zoomImg').src=src; $('zoomImg').className=''; $('zoomRaw').href=src; ov.style.display='flex'; document.body.style.overflow='hidden'; };
+  window.zoomBig=function(){ var im=$('zoomImg'); im.classList.toggle('big'); };
+  window.zoomClose=function(){ var ov=$('zoomOv'); if(ov) ov.style.display='none'; document.body.style.overflow=''; };
   // ── 최근 조회 ──
   var recent=[]; try{ recent=JSON.parse(localStorage.getItem('m_recent')||'[]'); }catch(e){ recent=[]; }
   function addRecent(sp){ recent=[sp].concat(recent.filter(function(x){ return x!==sp; })).slice(0,12); try{ localStorage.setItem('m_recent',JSON.stringify(recent)); }catch(e){} renderRecent(); }
