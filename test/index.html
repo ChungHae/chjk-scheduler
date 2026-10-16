@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r236 2026-10-16 -->
+<!-- test build r237 2026-10-16 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -21182,6 +21182,9 @@ function reloadState() {
     var out=document.getElementById('fxUpResult');
     if(out) out.innerHTML='<div style="background:#fff;border:1px solid #d6deea;padding:14px 16px;font-size:12.5px;color:#374151;line-height:1.8">'+html+'</div>';
   }
+  // r237: 적재 현황에서 숨길 통장 (자료·수금 계산에는 그대로 쓰인다)
+  //   iM뱅크(대구) = 2022-12-25 로 거래 종료 — 사용자 2026-10-16 "일단 숨김"
+  var _FX_UPHIDE = { 'iM': 1 };
   // r230→r231: 자료 업로드 맨 위 '적재 현황' — 원천별 × 사업장별 마지막 거래일 (칩 세 줄, 최소 높이)
   function _fxUpStat(){
     var host=document.getElementById('fxUpStat'); if(!host) return;
@@ -21201,7 +21204,10 @@ function reloadState() {
     (fxDeposits||[]).forEach(function(e){
       var isNote=(e.kind==='note');
       var nm=e.bank||(isNote?'어음':'기타');
-      put((isNote?'3':'2')+nm, nm, isNote?'어음':'입금', e.biz, e.date);
+      if(_FX_UPHIDE[nm]) return;                                  // r237: 안 쓰는 통장은 숨김
+      // r237: 사업장은 '실제 통장'(obiz) 기준. [사업장 이동 배정] 으로 옮긴 입금이
+      //  없는 통장을 있는 것처럼 보이게 하던 문제(화성 기업은행 2건).
+      put((isNote?'3':'2')+nm, nm, isNote?'어음':'입금', (e.obiz||e.biz), e.date);
     });
     rows.sort(function(a,b){ return a.key<b.key?-1:(a.key>b.key?1:0); });
     var today=new Date(); today.setHours(12,0,0,0);
