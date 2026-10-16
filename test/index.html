@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r235 2026-10-14 -->
+<!-- test build r236 2026-10-16 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -3785,7 +3785,9 @@
   let projectsList = load('sched_projects') ?? [];
   let memoLines = load('sched_memos') ?? [];        // r179 메모장 줄 [{id,owner,text,parent,kind,vendor,to,name,phone,when,date,createdAt,done,doneAt,feedback,card,linked}]
   let memoCards = load('sched_memo_cards') ?? {};   // r179 명함 사진 {cardId: dataURL}
-  let meetings = load('sched_meetings') ?? [];     // r187 회의록 [{id,date,time,place,room,title,author,attendees,agenda:[{id,title,text,done,doneAt,doneBy}],reports:[{name,items:[...]}]}]
+  let meetings = load('sched_meetings') ?? [];
+  let _mtDelMap = load('sched_meetings_del') ?? {};   // r236 회의록 묘비(삭제 기록)
+  let _mtDirty = false;   // r236 아직 서버에 안 올린 회의록 변경이 있음     // r187 회의록 [{id,date,time,place,room,title,author,attendees,agenda:[{id,title,text,done,doneAt,doneBy}],reports:[{name,items:[...]}]}]
   let clientPBase = load('sched_client_pbase') ?? {};   // r226 업체별 소물류 기준가 { 업체명:{base:'hp'|'sm',by,at} }
   let clientOwner = load('sched_client_owner') ?? {};   // r225 담당 업체 { m:{업체:{who,by,at}} 수동, a:{업체:{who,at}} 자동 기록 }
   let clientPend = load('sched_client_pend') ?? [];   // r217 업체 정보 등록 대기 [{id,name,by,at,quoteNo,status:wait|ok|skip,okBy,okAt}]
@@ -3937,6 +3939,7 @@
     save('sched_client_owner', clientOwner);   // r225
     save('sched_client_pbase', clientPBase);   // r226
     save('sched_meetings', meetings);   // r187
+    save('sched_meetings_del', _mtDelMap);   // r236
     localStorage.setItem('sched_local_ts', Date.now().toString()); // 로컬 변경 시각 기록
     debouncedFbSave();
   }
@@ -4777,6 +4780,8 @@
   async function doFbSave() {
     if (!_fbReady || !_fbLoadedOnce) return;   // 최초 로드 전에는 저장 금지
     _fbSkipNext = true;
+    const _mtWasDirty = _mtDirty;   // r236
+    if (_mtWasDirty) { try { await _mtMergeFromServer(); } catch(_me) {} }   // r236: 올리기 전에 서버 회의록과 항목 단위로 합친다
     const ts = Date.now();
     try {
       await _syncPost({
@@ -4807,6 +4812,7 @@
         sched_client_owner: clientOwner,   // r225
         sched_client_pbase: clientPBase,   // r226
         sched_meetings: meetings,   // r187
+        sched_meetings_del: _mtDelMap,   // r236
         sched_comments: schedComments,
         sched_categories: schedCategories,
         sched_files: filesList,
@@ -4829,6 +4835,7 @@
         _updatedAt: ts,
       });
       _fbLastUpdatedAt = ts;
+      if (_mtWasDirty) { _mtDirty = false; _mtScheduleVerify(); }   // r236
     } catch(e) {
       console.error('Sync save error:', e);
       setSyncStatus('error');
@@ -4881,8 +4888,8 @@
       const d = await _syncGet();
       if (!d || (d._updatedAt || 0) <= _fbLastUpdatedAt) return;
       _fbLastUpdatedAt = d._updatedAt || 0;
-      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_client_pend','sched_client_owner','sched_client_pbase','sched_meetings','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
-      KEYS.forEach(k => { if (d[k] !== undefined) save(k, d[k]); });
+      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_client_pend','sched_client_owner','sched_client_pbase','sched_meetings','sched_meetings_del','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
+      KEYS.forEach(k => { if (d[k] === undefined) return; if (k === 'sched_meetings') { save(k, _mtDirty ? _mtMerge(meetings, d[k], d.sched_meetings_del) : _mtPull(d[k], d.sched_meetings_del)); return; } if (k === 'sched_meetings_del') { save(k, Object.assign({}, d[k] || {}, _mtDelMap || {})); return; } save(k, d[k]); });   // r236: 안 올린 회의록 변경이 있으면 덮지 않고 합치고, 내 묘비는 지키며 받는다
       // ── 바로가기(sched_links) 보호 ──
       // 키가 없을 때: sched_links_ts가 있으면 신버전 클라이언트의 정상 저장(목록이 비어서
       // Firebase가 키를 생략한 것) → 빈 목록 반영. 둘 다 없으면 구버전 클라이언트가
@@ -4984,7 +4991,7 @@
       const d = await _syncGet();
       const fbTs    = (d && d._updatedAt) || 0;
       const localTs = parseInt(localStorage.getItem('sched_local_ts') || '0');
-      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_client_pend','sched_client_owner','sched_client_pbase','sched_meetings','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
+      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_client_pend','sched_client_owner','sched_client_pbase','sched_meetings','sched_meetings_del','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
 
       // ── 올바른 팀원 ID 목록 (하드코딩) ──────────────────────
       const _VALID_MEMBER_IDS = defaultMembers().map(m => m.id);
@@ -5112,6 +5119,7 @@ function reloadState() {
     clientOwner      = load('sched_client_owner') ?? {};   // r225
     clientPBase      = load('sched_client_pbase') ?? {};   // r226
     meetings         = load('sched_meetings') ?? [];   // r187
+    _mtDelMap        = load('sched_meetings_del') ?? {};   // r236
     clientInfo       = _ciMigrate(_cliDecMap(load('sched_client_info') ?? {}));   // r161
     _ciVer++;
     projMemos        = _pmNormList(load('sched_proj_memos') ?? []);
@@ -15113,7 +15121,79 @@ function reloadState() {
   // ─── r187: 회의록 ───────────────────────────────────────
   var _mtOpen=null;   // 열려 있는 회의록 id (null=목차)
   function _mtMe(){ return (typeof _authUser!=='undefined'&&_authUser&&_authUser.name)?_authUser.name:(typeof _mmMe==='function'?_mmMe():''); }
-  function _mtSave(){ save('sched_meetings', meetings); localStorage.setItem('sched_local_ts', Date.now().toString()); try{ debouncedFbSave(); }catch(_e){} }
+  // ─── r236: 회의록 동시 작성 병합 ───
+  function _mtArr(x){ if(Array.isArray(x)) return x; if(x&&typeof x==='object') return Object.keys(x).map(function(k){ return x[k]; }); return []; }
+  function _mtTs(x){ return Number((x&&(x.upd||x.at))||0); }
+  function _mtMergeItems(a, b, dmap){
+    var map={}, ord=[];
+    _mtArr(a).concat(_mtArr(b)).forEach(function(it){ if(!it||!it.id) return; if(dmap&&dmap[it.id]) return; var ex=map[it.id]; if(!ex){ map[it.id]=it; ord.push(it.id); } else if(_mtTs(it)>_mtTs(ex)) map[it.id]=it; });
+    return ord.map(function(i){ return map[i]; });
+  }
+  function _mtMergeMeeting(l, s){
+    var dm=Object.assign({}, s.del||{}, l.del||{});
+    var base=(Number(l.updatedAt||0)>=Number(s.updatedAt||0))?l:s, other=(base===l)?s:l;
+    var out=Object.assign({}, other, base);
+    out.del=dm;
+    out.agenda=_mtMergeItems(l.agenda, s.agenda, dm);
+    var names=[], rmap={};
+    _mtArr(l.reports).concat(_mtArr(s.reports)).forEach(function(r){ if(!r||!r.name) return; if(!rmap[r.name]){ rmap[r.name]={ name:r.name, items:[] }; names.push(r.name); } rmap[r.name].items=_mtMergeItems(rmap[r.name].items, r.items, dm); });
+    out.reports=names.map(function(n){ return rmap[n]; });
+    var att=[]; _mtArr(l.attendees).concat(_mtArr(s.attendees)).forEach(function(n){ if(n&&att.indexOf(n)<0) att.push(n); }); out.attendees=att;
+    return out;
+  }
+  // local(내 사본) + server(서버 사본) → 합친 목록. 묘비(서버·로컬)는 합쳐서 _mtDelMap 에 둔다.
+  function _mtMerge(local, server, serverDel){
+    var del=Object.assign({}, (serverDel&&typeof serverDel==='object')?serverDel:{}, _mtDelMap||{}); _mtDelMap=del;
+    var byId={}, order=[];
+    _mtArr(server).concat(_mtArr(local)).forEach(function(m){ if(!m||!m.id||del[m.id]) return; if(!byId[m.id]){ byId[m.id]=m; order.push(m.id); } else byId[m.id]=_mtMergeMeeting(m, byId[m.id]); });
+    return order.map(function(i){ return byId[i]; });
+  }
+  function _mtPull(server, serverDel){   // 서버 사본을 받을 때: 내가 지운 것(묘비)이 서버에 되살아나 있으면 걸러내고 다시 올린다
+    var del=Object.assign({}, (serverDel&&typeof serverDel==='object')?serverDel:{}, _mtDelMap||{}); _mtDelMap=del;
+    var loc={}; _mtArr(meetings).forEach(function(m){ if(m&&m.id) loc[m.id]=m; });
+    var changed=false, out=[];
+    _mtArr(server).forEach(function(m){
+      if(!m||!m.id) return;
+      if(del[m.id]){ changed=true; return; }
+      var l=loc[m.id]; var ld=(l&&l.del)||{}; var sd=m.del||{}; var nd=Object.assign({}, sd, ld);
+      if(Object.keys(nd).length){
+        var f=function(it){ if(it&&it.id&&nd[it.id]){ changed=true; return false; } return true; };
+        if(m.agenda) m.agenda=_mtArr(m.agenda).filter(f);
+        if(m.reports) m.reports=_mtArr(m.reports).map(function(r){ if(r&&r.items) r.items=_mtArr(r.items).filter(f); return r; });
+        if(Object.keys(ld).some(function(k){ return !sd[k]; })) changed=true;
+        m.del=nd;
+      }
+      out.push(m);
+    });
+    if(changed){ _mtDirty=true; debouncedFbSave(); }
+    return out;
+  }
+  async function _mtMergeFromServer(){
+    if(!_fbDbUrl) return false;
+    var r=await _fbFetch(_fbDbUrl+'/'+_FB_PATH+'/sched_meetings.json'); if(!r||!r.ok) return false;
+    var s=await r.json();
+    var r2=await _fbFetch(_fbDbUrl+'/'+_FB_PATH+'/sched_meetings_del.json'); var sd=(r2&&r2.ok)?(await r2.json()):null;
+    meetings=_mtMerge(meetings, s, sd);
+    save('sched_meetings', meetings); save('sched_meetings_del', _mtDelMap);
+    return true;
+  }
+  function _mtIdSet(list){ var o={}; _mtArr(list).forEach(function(m){ if(!m||!m.id) return; o['m:'+m.id]=1; _mtArr(m.agenda).forEach(function(a){ if(a&&a.id) o[a.id]=1; }); _mtArr(m.reports).forEach(function(r){ _mtArr(r&&r.items).forEach(function(i){ if(i&&i.id) o[i.id]=1; }); }); }); return o; }
+  var _mtVerifyTimer=null;
+  function _mtScheduleVerify(){ if(_mtVerifyTimer) clearTimeout(_mtVerifyTimer); _mtVerifyTimer=setTimeout(_mtVerify, 2500); }
+  async function _mtVerify(){   // 같은 순간 두 사람이 올렸으면 한쪽이 덮인다 → 서버에 내 항목이 다 있는지 확인하고 없으면 다시 합쳐 올린다
+    _mtVerifyTimer=null;
+    try{
+      if(!_fbDbUrl || !_fbReady) return;
+      var r=await _fbFetch(_fbDbUrl+'/'+_FB_PATH+'/sched_meetings.json'); if(!r||!r.ok) return;
+      var s=await r.json(); var have=_mtIdSet(s), mine=_mtIdSet(meetings), miss=0;
+      Object.keys(mine).forEach(function(k){ if(!have[k] && !_mtDelMap[k.replace(/^m:/,'')]) miss++; });
+      // 내가 지운 것이 서버에 되살아나 있으면(상대가 묘비 없는 사본을 같은 순간 올림) 그것도 다시 합친다
+      Object.keys(_mtDelMap||{}).forEach(function(mid){ if(have['m:'+mid]) miss++; });
+      _mtArr(meetings).forEach(function(m){ Object.keys((m&&m.del)||{}).forEach(function(iid){ if(have[iid]) miss++; }); });
+      if(miss){ _mtDirty=true; debouncedFbSave(); }
+    }catch(_e){}
+  }
+  function _mtSave(){ _mtDirty=true; save('sched_meetings_del', _mtDelMap); save('sched_meetings', meetings); localStorage.setItem('sched_local_ts', Date.now().toString()); try{ debouncedFbSave(); }catch(_e){} }
   function _mtFind(id){ return (meetings||[]).find(function(m){ return m.id===id; }); }
   function _mtId(p){ return p+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
   function _mtEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -15184,7 +15264,7 @@ function reloadState() {
     var m=_mtFind(id); if(!m) return; if(typeof _guardW==='function' && !_guardW()) return;
     var me=_mtMe(); var admin=(typeof _isAdmin==='function')?_isAdmin():false;
     if(!(admin || m.createdBy===me || m.author===me)){ showInfoModal('회의록', '작성자 또는 관리자만 삭제할 수 있습니다.'); return; }
-    showConfirmModal('회의록 삭제', _mtEsc(_mtFmtD(m.date))+' '+_mtEsc(m.title)+' 회의록을 삭제할까요?', function(){ meetings=meetings.filter(function(x){ return x.id!==id; }); _mtSave(); _mtOpen=null; renderMeetingPage(true); }, '삭제', '#dc2626');
+    showConfirmModal('회의록 삭제', _mtEsc(_mtFmtD(m.date))+' '+_mtEsc(m.title)+' 회의록을 삭제할까요?', function(){ _mtDelMap[id]=Date.now(); meetings=meetings.filter(function(x){ return x.id!==id; }); _mtSave(); _mtOpen=null; renderMeetingPage(true); }, '삭제', '#dc2626');
   };
   window.mtField = function(id, k, v){
     var m=_mtFind(id); if(!m) return; if(typeof _guardW==='function' && !_guardW()) return; if(_mtLocked(m)) return;   // r191
@@ -15294,6 +15374,7 @@ function reloadState() {
   window.mtToggle = function(id, iid){
     var m=_mtFind(id); if(!m) return; var it=_mtItem(m, iid); if(!it) return; if(typeof _guardW==='function' && !_guardW()) return;
     if(it.done){ it.done=false; it.doneAt=0; it.doneBy=''; } else { it.done=true; it.doneAt=Date.now(); it.doneBy=_mtMe(); }
+    it.upd=Date.now();   // r236
     try{ _mtSyncToMemo(it); }catch(_e){}   // r189
     m.updatedAt=Date.now(); _mtSave(); renderMeetingPage(true);
   };
@@ -15303,12 +15384,14 @@ function reloadState() {
     showPromptModal('항목 수정', (it.title!=null?'제목: 내용 형식으로 적을 수 있습니다.':''), cur, function(v){
       v=String(v||'').trim(); if(!v) return;
       if(it.title!=null){ var p=_mtParseAgenda(v); it.title=p.title; it.text=p.text; } else it.text=v;
+      it.upd=Date.now();   // r236
       m.updatedAt=Date.now(); _mtSave(); renderMeetingPage(true);
     }, '저장');
   };
   window.mtDelItem = function(id, iid){
     var m=_mtFind(id); if(!m) return; if(typeof _guardW==='function' && !_guardW()) return; if(_mtLocked(m)) return;   // r191
     try{ var _di=_mtItem(m, iid); var _dls=_mtMemoLinesOf(_di); if(_dls.length){ _dls.forEach(function(_dl){ delete _dl.mtRef; }); _mmSave(); } }catch(_e){}   // r189: 일정 줄은 남기고 연결만 해제 (r222: 안건 줄들 포함)
+    m.del=m.del||{}; m.del[iid]=Date.now();   // r236 묘비
     m.agenda=(m.agenda||[]).filter(function(x){ return x.id!==iid; });
     (m.reports||[]).forEach(function(r){ r.items=(r.items||[]).filter(function(i){ return i.id!==iid; }); });
     m.updatedAt=Date.now(); _mtSave(); renderMeetingPage(true);
