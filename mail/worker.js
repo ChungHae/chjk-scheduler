@@ -1,21 +1,22 @@
-// 충해전기 사내전산 — 메일 발송 Worker (Cloudflare Workers)
+// 충해전기 사내전산 — 메일 발송 Worker (Cloudflare Workers)  v2 (2026-10-17: 서울·화성 발신 계정 2개)
 // 사내전산(chunghae.github.io/chjk-scheduler) 의 [메일 보내기] 가 이 Worker 를 호출하면
-// 네이버 웍스 SMTP(smtp.worksmobile.com:465, SSL) 로 chjk@chjk.co.kr 계정에서 메일을 보낸다.
+// 네이버 웍스 SMTP(smtp.worksmobile.com) 로 서울(chjk@chjk.co.kr) 또는 화성(hs-chjk@chjk.co.kr) 계정에서 메일을 보낸다.
 //
 // 설정(Workers 대시보드 > 설정 > 변수 및 보안 비밀):
-//   SMTP_USER  = chjk@chjk.co.kr            (보안 비밀)
-//   SMTP_PASS  = 네이버 웍스 '외부 앱 비밀번호' (보안 비밀)
-//   MAIL_KEY   = 사내전산이 보낼 때 붙이는 열쇠 (보안 비밀, 아무 긴 문자열 — 사내전산 메일 설정에 같은 값을 넣는다)
-//   SMTP_HOST  = smtp.worksmobile.com        (선택, 기본값)
-//   SMTP_PORT  = 465                         (선택, 기본값)
-//   ALLOW_ORIGIN = https://chunghae.github.io (선택, 기본값)
+//   SMTP_USER     = chjk@chjk.co.kr              (보안 비밀) — 서울 발신 계정
+//   SMTP_PASS     = 그 계정의 네이버 웍스 '외부 앱 비밀번호' (보안 비밀)
+//   SMTP_USER_HS  = hs-chjk@chjk.co.kr           (보안 비밀) — 화성 발신 계정 (선택)
+//   SMTP_PASS_HS  = 그 계정의 외부 앱 비밀번호     (보안 비밀)
+//   MAIL_KEY      = 사내전산이 보낼 때 붙이는 열쇠 (보안 비밀, 아무 긴 문자열 — 사내전산 메일 설정에 같은 값을 넣는다)
+//   SMTP_HOST / SMTP_PORT / SMTP_SECURE(on|starttls|off) / ALLOW_ORIGIN  (선택)
 //
 // 요청: POST /send  (헤더 X-Mail-Key: <MAIL_KEY>)
-//   { "to":"a@b.com, c@d.com", "cc":"", "subject":"…", "text":"…", "html":"<p>…</p>",
+//   { "account":"seoul"|"hs",  "to":"a@b.com, c@d.com", "cc":"", "subject":"…", "text":"…", "html":"<p>…</p>",
 //     "fromName":"충해전기㈜ 김재성", "replyTo":"",
 //     "attachments":[ { "name":"견적서 X.pdf", "type":"application/pdf", "b64":"JVBERi0…" } ] }
-// 응답: { ok:true, id:"<message-id>" }  /  { ok:false, error:"…" }
-// GET /ping → { ok:true }  (연결 확인용)
+//   account 가 없으면 seoul. hs 인데 SMTP_USER_HS 가 없으면 오류.
+// 응답: { ok:true, id:"<message-id>", from:"hs-chjk@chjk.co.kr" }  /  { ok:false, error:"…" }
+// GET /ping → { ok:true, user:"ch***@chjk.co.kr", accounts:{ seoul:"ch***@…", hs:"hs***@…"|null } }
 
 import { connect } from 'cloudflare:sockets';
 
@@ -31,13 +32,19 @@ export default {
     const json = (obj, status) => new Response(JSON.stringify(obj), { status: status || 200, headers: Object.assign({ 'Content-Type': 'application/json; charset=utf-8' }, cors) });
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
     const url = new URL(request.url);
-    if (request.method === 'GET' && url.pathname === '/ping') return json({ ok: true, user: env.SMTP_USER ? maskUser(env.SMTP_USER) : null });
+    const ACC = {
+      seoul: { user: env.SMTP_USER, pass: env.SMTP_PASS, label: '서울' },
+      hs:    { user: env.SMTP_USER_HS, pass: env.SMTP_PASS_HS, label: '화성' },
+    };
+    if (request.method === 'GET' && url.pathname === '/ping') return json({ ok: true, user: env.SMTP_USER ? maskUser(env.SMTP_USER) : null, accounts: { seoul: ACC.seoul.user ? maskUser(ACC.seoul.user) : null, hs: ACC.hs.user ? maskUser(ACC.hs.user) : null } });
     if (request.method !== 'POST' || url.pathname !== '/send') return json({ ok: false, error: 'not found' }, 404);
     if (!env.MAIL_KEY || request.headers.get('X-Mail-Key') !== env.MAIL_KEY) return json({ ok: false, error: '열쇠(X-Mail-Key)가 맞지 않습니다' }, 401);
-    if (!env.SMTP_USER || !env.SMTP_PASS) return json({ ok: false, error: 'SMTP_USER / SMTP_PASS 가 설정되지 않았습니다' }, 500);
 
     let body;
     try { body = await request.json(); } catch (e) { return json({ ok: false, error: 'JSON 본문이 아닙니다' }, 400); }
+    const acctKey = (body.account === 'hs') ? 'hs' : 'seoul';
+    const acct = ACC[acctKey];
+    if (!acct.user || !acct.pass) return json({ ok: false, error: acctKey === 'hs' ? '화성 발신 계정(SMTP_USER_HS / SMTP_PASS_HS)이 Worker 에 설정되지 않았습니다' : 'SMTP_USER / SMTP_PASS 가 설정되지 않았습니다' }, 500);
     const to = splitAddrs(body.to), cc = splitAddrs(body.cc), bcc = splitAddrs(body.bcc);
     if (!to.length) return json({ ok: false, error: '받는 사람이 없습니다' }, 400);
     const bad = to.concat(cc, bcc).find(a => !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(a));
@@ -48,11 +55,11 @@ export default {
 
     try {
       const mime = buildMime({
-        from: env.SMTP_USER, fromName: body.fromName || '', replyTo: body.replyTo || '',
+        from: acct.user, fromName: body.fromName || '', replyTo: body.replyTo || '',
         to, cc, subject: body.subject || '(제목 없음)', text: body.text || '', html: body.html || '', attachments: atts,
       });
-      await smtpSend(env, env.SMTP_USER, to.concat(cc, bcc), mime.raw);
-      return json({ ok: true, id: mime.id });
+      await smtpSend(env, acct, to.concat(cc, bcc), mime.raw);
+      return json({ ok: true, id: mime.id, from: acct.user });
     } catch (e) {
       return json({ ok: false, error: String(e && e.message || e) }, 502);
     }
@@ -110,7 +117,8 @@ function buildMime(m) {
 function escapeHtml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
 // ── SMTP (SSL, AUTH LOGIN) ──────────────────────────────────────────────
-async function smtpSend(env, from, rcpts, raw) {
+async function smtpSend(env, acct, rcpts, raw) {
+  const from = acct.user;
   const host = env.SMTP_HOST || 'smtp.worksmobile.com';
   const port = Number(env.SMTP_PORT || 465);
   const secure = String(env.SMTP_SECURE || 'on');   // 'on' = SSL(465) / 'starttls' = 587 / 'off' = 평문(테스트용)
@@ -132,8 +140,8 @@ async function smtpSend(env, from, rcpts, raw) {
       await io.write('EHLO chjk-scheduler\r\n'); await expect([250], 'EHLO(TLS)');
     }
     await io.write('AUTH LOGIN\r\n'); await expect([334], 'AUTH');
-    await io.write(btoa(env.SMTP_USER) + '\r\n'); await expect([334], 'AUTH(아이디)');
-    await io.write(btoa(env.SMTP_PASS) + '\r\n'); await expect([235], '로그인 (아이디/외부 앱 비밀번호 확인)');
+    await io.write(btoa(acct.user) + '\r\n'); await expect([334], 'AUTH(아이디)');
+    await io.write(btoa(acct.pass) + '\r\n'); await expect([235], '로그인 (아이디/외부 앱 비밀번호 확인)');
     await io.write('MAIL FROM:<' + from + '>\r\n'); await expect([250], 'MAIL FROM');
     for (const r of rcpts) { await io.write('RCPT TO:<' + r + '>\r\n'); await expect([250, 251], 'RCPT TO ' + r); }
     await io.write('DATA\r\n'); await expect([354], 'DATA');
