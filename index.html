@@ -8261,7 +8261,7 @@ function reloadState() {
     _mailOverlay('mailCfgOverlay',
       '<div style="padding:16px 20px;border-bottom:2px solid #1B3A6B;display:flex;justify-content:space-between;align-items:center"><span style="font-size:16px;font-weight:700;color:#1B3A6B">메일 설정</span><button class="btn" onclick="document.getElementById(\'mailCfgOverlay\').style.display=\'none\'" style="padding:4px 10px">닫기</button></div>'
       +'<div style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">'
-      +'<div style="background:#f4f8fe;border:1px solid #d6e4f5;border-radius:9px;padding:10px 13px;font-size:11.5px;color:#374151;line-height:1.8">발송은 <b>Cloudflare Worker</b>(mail/worker.js) 가 chjk@chjk.co.kr 로 보냅니다. Worker 에 넣은 <b>MAIL_KEY</b> 와 같은 값을 아래 열쇠에 넣으세요. 이 값은 로그인한 직원만 읽을 수 있는 자리에 저장됩니다(비밀번호는 Worker 에만 있음).</div>'
+      +'<div style="background:#f4f8fe;border:1px solid #d6e4f5;border-radius:9px;padding:10px 13px;font-size:11.5px;color:#374151;line-height:1.8">발송은 <b>Cloudflare Worker</b>(mail/worker.js) 가 서울 chjk@chjk.co.kr / 화성 hs-chjk@chjk.co.kr 계정으로 보냅니다(직원 소속에 따라 자동, 보내기 창에서 바꿀 수 있음). Worker 에 넣은 <b>MAIL_KEY</b> 와 같은 값을 아래 열쇠에 넣으세요. 이 값은 로그인한 직원만 읽을 수 있는 자리에 저장됩니다(비밀번호는 Worker 에만 있음).</div>'
       +'<div><div style="'+_MLL+'">Worker 주소</div><input id="mlCfgUrl" placeholder="https://chjk-mail.xxxx.workers.dev" value="'+esc(cfg.url||'')+'" style="'+_MLI+'"></div>'
       +'<div><div style="'+_MLL+'">열쇠 (MAIL_KEY)</div><input id="mlCfgKey" type="password" placeholder="Worker 의 MAIL_KEY 와 동일" value="'+esc(cfg.key||'')+'" style="'+_MLI+'"></div>'
       +'<div><div style="'+_MLL+'">기본 참조(CC) <span style="font-weight:400;color:#9ca3af">— 보낸 견적을 같이 받아 둘 사내 주소, 쉼표 구분 (선택)</span></div><input id="mlCfgCc" placeholder="chjk@chjk.co.kr" value="'+esc(cfg.cc||'')+'" style="'+_MLI+'"></div>'
@@ -8273,7 +8273,7 @@ function reloadState() {
     var m=document.getElementById('mlCfgMsg'); var url=(document.getElementById('mlCfgUrl').value||'').trim();
     if(!url){ m.textContent='Worker 주소를 입력하세요.'; return; }
     m.textContent='확인 중…';
-    try{ var r=await fetch(_mailUrl({url:url},'/ping')); var j=await r.json(); m.innerHTML=j.ok?('<span style="color:#15803d">연결됨 · 발신 계정 '+esc(j.user||'(미설정)')+'</span>'):('<span style="color:#dc2626">응답 이상: '+esc(JSON.stringify(j))+'</span>'); }
+    try{ var r=await fetch(_mailUrl({url:url},'/ping')); var j=await r.json(); m.innerHTML=j.ok?('<span style="color:#15803d">연결됨</span> · 서울 '+esc((j.accounts&&j.accounts.seoul)||j.user||'(미설정)')+' · 화성 '+((j.accounts&&j.accounts.hs)?esc(j.accounts.hs):'<span style="color:#b45309">(미설정 — Worker 에 SMTP_USER_HS / SMTP_PASS_HS 추가)</span>')):('<span style="color:#dc2626">응답 이상: '+esc(JSON.stringify(j))+'</span>'); }
     catch(e){ m.innerHTML='<span style="color:#dc2626">연결 실패: '+esc(e.message||String(e))+'</span>'; }
   };
   window.mailCfgSave=async function(){
@@ -8298,12 +8298,14 @@ function reloadState() {
     if(ci.taxEmail&&out.indexOf(ci.taxEmail)<0) out.push(ci.taxEmail);
     return out;
   }
-  function _mailQuoteDraft(){
+  function _mailAcctOf(branch){ return (branch==='화성')?'hs':'seoul'; }   // r238
+  function _mailBranchOf(acct){ return (acct==='hs')?'화성':'서울'; }
+  function _mailQuoteDraft(forceBranch){
     var vname=_qCart[0].vname||''; var no=_qQuoteNo||'';
     var _mgEl=document.getElementById('qManager'); var mgr=(_mgEl&&!_mgEl.disabled&&_mgEl.value)?String(_mgEl.value).trim():'';
     var staff=(typeof _authUser!=='undefined'&&_authUser&&_authUser.name)?_authUser.name:'';
     var _me=(typeof members!=='undefined'&&members)?members.find(function(x){return (x.name||'').trim()===staff;}):null;
-    var branch=(_me&&_me.group)?_me.group:'서울'; var SUP=_qSupplierInfo(branch);
+    var branch=forceBranch||((_me&&_me.group)?_me.group:'서울'); var SUP=_qSupplierInfo(branch);   // r238: 계정 선택에 따라 지점 서명
     var phone=(_me&&_me.phone)?_me.phone:'';
     var supply=0; _qCart.forEach(function(c){ var q=Number(c.qty)||1; if(c.sell!=null&&c.sell!=='') supply+=Number(c.sell)*q; }); supply-=((typeof _qNego!=='undefined'&&_qNego)?Number(_qNego):0);
     var body=vname+' '+(mgr?mgr+' 님':'담당자님')+', 안녕하세요.\n'+SUP.corp+' '+staff+'입니다.\n\n'
@@ -8312,7 +8314,7 @@ function reloadState() {
       +'· 첨부: 견적서 PDF, 견적서 HTML(품목별 카탈로그·도면 링크 포함 — 클릭해서 열어 보세요)\n\n'
       +'검토 후 궁금한 점이 있으시면 언제든 연락 주십시오.\n감사합니다.\n\n'
       +'─────────────────\n'+staff+(phone?' · '+phone:'')+' · '+SUP.mail+'\n'+SUP.corp+' · TEL '+SUP.tel+' · FAX '+SUP.fax+'\n'+SUP.addr.replace(/\n/g,' ')+'\n온라인몰 airmall24.co.kr';
-    return { vname:vname, no:no, mgr:mgr, staff:staff, to:_mailClientEmails(vname, mgr), subject:'[충해전기] 견적서 '+no+' — '+vname, body:body, fromName:SUP.corp+' '+staff };
+    return { vname:vname, no:no, mgr:mgr, staff:staff, to:_mailClientEmails(vname, mgr), subject:'[충해전기] 견적서 '+no+' — '+vname, body:body, fromName:SUP.corp+' '+staff, branch:branch, account:_mailAcctOf(branch), fromMail:SUP.mail };
   }
   window.qOpenMailSend=async function(){
     if(!_qCart.length || !_qCartHasContent()){ showInfoModal('견적 목록','견적 목록이 비어 있습니다.'); return; }
@@ -8327,11 +8329,18 @@ function reloadState() {
       +'<div><div style="'+_MLL+'">참조(CC)</div><input id="mlCc" value="'+esc(cfg.cc||'')+'" style="'+_MLI+'"></div>'
       +'<div><div style="'+_MLL+'">제목</div><input id="mlSubj" value="'+esc(d.subject)+'" style="'+_MLI+'"></div>'
       +'<div><div style="'+_MLL+'">본문</div><textarea id="mlBody" rows="11" style="'+_MLI+';line-height:1.55;resize:vertical">'+esc(d.body)+'</textarea></div>'
-      +'<div style="display:flex;gap:16px;align-items:center;font-size:12.5px;color:#374151;flex-wrap:wrap"><span style="font-weight:700;color:#14305c">첨부</span><label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" id="mlAttPdf" checked> 견적서 PDF</label><label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" id="mlAttHtml" checked> 견적서 HTML (카탈로그·도면 링크)</label><span style="color:#9ca3af">보낸이 '+esc(d.fromName)+' &lt;chjk@chjk.co.kr&gt;</span></div>'
+      +'<div style="display:flex;gap:16px;align-items:center;font-size:12.5px;color:#374151;flex-wrap:wrap"><span style="font-weight:700;color:#14305c">첨부</span><label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" id="mlAttPdf" checked> 견적서 PDF</label><label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" id="mlAttHtml" checked> 견적서 HTML (카탈로그·도면 링크)</label><span style="color:#374151;display:flex;align-items:center;gap:6px"><b style="color:#14305c">보내는 계정</b><select id="mlAcct" onchange="mlAcctChanged()" style="padding:4px 6px;border:1.5px solid #d6e0ec;border-radius:7px;font-size:12px;font-family:inherit"><option value="seoul"'+(d.account==='hs'?'':' selected')+'>서울 · chjk@chjk.co.kr</option><option value="hs"'+(d.account==='hs'?' selected':'')+'>화성 · hs-chjk@chjk.co.kr</option></select><span id="mlFromName" style="color:#9ca3af">'+esc(d.fromName)+'</span></span></div>'
       +'<div id="mlStatus" style="font-size:12.5px;color:#6b7280;min-height:18px"></div>'
       +'<div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" onclick="document.getElementById(\'mailSendOverlay\').style.display=\'none\'">닫기</button><button class="btn btn-primary" id="mlSendBtn" onclick="qMailSendNow()">보내기</button></div>'
       +'</div>', 720);
     window._mlDraft=d;
+    window._mlDraftBody=d.body;
+  };
+  window.mlAcctChanged=function(){   // r238
+    var sel=document.getElementById('mlAcct'); if(!sel) return;
+    var d=_mailQuoteDraft(_mailBranchOf(sel.value)); window._mlDraft=d;
+    var fn=document.getElementById('mlFromName'); if(fn) fn.textContent=d.fromName;
+    var b=document.getElementById('mlBody'); if(b && b.value===window._mlDraftBody){ b.value=d.body; window._mlDraftBody=d.body; }
   };
   window.qMailSendNow=async function(){
     var st=document.getElementById('mlStatus'), btn=document.getElementById('mlSendBtn');
@@ -8350,7 +8359,7 @@ function reloadState() {
       if(wantHtml){ st.textContent='HTML 만드는 중…'; var h=await _qBuildQuoteHtml(); atts.push({name:fn+'.html', type:'text/html', b64:await _blobToB64(new Blob([h],{type:'text/html;charset=utf-8'}))}); }
       st.textContent='발송 중…';
       var html='<div style="font-family:\'Malgun Gothic\',\'맑은 고딕\',sans-serif;font-size:14px;line-height:1.7;color:#1f2937;white-space:pre-wrap">'+esc(body)+'</div>';
-      var r=await fetch(_mailUrl(cfg,'/send'), {method:'POST', headers:{'Content-Type':'application/json','X-Mail-Key':cfg.key}, body:JSON.stringify({to:to, cc:cc, subject:subj, text:body, html:html, fromName:d.fromName, attachments:atts})});
+      var r=await fetch(_mailUrl(cfg,'/send'), {method:'POST', headers:{'Content-Type':'application/json','X-Mail-Key':cfg.key}, body:JSON.stringify({account:((document.getElementById('mlAcct')||{}).value||d.account||'seoul'), to:to, cc:cc, subject:subj, text:body, html:html, fromName:d.fromName, attachments:atts})});
       var j=null; try{ j=await r.json(); }catch(_j){}
       if(!r.ok||!j||!j.ok) throw new Error((j&&j.error)||('HTTP '+r.status));
       _qMailLog(d.no, to, atts.map(function(a){return a.name;}));
