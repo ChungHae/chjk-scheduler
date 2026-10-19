@@ -1,4 +1,4 @@
-// r235 테스트 — 견적서 메일 보내기 (설정 창 · 초안 자동 채움 · 발송 흐름(가짜 Worker) · 기록 배지)
+// r235 테스트 (r239 에 맞춰 수정: HTML 첨부 기본 해제) — 견적서 메일 보내기 (설정 창 · 초안 자동 채움 · 발송 흐름(가짜 Worker) · 기록 배지)
 //  사용:  node test_r235.js <r235 적용된 index.html>
 const { chromium } = require('/home/claude/.npm-global/lib/node_modules/playwright');
 const fs = require('fs'), path = require('path');
@@ -62,7 +62,8 @@ function ok(c, msg){ if(c){ pass++; console.log('  ✓', msg); } else { fail++; 
   ok(subj==='[충해전기] 견적서 HINTER-20261014-01 — HINTER', '제목');
   ok(body.indexOf('HINTER 조영훈 님, 안녕하세요.')===0 && body.indexOf('충해전기㈜ 김재성입니다')>=0 && body.indexOf('견적번호 HINTER-20261014-01')>=0 && body.indexOf('품목 2건 · 공급가액 7,632,550원')>=0 && body.indexOf('010-5228-2922')>=0 && body.indexOf('airmall24.co.kr')>=0, '본문 기본 문안 (수신·담당·건수·공급가액(NEGO 반영)·서명)');
   ok(cc==='chjk@chjk.co.kr', '기본 참조 채움');
-  ok(await T(`document.getElementById('mlAttPdf').checked && document.getElementById('mlAttHtml').checked`), '첨부 PDF·HTML 기본 체크');
+  ok(await T(`document.getElementById('mlAttPdf').checked && !document.getElementById('mlAttHtml').checked`), '첨부 PDF 기본 체크 · HTML 은 기본 해제 (r239)');
+  await T(`document.getElementById('mlAttHtml').checked=true; 'ok'`);   // r239: 아래 첨부 2개 검사를 위해 HTML 도 켠다
 
   console.log('▶ D) 발송');
   await T(`document.getElementById('mlTo').value='bad-address'; qMailSendNow(); 'ok'`); await pg.waitForTimeout(300);
