@@ -1,4 +1,4 @@
-// r227 테스트 — A) 주간 완료 건 ✓(취소선 없음)  B) 신규 영업 응원 배너  C) 업무회의 2주 주기 배너·회의 탭 안내·지난 회의 접기·지난 회의 안건 숨김
+// r227 테스트 (r240 에 맞춰 수정: 지난 회의 접기·안건 숨김 해제) — A) 주간 완료 건 ✓(취소선 없음)  B) 신규 영업 응원 배너  C) 업무회의 2주 주기 배너·회의 탭 안내·지난 회의 접기·지난 회의 안건 숨김
 //  사용:  node test_r227.js <r227 적용된 index.html>
 const { chromium } = require('/home/claude/.npm-global/lib/node_modules/playwright');
 const fs = require('fs'), path = require('path');
@@ -56,15 +56,15 @@ function ok(c, msg){ if(c){ pass++; console.log('  ✓', msg); } else { fail++; 
   await T(`renderMemoPage(true); 'ok'`); await pg.waitForTimeout(200);
   let mt = await T(`(document.querySelector('#pageMemo .mm-smc.mt')||{}).innerText||''`);
   ok(mt.indexOf('업무회의 필요')>=0 && mt.indexOf('25일째')>=0 && mt.indexOf('2주마다')>=0, '메모장 배너: 25일째 ('+mt.replace(/\n/g,' ')+')');
-  ok(await T(`!document.querySelector('#pageMemo [data-id="ag1"], #pageMemo .mm-line[data-id="ag1"]') && document.body.innerText.indexOf('회의 안건(9월 회의)')<0`), '지난 회의 안건 줄은 일정에서 숨김');
+  ok(await T(`document.body.innerText.indexOf('회의 안건(9월 회의)')>=0`), '지난 회의 안건 줄도 일정에 그대로 (r240: r227 숨김 해제)');
   ok(await T(`document.body.innerText.indexOf('오늘 할 일')>=0`), '일반 메모는 그대로');
   await T(`switchPage('meeting'); renderMeetingPage(true); 'ok'`); await pg.waitForTimeout(400);
   ok(await T(`!!document.querySelector('#pageMeeting .mt-due') && document.querySelector('#pageMeeting .mt-due').innerText.indexOf('25일')>=0`), '회의 탭 상단 회의 필요 안내');
-  ok(await T(`document.querySelectorAll('#pageMeeting .mt-row').length===0 && document.querySelector('#pageMeeting .mt-past-tg').innerText.indexOf('지난 회의 2건 보기')>=0 && document.querySelector('#pageMeeting .mt-empty').innerText.indexOf('예정된 회의가 없습니다')>=0`), '지난 회의 2건 접힘 · 예정 없음 안내');
-  await T(`mtTogglePast(); 'ok'`); await pg.waitForTimeout(300);
-  ok(await T(`document.querySelectorAll('#pageMeeting .mt-row').length===2 && document.querySelector('#pageMeeting .mt-past-tg').innerText.indexOf('지난 회의 접기')>=0`), '[지난 회의 보기] → 2건 펼침');
+  ok(await T(`document.querySelectorAll('#pageMeeting .mt-row').length===2 && !document.querySelector('#pageMeeting .mt-past-tg')`), '지난 회의 2건 전부 표시, 접기 없음 (r240)');
+  // r240: mtTogglePast 는 남아 있으나 목록에 영향 없음
+  ok(await T(`document.querySelectorAll('#pageMeeting .mt-row').length===2`), '그대로 2건');
   await T(`mtTogglePast(); meetings.push({id:'mt3',date:'${d(3)}',time:'14:00',place:'서울',title:'10월 회의',author:'김재성',attendees:[],agenda:[],reports:[]}); renderMeetingPage(true); 'ok'`); await pg.waitForTimeout(300);
-  ok(await T(`!document.querySelector('#pageMeeting .mt-due') && document.querySelectorAll('#pageMeeting .mt-row').length===1`), '예정 회의 추가 → 안내 사라지고 예정 1건만');
+  ok(await T(`!document.querySelector('#pageMeeting .mt-due') && document.querySelectorAll('#pageMeeting .mt-row').length===3 && document.querySelector('#pageMeeting .mt-row .mt-t').textContent.indexOf('10월 회의')>=0`), '예정 회의 추가 → 안내 사라지고 3건(예정이 맨 위) (r240)');
   ok(await T(`_mtDueInfo()===null`), '예정 회의가 있으면 배너 없음');
   await T(`meetings=[]; 'ok'`);
   ok(await T(`!!_mtDueInfo() && _mtDueInfo().days===null && _mtDueBanner().indexOf('아직 업무회의 기록이 없습니다')>=0`), '회의록 없음 → 안내');
