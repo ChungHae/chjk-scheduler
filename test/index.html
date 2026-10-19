@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r238 2026-10-17 -->
+<!-- test build r239 2026-10-19 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -7967,7 +7967,10 @@ function reloadState() {
         [_c('')], _cxEmptyCells('eta')));
     }
     // 인쇄판과 동일한 빈 행 채우기 (세로 24/25행, 가로 10행 — &nbsp; 행)
-    var _TARGET=(_orient==='l')?(_mgr?9:10):(_mgr?22:23);   // 다운로드판: 1페이지 맞춤 확정 (인쇄판 l=10, p=24/25)
+    var _noteW0=W-225-19.5; var _estW0=function(t){ var w=0; for(var i=0;i<t.length;i++){ var c=t.charCodeAt(i); w+=(c>0x2000)?8.625:((c===32)?2.5:5.0); } return w; };
+    var _memoLines=0; if(_qMemo){ String(_qMemo).split('\n').forEach(function(ln){ _memoLines+=Math.max(1,Math.ceil(_estW0('· 비고 : '+ln)/_noteW0)); }); }
+    var _noteExtra=1+_memoLines;   // r239: 안내문이 기본 4줄을 넘는 만큼(법인명 줄 + 비고 줄) 빈 행을 줄여 1페이지를 지킨다
+    var _TARGET=((_orient==='l')?(_mgr?9:10):(_mgr?22:23))-_noteExtra;   // 다운로드판: 1페이지 맞춤 (인쇄판 l=10, p=24/25)
     var _contentRows=_qCart.length+(_nego?1:0);
     for(var _pk=_contentRows; _pk<_TARGET; _pk++){
       body.push([].concat(
@@ -8095,10 +8098,12 @@ function reloadState() {
     if(_qMemo) noteLines.push({text:'· 비고 : '+String(_qMemo), color:'#4b5563'});
     noteLines.push({text:'· 본 견적서의 유효기간은 발행일로부터 30일입니다.'});
     noteLines.push({text:'· 상기 금액은 부가가치세 별도 금액입니다.'});
-    noteLines.push({text:'· 결제 및 납기 조건은 협의에 따릅니다.'}); noteLines.push({text:'· 온라인몰 airmall24.co.kr 에서도 바로 주문하실 수 있습니다. — '+SUP.corp});
+    noteLines.push({text:'· 결제 및 납기 조건은 협의에 따릅니다.'}); noteLines.push({text:'· 온라인몰 airmall24.co.kr 에서도 바로 주문하실 수 있습니다.'}); noteLines.push({text:'— '+SUP.corp});   // r239: 법인명은 별도 줄(화성영업소가 줄바꿈되며 2페이지로 밀리던 문제)
     // 안내문을 합계 박스에 대해 세로 중앙 배치 (인쇄판 align-self:center)
-    var _noteN=4+(_qMemo?String(_qMemo).split('\n').length:0);   // r234: 온라인몰 안내 한 줄 추가
-    var _noteH=_noteN*8.625*1.95;
+    var _noteW=W-225-19.5;   // r239: 안내 칸 실제 폭(합계표 225 + 간격)
+    var _noteEstW=function(t){ var w=0; for(var i=0;i<t.length;i++){ var c=t.charCodeAt(i); w+=(c>0x2000)?8.625:((c===32)?2.5:5.0); } return w; };   // 한글≈글자크기, 영숫자≈0.58, 공백
+    var _noteN=0; noteLines.forEach(function(l){ String(l.text||'').split('\n').forEach(function(ln){ _noteN+=Math.max(1, Math.ceil(_noteEstW(ln)/_noteW)); }); });   // r239: 줄바꿈까지 세어 세로 중앙 계산이 어긋나지 않게
+    var _noteH=_noteN*8.625*1.2*1.95;   // r239: pdfmake 줄높이 = 글자크기×폰트 기본 1.2×lineHeight (실측 약 20pt/줄)
     var _totH=2*(9.75*1.2+10.5)+(12*1.2+12.75)+(9*1.2+12.75);   // +부가세 포함 소행
     var _notePad=Math.max(0,Math.floor((_totH-_noteH)/2));
     // ── 내용 높이 추산 → 페이지보다 작으면 세로 중앙 배치 (인쇄판 padding-top 보정) ──
@@ -8479,7 +8484,7 @@ function reloadState() {
     var body=vname+' '+(mgr?mgr+' 님':'담당자님')+', 안녕하세요.\n'+SUP.corp+' '+staff+'입니다.\n\n'
       +'요청하신 견적서를 보내드립니다. (견적번호 '+no+')\n'
       +'· 품목 '+_qCart.length+'건 · 공급가액 '+Math.round(supply).toLocaleString()+'원 (부가세 별도)\n'
-      +'· 첨부: 견적서 PDF, 견적서 HTML(품목별 카탈로그·도면 링크 포함 — 클릭해서 열어 보세요)\n\n'
+      +'· 첨부: 견적서 PDF\n\n'
       +'검토 후 궁금한 점이 있으시면 언제든 연락 주십시오.\n감사합니다.\n\n'
       +'─────────────────\n'+staff+(phone?' · '+phone:'')+' · '+SUP.mail+'\n'+SUP.corp+' · TEL '+SUP.tel+' · FAX '+SUP.fax+'\n'+SUP.addr.replace(/\n/g,' ')+'\n온라인몰 airmall24.co.kr';
     return { vname:vname, no:no, mgr:mgr, staff:staff, to:_mailClientEmails(vname, mgr), subject:'[충해전기] 견적서 '+no+' — '+vname, body:body, fromName:SUP.corp+' '+staff, branch:branch, account:_mailAcctOf(branch), fromMail:SUP.mail };
@@ -8497,7 +8502,7 @@ function reloadState() {
       +'<div><div style="'+_MLL+'">참조(CC)</div><input id="mlCc" value="'+esc(cfg.cc||'')+'" style="'+_MLI+'"></div>'
       +'<div><div style="'+_MLL+'">제목</div><input id="mlSubj" value="'+esc(d.subject)+'" style="'+_MLI+'"></div>'
       +'<div><div style="'+_MLL+'">본문</div><textarea id="mlBody" rows="11" style="'+_MLI+';line-height:1.55;resize:vertical">'+esc(d.body)+'</textarea></div>'
-      +'<div style="display:flex;gap:16px;align-items:center;font-size:12.5px;color:#374151;flex-wrap:wrap"><span style="font-weight:700;color:#14305c">첨부</span><label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" id="mlAttPdf" checked> 견적서 PDF</label><label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" id="mlAttHtml" checked> 견적서 HTML (카탈로그·도면 링크)</label><span style="color:#374151;display:flex;align-items:center;gap:6px"><b style="color:#14305c">보내는 계정</b><select id="mlAcct" onchange="mlAcctChanged()" style="padding:4px 6px;border:1.5px solid #d6e0ec;border-radius:7px;font-size:12px;font-family:inherit"><option value="seoul"'+(d.account==='hs'?'':' selected')+'>서울 · chjk@chjk.co.kr</option><option value="hs"'+(d.account==='hs'?' selected':'')+'>화성 · hs-chjk@chjk.co.kr</option></select><span id="mlFromName" style="color:#9ca3af">'+esc(d.fromName)+'</span></span></div>'
+      +'<div style="display:flex;gap:16px;align-items:center;font-size:12.5px;color:#374151;flex-wrap:wrap"><span style="font-weight:700;color:#14305c">첨부</span><label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" id="mlAttPdf" checked> 견적서 PDF</label><label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" id="mlAttHtml"> 견적서 HTML (카탈로그·도면 링크)</label><span style="color:#374151;display:flex;align-items:center;gap:6px"><b style="color:#14305c">보내는 계정</b><select id="mlAcct" onchange="mlAcctChanged()" style="padding:4px 6px;border:1.5px solid #d6e0ec;border-radius:7px;font-size:12px;font-family:inherit"><option value="seoul"'+(d.account==='hs'?'':' selected')+'>서울 · chjk@chjk.co.kr</option><option value="hs"'+(d.account==='hs'?' selected':'')+'>화성 · hs-chjk@chjk.co.kr</option></select><span id="mlFromName" style="color:#9ca3af">'+esc(d.fromName)+'</span></span></div>'
       +'<div id="mlStatus" style="font-size:12.5px;color:#6b7280;min-height:18px"></div>'
       +'<div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" onclick="document.getElementById(\'mailSendOverlay\').style.display=\'none\'">닫기</button><button class="btn btn-primary" id="mlSendBtn" onclick="qMailSendNow()">보내기</button></div>'
       +'</div>', 720);
