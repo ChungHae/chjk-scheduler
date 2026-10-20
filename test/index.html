@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r240 2026-10-19 -->
+<!-- test build r241 2026-10-19 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -1912,6 +1912,7 @@
     .mt-toast { position:fixed; left:50%; bottom:28px; transform:translateX(-50%); background:#1a1a1a; color:#fff; padding:9px 14px; border-radius:10px; font-size:13px; z-index:2000200; opacity:0; transition:opacity .2s; pointer-events:none; max-width:90vw; }
     .mt-toast.on { opacity:1; }
     .mt-rep { display:grid; grid-template-columns:110px 1fr; border:1px solid #cbd5e1; margin-top:6px; }
+    .mm-banners-bottom { margin-top:14px; padding-top:8px; border-top:1px dashed #e5e7eb; }
     .mt-goal-rep > div.nm small { display:block; font-weight:600; font-size:11px; color:#2563eb; margin-top:4px; }
     .mt-goal { border:1px solid #e5e7eb; border-radius:8px; padding:8px 10px; margin:4px 0 8px; background:#fff; }
     .mt-goal.part { border-color:#bfdbfe; background:#f8fbff; }
@@ -15016,12 +15017,13 @@ function reloadState() {
     _mmInDateShow();   // r183
     _mmBindInput(); _mmSetChildUI();
     var h='';
-    try{ h+=_mmSmcBanner(); }catch(_e){}   // r181 SMC 확인 대기 배너
-    try{ h+=_pendBanner(); }catch(_e){}   // r217 업체 정보 등록 대기 배너
-    try{ h+=_cuBanner(); }catch(_e){}   // r224 내 카드 미분류 배너
-    try{ h+=_coBanner(); }catch(_e){}   // r226 내 담당 업체 매출 카드
-    try{ h+=_mtDueBanner(); }catch(_e){}   // r227 업무회의 2주 주기
-    try{ h+=_nbBanner(); }catch(_e){}   // r227 신규 영업 응원
+    var _hb='';   // r241: 안내 배너는 메모 목록 아래에
+    try{ _hb+=_mmSmcBanner(); }catch(_e){}   // r181 SMC 확인 대기 배너
+    try{ _hb+=_pendBanner(); }catch(_e){}   // r217 업체 정보 등록 대기 배너
+    try{ _hb+=_cuBanner(); }catch(_e){}   // r224 내 카드 미분류 배너
+    try{ _hb+=_coBanner(); }catch(_e){}   // r226 내 담당 업체 매출 카드
+    try{ _hb+=_mtDueBanner(); }catch(_e){}   // r227 업무회의 2주 주기
+    try{ _hb+=_nbBanner(); }catch(_e){}   // r227 신규 영업 응원
     try{ h+=_mtGoalCard(); }catch(_e){}   // r240 내 목표 카드
     // ① 공지 — 모든 사람 것
     var notices=(memoLines||[]).filter(function(l){ return l.kind==='notice' && !l.parent && _mmVisible(l, showDone); }).sort(function(a,b){ return (a.createdAt||0)-(b.createdAt||0); });
@@ -15045,7 +15047,7 @@ function reloadState() {
       _mmChildren(l.id).forEach(function(c){ if(_mmVisible(c, showDone)) h+=_mmRowHtml(c,{mine:true}); });
     });
     if(!h) h='<div class="mm-empty">아직 적은 메모가 없습니다. 아래 줄에 적고 Enter.</div>';
-    list.innerHTML=h;
+    list.innerHTML=h+(_hb?('<div class="mm-banners-bottom">'+_hb+'</div>'):'');   // r241
   };
 
   // ── r183: 날짜 요일 표기 + 날짜 클릭 수정 ──
