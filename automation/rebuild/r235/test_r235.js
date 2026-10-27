@@ -58,7 +58,7 @@ function ok(c, msg){ if(c){ pass++; console.log('  ✓', msg); } else { fail++; 
   console.log('▶ C) 발송 창 초안');
   await T(`qOpenMailSend(); 'ok'`); await pg.waitForTimeout(600);
   const to=await T(`document.getElementById('mlTo').value`), subj=await T(`document.getElementById('mlSubj').value`), body=await T(`document.getElementById('mlBody').value`), cc=await T(`document.getElementById('mlCc').value`);
-  ok(to==='cho@hinter.co.kr, sales@hinter.co.kr, tax@hinter.co.kr', '받는 사람: 담당자(조영훈) 메일 맨 앞 + 나머지 담당자 + 계산서 메일 ('+to+')');
+  ok(to==='cho@hinter.co.kr, sales@hinter.co.kr, tax@hinter.co.kr' || (to==='cho@hinter.co.kr' && await T(`document.getElementById('mlBook').innerText.indexOf('tax@hinter.co.kr')>=0`)), '받는 사람: 담당자(조영훈) 메일 맨 앞 (r250 부터 나머지는 주소록 칩) ('+to+')');
   ok(subj==='[충해전기] 견적서 HINTER-20261014-01 — HINTER', '제목');
   ok(body.indexOf('HINTER 조영훈 님, 안녕하세요.')===0 && body.indexOf('충해전기㈜ 김재성입니다')>=0 && body.indexOf('견적번호 HINTER-20261014-01')>=0 && body.indexOf('품목 2건 · 공급가액 7,632,550원')>=0 && body.indexOf('010-5228-2922')>=0 && body.indexOf('airmall24.co.kr')>=0, '본문 기본 문안 (수신·담당·건수·공급가액(NEGO 반영)·서명)');
   ok(cc==='chjk@chjk.co.kr', '기본 참조 채움');
