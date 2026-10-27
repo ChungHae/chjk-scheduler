@@ -3647,6 +3647,8 @@
   let memoCards = load('sched_memo_cards') ?? {};   // r179 명함 사진 {cardId: dataURL}
   let meetings = load('sched_meetings') ?? [];
   let _mtDelMap = load('sched_meetings_del') ?? {};   // r236 회의록 묘비(삭제 기록)
+  let _qsDelMap = load('sched_quote_del') ?? {};   // r250 저장 견적 묘비(삭제 기록) {id:ts}
+  let _qsPend = {};   // r250 아직 서버에 안 올린 저장 견적 {id:ts}
   let _mtDirty = false;   // r236 아직 서버에 안 올린 회의록 변경이 있음     // r187 회의록 [{id,date,time,place,room,title,author,attendees,agenda:[{id,title,text,done,doneAt,doneBy}],reports:[{name,items:[...]}]}]
   let clientPBase = load('sched_client_pbase') ?? {};   // r226 업체별 소물류 기준가 { 업체명:{base:'hp'|'sm',by,at} }
   let clientOwner = load('sched_client_owner') ?? {};   // r225 담당 업체 { m:{업체:{who,by,at}} 수동, a:{업체:{who,at}} 자동 기록 }
@@ -3786,6 +3788,7 @@
     save('sched_files', filesList);
     save('sched_quote_index', quoteVendors);
     save('sched_quote_saved', quoteSaved);
+    save('sched_quote_del', _qsDelMap);   // r250
     save('sched_price_makers', priceMakers);
     save('sched_price_note', _priceNote);
     save('sched_comments', schedComments);
@@ -4642,6 +4645,8 @@
     _fbSkipNext = true;
     const _mtWasDirty = _mtDirty;   // r236
     if (_mtWasDirty) { try { await _mtMergeFromServer(); } catch(_me) {} }   // r236: 올리기 전에 서버 회의록과 항목 단위로 합친다
+    const _qsWasDirty = Object.keys(_qsPend || {}).length > 0;   // r250
+    if (_qsWasDirty) { try { await _qsMergeFromServer(); } catch(_qe) {} }   // r250: 올리기 전에 서버 견적 목록과 id 단위로 합친다
     const ts = Date.now();
     try {
       await _syncPost({
@@ -4678,6 +4683,7 @@
         sched_files: filesList,
         sched_quote_index: quoteVendors,
         sched_quote_saved: quoteSaved,
+        sched_quote_del: _qsDelMap,   // r250
         sched_price_makers: priceMakers,
         sched_price_note: _priceNote,
         sched_issues: weeklyIssues,
@@ -4696,6 +4702,7 @@
       });
       _fbLastUpdatedAt = ts;
       if (_mtWasDirty) { _mtDirty = false; _mtScheduleVerify(); }   // r236
+      if (_qsWasDirty) { _qsScheduleVerify(); }   // r250
     } catch(e) {
       console.error('Sync save error:', e);
       setSyncStatus('error');
@@ -4748,8 +4755,8 @@
       const d = await _syncGet();
       if (!d || (d._updatedAt || 0) <= _fbLastUpdatedAt) return;
       _fbLastUpdatedAt = d._updatedAt || 0;
-      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_client_pend','sched_client_owner','sched_client_pbase','sched_meetings','sched_meetings_del','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
-      KEYS.forEach(k => { if (d[k] === undefined) return; if (k === 'sched_meetings') { save(k, _mtDirty ? _mtMerge(meetings, d[k], d.sched_meetings_del) : _mtPull(d[k], d.sched_meetings_del)); return; } if (k === 'sched_meetings_del') { save(k, Object.assign({}, d[k] || {}, _mtDelMap || {})); return; } save(k, d[k]); });   // r236: 안 올린 회의록 변경이 있으면 덮지 않고 합치고, 내 묘비는 지키며 받는다
+      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_client_pend','sched_client_owner','sched_client_pbase','sched_meetings','sched_meetings_del','sched_quote_del','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
+      KEYS.forEach(k => { if (d[k] === undefined) return; if (k === 'sched_meetings') { save(k, _mtDirty ? _mtMerge(meetings, d[k], d.sched_meetings_del) : _mtPull(d[k], d.sched_meetings_del)); return; } if (k === 'sched_meetings_del') { save(k, Object.assign({}, d[k] || {}, _mtDelMap || {})); return; } if (k === 'sched_quote_saved') { save(k, _qsMerge(quoteSaved, d[k], d.sched_quote_del)); return; } if (k === 'sched_quote_del') { save(k, Object.assign({}, d[k] || {}, _qsDelMap || {})); return; } save(k, d[k]); });   // r236: 안 올린 회의록 변경이 있으면 덮지 않고 합치고, 내 묘비는 지키며 받는다
       // ── 바로가기(sched_links) 보호 ──
       // 키가 없을 때: sched_links_ts가 있으면 신버전 클라이언트의 정상 저장(목록이 비어서
       // Firebase가 키를 생략한 것) → 빈 목록 반영. 둘 다 없으면 구버전 클라이언트가
@@ -4851,7 +4858,7 @@
       const d = await _syncGet();
       const fbTs    = (d && d._updatedAt) || 0;
       const localTs = parseInt(localStorage.getItem('sched_local_ts') || '0');
-      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_client_pend','sched_client_owner','sched_client_pbase','sched_meetings','sched_meetings_del','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
+      const KEYS = ['sched_members','sched_entries','sched_team_goal','sched_team_tasks','sched_config','sched_assignments','sched_assign_comments','sched_bank_txns','sched_tax_invoices','sched_ar_items','sched_purchase_vendors','sched_links','sched_inventory_add','sched_inventory_qty','sched_inventory_log','sched_inventory_hidden','sched_inv_reset','sched_personal','sched_comments','sched_categories','sched_files','sched_quote_index','sched_quote_saved','sched_price_makers','sched_price_note','sched_issues','sched_leave2026','sched_clients_added','sched_client_list','sched_projects','sched_client_info','sched_proj_memos','sched_memos','sched_memo_cards','sched_smc_queue','sched_client_pend','sched_client_owner','sched_client_pbase','sched_meetings','sched_meetings_del','sched_quote_del','sched_fx_alias','sched_fx_openings','sched_fx_adjusts','sched_fx_terms','sched_fx_excluded','sched_fx_keepas'];
 
       // ── 올바른 팀원 ID 목록 (하드코딩) ──────────────────────
       const _VALID_MEMBER_IDS = defaultMembers().map(m => m.id);
@@ -4997,6 +5004,7 @@ function reloadState() {
     assignComments   = load('sched_assign_comments') ?? {};
     assignSeen       = load('sched_assign_seen') ?? {};
       quoteSaved       = load('sched_quote_saved') ?? [];
+    _qsDelMap        = load('sched_quote_del') ?? {};   // r250
     priceMakers      = load('sched_price_makers') ?? [];
     _priceNote       = load('sched_price_note') ?? _priceNote;
   }
@@ -8246,10 +8254,65 @@ function reloadState() {
     if(vn){ _qQuoteNo=_qGenQuoteNo(vn, _qQuoteYmd); if(!_qLoadedId) _qLoadedId='q_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
     _qCartSave(); try{ _qRenderMetaInfo(); }catch(e){}
   };
+  // ── r250: 저장 견적 목록(quoteSaved) 동시 저장 보호 ──────────────────
+  //  품목(_qsaved/<id>)은 직접 PUT 이라 바로 들어가는데 목록은 상태 전체 PATCH(0.8초 지연)라,
+  //  그 사이 다른 직원의 저장이 서버에 닿으면 2초 폴링이 목록을 통째로 덮어써서 내 견적이 사라졌다.
+  //  r236(회의록)과 같은 틀 — 올리기 전 합치기 · 받을 때 합치기 · 삭제는 묘비 · 올린 뒤 검증.
+  function _qsArr(x){ return Array.isArray(x) ? x.filter(function(e){ return e && e.id; }) : []; }
+  function _qsU(x){ return Number((x && (x.upd || x.savedAt)) || 0); }
+  function _qsMerge(mine, srv, serverDel){
+    var del = Object.assign({}, (serverDel && typeof serverDel === 'object') ? serverDel : {}, _qsDelMap || {});
+    _qsDelMap = del;
+    var m = _qsArr(mine), s = _qsArr(srv), byId = {}, out = [], seen = {};
+    m.forEach(function(x){ byId[x.id] = x; });
+    s.forEach(function(x){
+      if(del[x.id] || seen[x.id]) return;
+      var mi = byId[x.id];
+      out.push((mi && (_qsPend[x.id] || _qsU(mi) > _qsU(x))) ? mi : x);
+      seen[x.id] = 1;
+    });
+    // 서버에 아직 없는 건 '내가 방금 저장한 것'만 되살린다 (옛 삭제분 부활 방지)
+    var add = m.filter(function(x){ return !seen[x.id] && !del[x.id] && _qsPend[x.id]; });
+    return add.concat(out);
+  }
+  async function _qsMergeFromServer(){
+    if(!_fbDbUrl) return false;
+    var r = await _fbFetch(_fbDbUrl + '/' + _FB_PATH + '/sched_quote_saved.json');
+    if(!r || !r.ok) return false;
+    var s = await r.json();
+    var r2 = await _fbFetch(_fbDbUrl + '/' + _FB_PATH + '/sched_quote_del.json');
+    var sd = (r2 && r2.ok) ? (await r2.json()) : null;
+    quoteSaved = _qsMerge(quoteSaved, s, sd);
+    save('sched_quote_saved', quoteSaved); save('sched_quote_del', _qsDelMap);
+    return true;
+  }
+  var _qsVerifyTimer = null, _qsVerifyTries = 0;
+  function _qsScheduleVerify(){ if(_qsVerifyTimer) clearTimeout(_qsVerifyTimer); _qsVerifyTimer = setTimeout(_qsVerify, 2500); }
+  async function _qsVerify(){   // 같은 순간 두 사람이 올렸으면 한쪽이 덮인다 → 서버에 내 견적이 남아 있는지 확인
+    _qsVerifyTimer = null;
+    try{
+      var ids = Object.keys(_qsPend || {});
+      if(!ids.length){ _qsVerifyTries = 0; return; }
+      if(!_fbDbUrl) return;
+      var r = await _fbFetch(_fbDbUrl + '/' + _FB_PATH + '/sched_quote_saved.json');
+      if(!r || !r.ok) return;
+      var s = _qsArr(await r.json()), have = {};
+      s.forEach(function(x){ have[x.id] = 1; });
+      var miss = ids.filter(function(id){ return !have[id] && !_qsDelMap[id]; });
+      var ghost = s.some(function(x){ return _qsDelMap[x.id]; });
+      if((!miss.length && !ghost) || _qsVerifyTries >= 3){ _qsPend = {}; _qsVerifyTries = 0; return; }
+      _qsVerifyTries++;
+      await _qsMergeFromServer();
+      debouncedFbSave();
+    }catch(_e){}
+  }
   async function _qPersistQuote(){
     if(!_qCart.length) return;
+    // r250: 내용이 빈 견적은 저장하지 않는다 (번호·id 없이 저장돼 목록에 null 항목이 생기던 문제)
+    if(!_qCartHasContent()) throw new Error('견적 내용이 비어 있습니다.\n품목을 한 줄 이상 입력한 뒤 저장해 주세요.');
     _qEnsureQuoteNo();
-    if(!_fbDbUrl) return;
+    if(!_qLoadedId || !_qQuoteNo) throw new Error('견적번호를 발급하지 못했습니다.\n거래처와 품목을 확인한 뒤 다시 시도해 주세요.');
+    if(!_fbDbUrl) throw new Error('동기화 연결이 끊겨 있습니다.\n연결된 뒤 다시 저장해 주세요.');
     try{ await _qFlushLedgerFromCart(); }catch(_le){}   // 견적이 저장될 때만 원장(구매가·판매가) 갱신
     try{ await _smcCollectFromCart(); }catch(_se){}   // r181: 가격표에 없는 규격+E가 → SMC 확인 대기열
     try{ _pendTouchFromCart(); }catch(_pe){}   // r217
@@ -8261,9 +8324,12 @@ function reloadState() {
     var who=(typeof _authUser!=='undefined'&&_authUser&&_authUser.name)?_authUser.name:'';
     var vn=_qCart[0].vname||''; var vid=_qCart[0].vid||'';
     var ex=quoteSaved.find(function(x){ return x.id===_qLoadedId; });
-    if(ex){ ex.title=_qQuoteNo; ex.vname=vn; ex.vid=vid; ex.count=_qCart.length; ex.total=supply; ex.nego=_qNego; ex.memo=_qMemo; ex.note=_qNote; if(!ex.savedBy) ex.savedBy=who; ex.cols=JSON.parse(JSON.stringify(_qCols||[])); }
-    else { quoteSaved.unshift({id:_qLoadedId, title:_qQuoteNo, vname:vn, vid:vid, count:_qCart.length, total:supply, nego:_qNego, memo:_qMemo, note:_qNote, savedBy:who, savedAt:Date.now(), cols:JSON.parse(JSON.stringify(_qCols||[]))}); }
+    if(ex){ ex.title=_qQuoteNo; ex.vname=vn; ex.vid=vid; ex.count=_qCart.length; ex.total=supply; ex.nego=_qNego; ex.memo=_qMemo; ex.note=_qNote; if(!ex.savedBy) ex.savedBy=who; ex.cols=JSON.parse(JSON.stringify(_qCols||[])); ex.upd=Date.now(); }
+    else { quoteSaved.unshift({id:_qLoadedId, title:_qQuoteNo, vname:vn, vid:vid, count:_qCart.length, total:supply, nego:_qNego, memo:_qMemo, note:_qNote, savedBy:who, savedAt:Date.now(), upd:Date.now(), cols:JSON.parse(JSON.stringify(_qCols||[]))}); }
+    delete _qsDelMap[_qLoadedId];     // r250: 지웠다 다시 저장하면 묘비 해제
+    _qsPend[_qLoadedId]=Date.now();   // r250: 아직 서버에 안 올라간 내 항목
     saveAll();
+    _qsScheduleVerify();              // r250: 올린 뒤 서버에 실제로 남아 있는지 확인
     try{ _qLogDoneMemo(_qQuoteNo, vn, _qCart.length, supply, who); }catch(_e){}   // r222: 작성자 일정에 완료된 업무로
     try{ _coAfterQuote(vn, who); }catch(_e){}   // r225: 견적 5회 → 담당 편입
   }
@@ -8866,6 +8932,7 @@ function reloadState() {
     var meta=quoteSaved.find(function(x){ return x.id===id; }); if(!meta) return;
     showConfirmModal('저장 견적 삭제', '"'+esc(meta.title)+'"을(를) 삭제할까요?', function(){
       quoteSaved=quoteSaved.filter(function(x){ return x.id!==id; });
+      _qsDelMap[id]=Date.now(); delete _qsPend[id];   // r250: 삭제는 묘비로 — 다른 PC 사본이 되살리지 못하게
       _qsBlobDel(id); saveAll(); if(typeof _qRenderLoadList==='function') _qRenderLoadList(); else qOpenLoad();
     }, '삭제', '#dc2626');
   };
