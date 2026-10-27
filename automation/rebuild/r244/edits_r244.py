@@ -1,0 +1,85 @@
+# -*- coding: utf-8 -*-
+# r244 (사용자 요청 2026-10-20):
+#  ① 견적 담당자(거래처 담당자 이름, #qManager) 를 견적과 함께 저장·복원 — 작성 중 localStorage(새로고침), 저장 견적 meta.mgr(불러오기).
+#  ② "완료된 견적인데 다시 로그인하면 '작성 중인 견적 — 저장/덮어쓰기' 가 계속 뜸" 원인·조치:
+#     PDF·엑셀·HTML·메일 등 내보내기는 _qPersistQuote 로 자동 저장되지만 견적 목록은 그대로 남는다([저장] 버튼만 비움).
+#     그래서 재접속 때 _qDraftBootCheck 가 "저장 안 한 초안"으로 보고 물었고, 저장을 누르면 이미 있는 번호라 덮어쓰기 선택창까지 떴다.
+#     → 저장(자동 저장 포함)될 때마다 견적 내용의 서명(_qDraftSig)을 남기고, 서명이 그대로면(= 저장 뒤 바뀐 게 없으면)
+#       재접속·카테고리 이동 때 묻지 않는다(목록은 그대로 둠). 내용을 고친 뒤에는 전처럼 묻는다.
+import io, sys, json
+
+OPS = [
+  # ① 담당자 입력칸: 입력 시 상태 저장
+  ['<input id="qManager" class="q-flat" type="text" placeholder="(선택사항)" autocomplete="off" disabled title="거래처를 먼저 선택하세요" style="width:140px;max-width:100%">',
+   '<input id="qManager" class="q-flat" type="text" placeholder="(선택사항)" autocomplete="off" disabled title="거래처를 먼저 선택하세요" style="width:140px;max-width:100%" oninput="_qMgrChanged(this)">', 1, "MGR_INPUT"],
+  # 상태 변수 + 서명 함수 (_qCartLoad 바로 앞)
+  ["  function _qCartLoad(){\n    var key=_qCartKey();",
+   "  var _qMgr='';   // r244: 견적 담당자(거래처 담당자 이름)\n"
+   "  window._qMgrChanged=function(el){ _qMgr=String((el&&el.value)||'').trim(); _qCartSaveSoon(); };\n"
+   "  function _qDraftSig(){   // r244: 저장 시점과 비교할 견적 내용 서명 (화면용 임시 키 제외)\n"
+   "    try{ var rows=(_qCart||[]).map(function(c){ var o={}; Object.keys(c||{}).forEach(function(k){ if(k==='psrc'||k==='rid'||k==='manual'||k.charAt(0)==='_') return; o[k]=c[k]; }); return o; });\n"
+   "      return JSON.stringify({ r:rows, n:_qNego, m:_qMemo, t:_qNote, c:_qCols||[], q:_qQuoteNo, i:_qLoadedId, g:_qMgr }); }catch(_e){ return String(Date.now()); } }\n"
+   "  function _qDraftMarkSaved(){ try{ localStorage.setItem(_qCartKey()+'_sig', _qDraftSig()); }catch(_e){} }\n"
+   "  function _qDraftIsClean(){ try{ var s=localStorage.getItem(_qCartKey()+'_sig'); return !!s && s===_qDraftSig(); }catch(_e){ return false; } }\n"
+   "  function _qCartLoad(){\n    var key=_qCartKey();", 1, "SIG_FN"],
+  # localStorage 저장·복원에 담당자 포함
+  ["if(typeof _qQuoteYmd!=='undefined' && _qQuoteYmd) localStorage.setItem(k+'_ymd', _qQuoteYmd); else localStorage.removeItem(k+'_ymd'); }catch(e){} }",
+   "if(typeof _qQuoteYmd!=='undefined' && _qQuoteYmd) localStorage.setItem(k+'_ymd', _qQuoteYmd); else localStorage.removeItem(k+'_ymd'); if(_qMgr) localStorage.setItem(k+'_mgr', _qMgr); else localStorage.removeItem(k+'_mgr'); }catch(e){} }", 1, "CART_SAVE"],
+  ["_qQuoteYmd=localStorage.getItem(_qCartKey()+'_ymd')||'';",
+   "_qQuoteYmd=localStorage.getItem(_qCartKey()+'_ymd')||''; _qMgr=localStorage.getItem(_qCartKey()+'_mgr')||'';   // r244", 1, "CART_LOAD"],
+  # 비우기 경로들에서 담당자도 비움
+  ["    _qCart=[]; _qQuoteNo=null; _qLoadedId=null; _qNego=null; _qMemo=''; _qNote=''; _qCols=[]; _qQuoteYmd='';\n",
+   "    _qCart=[]; _qQuoteNo=null; _qLoadedId=null; _qNego=null; _qMemo=''; _qNote=''; _qCols=[]; _qQuoteYmd=''; _qMgr='';\n", 2, "CLEAR_A"],
+  ["_qLoadedId=null; _qQuoteNo=null; _qNego=null; _qMemo=''; _qNote=''; _qCart=[]; _qCols=[]; _qQuoteYmd=''; _qCartSave(); _qSyncNoteInput(); renderQCart();",
+   "_qLoadedId=null; _qQuoteNo=null; _qNego=null; _qMemo=''; _qNote=''; _qCart=[]; _qCols=[]; _qQuoteYmd=''; _qMgr=''; _qCartSave(); _qSyncNoteInput(); renderQCart();", 2, "CLEAR_B"],
+  ["      var _mgc=document.getElementById('qManager'); if(_mgc) _mgc.value='';",
+   "      _qMgr=''; var _mgc=document.getElementById('qManager'); if(_mgc) _mgc.value='';", 1, "CLEAR_C"],
+  # renderQCart: 거래처 있으면 저장된 담당자 값 표시
+  ["    (function(){ var _mgi=document.getElementById('qManager'); if(_mgi){ if(_vendorSel){ _mgi.disabled=false; } else { _mgi.disabled=true; _mgi.value=''; } } })();",
+   "    (function(){ var _mgi=document.getElementById('qManager'); if(_mgi){ if(_vendorSel){ _mgi.disabled=false; if(document.activeElement!==_mgi) _mgi.value=_qMgr||''; } else { _mgi.disabled=true; _mgi.value=''; } } })();   // r244: 담당자 복원", 1, "RENDER_MGR"],
+  # 저장 견적 meta 에 담당자
+  ["if(!ex.savedBy) ex.savedBy=who; ex.cols=JSON.parse(JSON.stringify(_qCols||[])); ex.upd=Date.now(); }",
+   "if(!ex.savedBy) ex.savedBy=who; ex.cols=JSON.parse(JSON.stringify(_qCols||[])); ex.upd=Date.now(); ex.mgr=_qMgr||''; }", 1, "PERSIST_EX"],
+  ["savedBy:who, savedAt:Date.now(), upd:Date.now(), cols:JSON.parse(JSON.stringify(_qCols||[]))}); }",
+   "savedBy:who, savedAt:Date.now(), upd:Date.now(), cols:JSON.parse(JSON.stringify(_qCols||[])), mgr:_qMgr||''}); }", 1, "PERSIST_NEW"],
+  ["    try{ _coAfterQuote(vn, who); }catch(_e){}   // r225: 견적 5회 → 담당 편입\n  }",
+   "    try{ _coAfterQuote(vn, who); }catch(_e){}   // r225: 견적 5회 → 담당 편입\n    _qDraftMarkSaved();   // r244: 이 내용 그대로면 재접속·이동 때 '저장할까요' 안 묻는다\n  }", 1, "PERSIST_SIG"],
+  # 불러오기: 담당자 복원
+  ["        _qCartSave(); _qSyncDateInput(); _qSyncNoteInput();\n        var ov=document.getElementById('qLoadOverlay'); if(ov) ov.style.display='none';",
+   "        _qMgr=(meta&&meta.mgr)?String(meta.mgr):'';   // r244\n        _qCartSave(); _qSyncDateInput(); _qSyncNoteInput(); _qDraftMarkSaved();   // r244: 불러온 직후는 '저장된 상태'\n        var ov=document.getElementById('qLoadOverlay'); if(ov) ov.style.display='none';", 1, "LOAD_MGR"],
+  # 재접속·이동 가드: 서명이 그대로면 묻지 않음
+  ["      if(!_qCartHasContent()){ _qClearIfEmpty(); return; }   // 빈 목록이면 조용히 초기화\n      _qDraftPrompt(function(){ _qDraftSaveFlow(null); }, function(){ _qDraftClear(); }, true);",
+   "      if(!_qCartHasContent()){ _qClearIfEmpty(); return; }   // 빈 목록이면 조용히 초기화\n      if(_qDraftIsClean()) return;   // r244: 저장(자동 저장 포함) 뒤 바뀐 게 없으면 묻지 않는다\n      _qDraftPrompt(function(){ _qDraftSaveFlow(null); }, function(){ _qDraftClear(); }, true);", 1, "BOOT_SIG"],
+  ["    if(!_qCartHasContent()){ _qClearIfEmpty(); return false; }   // 빈 목록이면 조용히 초기화하고 그냥 이동\n    _qDraftPrompt(",
+   "    if(!_qCartHasContent()){ _qClearIfEmpty(); return false; }   // 빈 목록이면 조용히 초기화하고 그냥 이동\n    if(_qDraftIsClean()) return false;   // r244: 저장된 그대로면 그냥 이동(목록은 유지)\n    _qDraftPrompt(", 1, "LEAVE_SIG"],
+  ["<!-- test build r243 2026-10-20 -->", "<!-- test build r244 2026-10-20 -->", 1, "MARKER"],
+]
+
+def rep(s, old, new, exp, label):
+    n = s.count(old)
+    if n != exp: raise SystemExit('R244 FAIL %s count %d (expect %d)' % (label, n, exp))
+    return s.replace(old, new)
+
+def apply_r244(s, path):
+    is_test = 'testpage' in path or '/test/' in path or path.startswith('test')
+    for old, new, exp, label in OPS:
+        if label == 'MARKER' and not is_test: continue
+        s = rep(s, old, new, exp, label)
+    return s
+
+def gen_js(out):
+    lines = ["// r244 브라우저 적용기 — edits_r244.py 의 OPS. r243 적용본 위에 적용. (2026-10-27 다른 대화창 r250(견적 저장 병합) 바탕에 맞춰 PERSIST 앵커 갱신)",
+             "function r244Apply(s, isTest){",
+             "  function rep(str, old, nw, exp, label){ var n=str.split(old).length-1; if(n!==exp) throw new Error('R244 FAIL '+label+' count '+n+' (expect '+exp+')'); return str.split(old).join(nw); }",
+             "  var OPS = " + json.dumps(OPS, ensure_ascii=False) + ";",
+             "  for(var i=0;i<OPS.length;i++){ var o=OPS[i]; if(!isTest && o[3]==='MARKER') continue; s = rep(s, o[0], o[1], o[2], o[3]); }",
+             "  return s;", "}", "if(typeof module!=='undefined') module.exports = r244Apply;", ""]
+    with io.open(out, 'w', encoding='utf-8', newline='') as f: f.write('\n'.join(lines))
+
+if __name__ == '__main__':
+    if len(sys.argv)>2 and sys.argv[1]=='--js': gen_js(sys.argv[2]); print('js written:', sys.argv[2]); sys.exit(0)
+    for path in sys.argv[1:]:
+        with io.open(path, 'r', encoding='utf-8') as f: s=f.read()
+        s = apply_r244(s, path)
+        with io.open(path, 'w', encoding='utf-8', newline='') as f: f.write(s)
+        print('r244 applied:', path)
