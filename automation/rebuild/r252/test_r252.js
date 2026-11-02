@@ -1,0 +1,43 @@
+// r252 테스트 — 상단 메뉴 순서·이름 · 유튜브 공지 팝업 꺼짐
+const { chromium } = require('/home/claude/.npm-global/lib/node_modules/playwright');
+const fs = require('fs'), path = require('path');
+const file = path.resolve(process.argv[2] || 'd252/test/index.html');
+let pass=0, fail=0; function ok(c,m){ if(c){pass++;console.log('  ✓',m);} else {fail++;console.log('  ✗',m);} }
+(async()=>{
+  const src=fs.readFileSync(file,'utf8').replace('  function _vacUnlimited(id){','window._xlsxStyleReady=true; window.__T=function(c){return eval(c);}; function _vacUnlimited(id){');
+  const tmp=path.join(path.dirname(file),'_h_r252.html'); fs.writeFileSync(tmp,src);
+  const br=await chromium.launch(); const pg=await br.newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(String(e)));
+  let gets=0; let cfgMode='ok', cfgHits=0; await pg.route('**/*', r=>{ const u=r.request().url(); if(u.startsWith('file://')) return r.continue(); if(/sched_mail_cfg\.json/.test(u)){ cfgHits++; if(cfgMode==='fail'||(cfgMode==='once'&&cfgHits===1)) return r.fulfill({status:500,body:'x'}); return r.fulfill({status:200,contentType:'application/json',body:JSON.stringify({url:'https://w.test',key:'k'})}); } if(/sched_notice_seen/.test(u)){ gets++; return r.fulfill({status:200,contentType:'application/json',body:'null'}); } r.abort(); });
+  await pg.goto('file://'+tmp); await pg.waitForTimeout(3500);
+  await pg.evaluate(()=>{ document.getElementById('authGate').style.display='none'; });
+  const T=c=>pg.evaluate(c2=>window.__T(c2),c);
+  const labels=await T(`[...document.querySelectorAll('.page-tab')].map(function(b){ return b.textContent.trim(); }).join(',')`);
+  ok(labels==='일정,견적,업무 사이트,매입처,재고,회계,자료실,내규', '메뉴 순서·이름 — '+labels);
+  await T(`document.getElementById('tabEtc').click(); 'ok'`); await pg.waitForTimeout(200);
+  ok(await T(`document.getElementById('pageLinks').classList.contains('active') && document.getElementById('tabEtc').classList.contains('active') && document.querySelector('.sub-tab[data-page="links"]').textContent==='업무 사이트' && document.querySelector('#pageLinks .inv-flat-label').textContent==='업무 사이트'`), '[업무 사이트] → 페이지 (하위 탭·제목도 업무 사이트)');
+  await T(`document.querySelector('.page-tab[data-page="rules"]').click(); 'ok'`); await pg.waitForTimeout(200);
+  ok(await T(`document.getElementById('pageRules').classList.contains('active')`), '[내규] 동작');
+  await T(`document.getElementById('tabAccounting').click(); 'ok'`); await pg.waitForTimeout(300);
+  ok(await T(`document.getElementById('tabAccounting').classList.contains('active')`), '[회계] 동작');
+  await T(`_fbDbUrl='https://fb.test'; _fbFetch=async function(u,o){ return fetch(u,o); }; _authUser={id:'kjs',name:'김재성',role:'admin'}; _ntShown={}; switchPage('memo'); 'ok'`); await pg.waitForTimeout(900);
+  ok(await T(`_NOTICES.length===0 && !document.getElementById('ntOverlay')`) && gets===0, '유튜브 공지 팝업 안 뜸 (조회도 안 함)');
+  await T(`linksList=[{id:'lk1',name:'카드사',url:'https://x.test',region:'',loginId:'chjk01',loginPw:'p@ss',note:''}]; switchPage('links'); renderLinksPage(); 'ok'`); await pg.waitForTimeout(300);
+  await T(`document.querySelector('#pageLinks button[title="ID/PW 확인"]').click(); 'ok'`); await pg.waitForTimeout(200);
+  ok(await T(`(document.getElementById('linksCredOverlay')||{}).style && document.getElementById('linksCredOverlay').style.display==='flex' && document.getElementById('linksCredOverlay').innerText.indexOf('chjk01')>=0 && !(document.getElementById('linksPwOverlay') && document.getElementById('linksPwOverlay').style.display==='flex')`), 'ID/PW 버튼 → 비밀번호 재확인 없이 바로 표시');
+  await T(`document.getElementById('linksCredOverlay').style.display='none'; document.querySelector('#pageLinks button[title="수정"]').click(); 'ok'`); await pg.waitForTimeout(200);
+  ok(await T(`document.getElementById('linksPwOverlay') && document.getElementById('linksPwOverlay').style.display==='flex'`), '수정은 여전히 비밀번호 재확인');
+  console.log('▶ 메일 설정 불러오기');
+  await T(`window.__info=[]; showInfoModal=function(t,m){ window.__info.push(t); }; _mailCfg=null; quoteVendors=[{id:'v1',name:'A사'}]; _qCurId='v1'; _qCart=[{vid:'v1',vname:'A사',spec:'X1',name:'n',qty:1,sell:100}]; _qQuoteNo='A-1'; _qLoadedId='q1'; clientInfo={}; switchPage('quote'); 'ok'`);
+  cfgMode='once'; cfgHits=0; await T(`qOpenMailSend(); 'ok'`); await pg.waitForTimeout(1800);
+  ok(await T(`!!document.getElementById('mlTo') && document.getElementById('mailSendOverlay').style.display==='flex' && window.__info.length===0`) && cfgHits===2, '첫 읽기 실패 → 재시도 성공 → 메일 창 열림 (조회 '+cfgHits+'회)');
+  await T(`document.getElementById('mailSendOverlay').style.display='none'; window.__info=[]; 'ok'`);
+  cfgMode='fail'; cfgHits=0; await T(`qOpenMailSend(); 'ok'`); await pg.waitForTimeout(2200);
+  ok(await T(`window.__info.join(',')`)==='메일 설정 확인 실패', '계속 실패 → "메일 설정 확인 실패" (설정 없음 아님)');
+  ok(await T(`_mailCfg===null`), '실패는 기억하지 않음');
+  await T(`window.__info=[]; mailOpenCfg(); 'ok'`); await pg.waitForTimeout(2200);
+  ok(await T(`window.__info.join(',')==='메일 설정 확인 실패' && !(document.getElementById('mailCfgOverlay') && document.getElementById('mailCfgOverlay').style.display==='flex')`), '관리자 [메일 설정]도 실패 시 빈 창을 열지 않음(덮어쓰기 방지)');
+  cfgMode='ok'; await T(`window.__info=[]; qOpenMailSend(); 'ok'`); await pg.waitForTimeout(1200);
+  ok(await T(`document.getElementById('mailSendOverlay').style.display==='flex' && window.__info.length===0`), '복구되면 바로 정상');
+  ok(errs.length===0, '페이지 오류 없음'+(errs.length?' — '+errs.slice(0,2).join(' | '):''));
+  console.log(`\n${pass} passed, ${fail} failed`); await br.close(); fs.unlinkSync(tmp); process.exit(fail?1:0);
+})();
