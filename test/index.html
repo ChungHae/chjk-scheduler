@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r251 2026-10-27 -->
+<!-- test build r252 2026-10-29 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -2752,13 +2752,13 @@
 <!-- ─── 페이지 탭 ─────────────────────────────────────── -->
 <nav class="page-nav">
   <button class="page-tab active" id="tabSchedule">일정</button>
-  <button class="page-tab" data-page="rules">내규</button><!-- r247 -->
   <button class="page-tab" data-page="estimate">견적</button>
-  <button class="page-tab" id="tabAccounting">회계</button>
-  <button class="page-tab" data-page="inventory">재고</button>
+  <button class="page-tab" id="tabEtc">업무 사이트</button><!-- r252: 구 '기타' -->
   <button class="page-tab" data-page="purchase">매입처</button>
+  <button class="page-tab" data-page="inventory">재고</button>
+  <button class="page-tab" id="tabAccounting">회계</button>
   <button class="page-tab" data-page="files">자료실</button>
-  <button class="page-tab" id="tabEtc">기타</button>
+  <button class="page-tab" data-page="rules">내규</button><!-- r247 -->
 </nav>
 <nav class="sub-nav" id="acctSubNav" style="display:none">
   <button class="sub-tab" data-page="fxsum">집계</button>
@@ -2768,7 +2768,7 @@
   <button class="sub-tab" id="acctTabFxUp" data-page="fxup">자료 업로드</button>
 </nav>
 <nav class="sub-nav" id="etcSubNav" style="display:none">
-  <button class="sub-tab" data-page="links">바로가기</button>
+  <button class="sub-tab" data-page="links">업무 사이트</button>
 </nav>
 <nav class="sub-nav" id="scheduleSubNav">
   <button class="sub-tab active" data-page="memo">일정</button>
@@ -3177,7 +3177,7 @@
   </div>
   <div id="pageLinks" class="page-section">
     <div class="q-toolbar inv-toolbar">
-      <span class="inv-flat-label">바로가기</span>
+      <span class="inv-flat-label">업무 사이트</span>
       <input type="text" id="linksSearch" class="q-flat" placeholder="이름/바로가기 검색…" autocomplete="off">
       <span class="inv-flat-div"></span>
       <div id="linksRegionFilter" style="display:flex;gap:4px">
@@ -8675,8 +8675,11 @@ function reloadState() {
   var _mailCfg=null;
   async function _mailLoadCfg(force){
     if(_mailCfg && !force) return _mailCfg;
-    try{ var r=await _fbFetch(_fbDbUrl+'/'+_AUTH_BASE+'/sched_mail_cfg.json'); _mailCfg=(r&&r.ok?(await r.json()):null)||{}; }catch(_e){ _mailCfg={}; }
-    return _mailCfg;
+    for(var _try=0; _try<2; _try++){   // r252: 실패는 '설정 없음' 으로 기억하지 않는다
+      try{ var r=await _fbFetch(_fbDbUrl+'/'+_AUTH_BASE+'/sched_mail_cfg.json'); if(r&&r.ok){ _mailCfg=(await r.json())||{}; return _mailCfg; } }catch(_e){}
+      await new Promise(function(res){ setTimeout(res, 800); });
+    }
+    _mailCfg=null; return { _loadErr:true };
   }
   async function _mailSaveCfg(obj){
     var r=await _fbFetch(_fbDbUrl+'/'+_AUTH_BASE+'/sched_mail_cfg.json', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(obj)});
@@ -8695,6 +8698,7 @@ function reloadState() {
   window.mailOpenCfg=async function(){
     if(!_isAdmin()){ showInfoModal('권한','메일 설정은 관리자만 할 수 있습니다.'); return; }
     var cfg=await _mailLoadCfg(true);
+    if(cfg._loadErr){ showInfoModal('메일 설정 확인 실패','저장된 메일 설정을 불러오지 못했습니다. 빈 칸으로 저장하면 기존 설정이 지워질 수 있어 창을 열지 않습니다.\n잠시 후 다시 시도해 주세요.'); return; }   // r252
     _mailOverlay('mailCfgOverlay',
       '<div style="padding:16px 20px;border-bottom:2px solid #1B3A6B;display:flex;justify-content:space-between;align-items:center"><span style="font-size:16px;font-weight:700;color:#1B3A6B">메일 설정</span><button class="btn" onclick="document.getElementById(\'mailCfgOverlay\').style.display=\'none\'" style="padding:4px 10px">닫기</button></div>'
       +'<div style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">'
@@ -8842,7 +8846,8 @@ function reloadState() {
   }
   window.qOpenMailSend=async function(){
     if(!_qCart.length || !_qCartHasContent()){ showInfoModal('견적 목록','견적 목록이 비어 있습니다.'); return; }
-    var cfg=await _mailLoadCfg();
+    var cfg=await _mailLoadCfg(true);   // r252: 열 때마다 새로 읽음
+    if(cfg._loadErr){ showInfoModal('메일 설정 확인 실패','메일 설정을 불러오지 못했습니다 (로그인·네트워크 확인 중).\n잠시 후 다시 눌러 주세요. 계속되면 새로고침(Ctrl+F5) 후 다시 시도해 주세요.'); return; }
     if(!cfg.url||!cfg.key){ if(_isAdmin()){ showInfoModal('메일 설정 필요','아직 발송 서버(Worker) 주소와 열쇠가 등록되지 않았습니다.\n\n견적 다운로드 창의 [메일 설정] 에서 입력해 주세요.'); } else { showInfoModal('메일 설정 필요','관리자가 메일 발송 설정을 아직 하지 않았습니다.'); } return; }
     _qEnsureQuoteNo();
     var d=_mailQuoteDraft();
@@ -8874,7 +8879,7 @@ function reloadState() {
     if(!to){ st.innerHTML='<span style="color:#dc2626">받는 사람을 입력하세요.</span>'; return; }
     var badAddr=to.split(/[,;\s]+/).filter(Boolean).find(function(a){ return !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(a); });
     if(badAddr){ st.innerHTML='<span style="color:#dc2626">주소 형식이 이상합니다: '+esc(badAddr)+'</span>'; return; }
-    var cfg=await _mailLoadCfg(); var d=window._mlDraft||_mailQuoteDraft();
+    var cfg=await _mailLoadCfg(); if(cfg._loadErr) cfg=await _mailLoadCfg(true); var d=window._mlDraft||_mailQuoteDraft();   // r252
     btn.disabled=true; btn.textContent='보내는 중…';
     try{
       st.textContent='견적 저장 중…';
@@ -14478,7 +14483,7 @@ function reloadState() {
         <div style="display:flex;align-items:center;gap:6px;margin-right:-8px;min-width:0">
           <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:#f4f6f9;border:1px solid #eef2f7;border-radius:0;flex-shrink:0;overflow:hidden"><img class="lk-favicon" src="${fav?esc(fav.primary):_LINK_DEFAULT_ICON}" ${fav?`data-fallback="${esc(fav.fallback)}"`:''} style="width:18px;height:18px;object-fit:contain"></span>
           <span class="lk-title" style="font-size:14px;font-weight:700;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 0;min-width:0">${esc(l.name)}</span>
-          ${hasCred?`<button type="button" onclick="event.stopPropagation();_linksConfirmMyPw('ID/PW 확인', function(){ _linksShowCredential('${l.id}'); })" title="ID/PW 확인" aria-label="ID/PW 확인" style="flex-shrink:0;background:#fff7ed;border:1px solid #fdba74;color:#b45309;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:0;cursor:pointer;white-space:nowrap;line-height:1.5;font-family:inherit">ID / PW</button>`:''}
+          ${hasCred?`<button type="button" onclick="event.stopPropagation();_linksShowCredential('${l.id}')" title="ID/PW 확인" aria-label="ID/PW 확인" style="flex-shrink:0;background:#fff7ed;border:1px solid #fdba74;color:#b45309;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:0;cursor:pointer;white-space:nowrap;line-height:1.5;font-family:inherit">ID / PW</button>`:''}
         </div>
         ${l.note?`<div class="lk-note" style="font-size:11.5px;color:#6b7280;line-height:1.5;white-space:pre-wrap;word-break:break-word">${esc(l.note)}</div>`:''}
       </div>`;
@@ -14593,7 +14598,7 @@ function reloadState() {
             <input type="text" id="lkLoginId" value="${esc(l?.loginId||'')}" placeholder="로그인 ID" autocomplete="off" style="width:100%;padding:8px 10px;border:1.5px solid #e5e5e5;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box">
             <input type="text" id="lkLoginPw" value="${esc(l?.loginPw||'')}" placeholder="로그인 비밀번호" autocomplete="off" style="width:100%;padding:8px 10px;border:1.5px solid #e5e5e5;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box">
           </div>
-          <div style="font-size:11px;color:#9ca3af;margin-top:5px">입력 시 비밀번호 확인 후 열람 가능한 ID/PW 버튼이 생성됩니다.</div>
+          <div style="font-size:11px;color:#9ca3af;margin-top:5px">입력하면 목록에 ID/PW 버튼이 생깁니다 (누르면 바로 보임).</div>
         </div>
         <div>
           <label class="form-label">비고 (선택사항)</label>
@@ -16649,9 +16654,7 @@ function reloadState() {
     try{ await _rlSave(); }catch(e){ showInfoModal('내규 저장 실패', e.message||String(e)); } renderRulesPage();
   };
   // ─── r242 1회성 공지 팝업 (일정 페이지) ─────────────────────────────
-  var _NOTICES = [
-    { id:'nt20261020', title:'공지 영상', yt:'mx2bnXbRZq0', url:'https://www.youtube.com/shorts/mx2bnXbRZq0', note:'아래 영상을 확인해 주세요. [확인] 을 누르면 다시 표시되지 않습니다.' }
-  ];
+  var _NOTICES = [];   // r252: 10-20 유튜브 공지 종료 (다시 쓰려면 { id, title, yt|url, note } 한 줄 추가 — id 가 새로우면 계정마다 1회)
   var _ntShown = {};   // 이번 세션에서 띄운/확인한 공지 id
   function _ntLsKey(nid, uid){ return 'sched_notice_seen_'+nid+'_'+uid; }
   function _ntUid(){ return (_authUser && _authUser.id) ? String(_authUser.id) : ''; }
