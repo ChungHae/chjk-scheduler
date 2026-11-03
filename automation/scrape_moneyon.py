@@ -156,21 +156,146 @@ async def login(page):
 
     await page.wait_for_load_state("networkidle", timeout=15000)
 
+    # 로그인 직후 공지·안내 레이어가 떠 있으면 먼저 닫는다 (2026-11-03)
+    await _dismiss_overlays(page)
+
     # 로그인 성공 여부 확인 (실패 시 비밀번호 값은 절대 로그에 남기지 않는다)
     if await page.locator('text=로그아웃').count() == 0:
-        raise RuntimeError("머니온 로그인 실패로 보입니다 (로그아웃 버튼이 보이지 않음).")
+        await _save_debug(page)
+        raise RuntimeError("머니온 로그인 실패로 보입니다 (로그아웃 버튼이 보이지 않음). " + (await _where(page)))
+
+
+DEBUG_PNG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "moneyon_login_debug.png")
+
+# 조회기간 입력칸. 2026-11-03 실제 화면(사람이 로그인한 상태)에서 id/name 둘 다
+# cal_date_fr / cal_date_to 로 그대로 있는 것을 확인했다. 그런데도 자동 실행에서는
+# null 이 나왔으므로(아래 _goto_detail 주석) 혹시 모를 개편에 대비해 후보를 둔다.
+DATE_FR_CANDIDATES = ['#cal_date_fr', 'input[name="cal_date_fr"]', 'input[name="date_fr"]', 'input[name="fr_date"]', '#date_fr']
+DATE_TO_CANDIDATES = ['#cal_date_to', 'input[name="cal_date_to"]', 'input[name="date_to"]', 'input[name="to_date"]', '#date_to']
+
+
+async def _save_debug(page):
+    """지금 화면을 PNG 로 남긴다(워크플로가 Artifacts 로 올려 준다).
+    비밀번호 등은 입력칸 값이 가려진 상태라 화면에 남지 않는다."""
+    try:
+        await page.screenshot(path=DEBUG_PNG, full_page=True)
+        print(f"[안내] 실패 시점 화면을 저장했습니다: {DEBUG_PNG}")
+    except Exception as e:
+        print(f"[안내] 화면 저장 실패: {e}")
+
+
+async def _where(page) -> str:
+    """지금 어느 화면에 있는지 사람이 읽을 수 있게 한 줄로."""
+    try:
+        url = page.url
+    except Exception:
+        url = "(알 수 없음)"
+    title = ""
+    head = ""
+    try:
+        title = (await page.title()) or ""
+    except Exception:
+        pass
+    try:
+        head = (await page.inner_text("body"))[:300].replace("\n", " ")
+        head = " ".join(head.split())
+    except Exception:
+        pass
+    return f"현재 주소: {url} / 제목: {title} / 화면 글머리: {head}"
+
+
+async def _dismiss_overlays(page, max_rounds=4) -> int:
+    """로그인 직후 화면을 덮는 공지·안내 레이어를 닫는다.
+
+    (2026-11-03 추가) 2026-11-02·11-03 자동 수집이 연속 실패했는데, 오류는
+    매출상세조회 화면의 조회기간 입력칸(cal_date_fr)이 null 이라는 것이었다.
+    사람이 로그인한 실제 화면에는 그 입력칸이 그대로 있으므로, 자동 실행은
+    그 화면까지 못 가고 중간 화면(공지 팝업·안내 레이어 등)에 걸린 것으로 본다.
+    SemPlus 때(2026-09-22)와 같은 방식으로, 특정 공지에 묶지 말고 '화면을 덮고
+    있는 닫기 가능한 레이어'면 닫는다.
+
+    ※ '확인'·'예' 처럼 무언가를 진행시킬 수 있는 버튼은 누르지 않는다.
+       닫기 성격의 것만 누른다(닫기 / 오늘 하루 / 다음에 / 나중에 / 건너뛰기 / X).
+    """
+    CLOSE_TEXTS = ["오늘 하루", "오늘하루", "닫기", "다음에", "나중에", "건너뛰기", "취소하고 닫기"]
+    closed = 0
+    for _ in range(max_rounds):
+        did = False
+        for frame in page.frames:
+            for t in CLOSE_TEXTS:
+                try:
+                    loc = frame.locator(f'a:has-text("{t}"), button:has-text("{t}"), input[type="button"][value*="{t}"]').first
+                    if await loc.count() and await loc.is_visible():
+                        await loc.click(timeout=1500)
+                        closed += 1
+                        did = True
+                        print(f"[안내] 머니온 안내 레이어를 닫았습니다: '{t}'")
+                        await page.wait_for_timeout(400)
+                        break
+                except Exception:
+                    continue
+            if did:
+                break
+        if not did:
+            # 닫기 버튼을 못 찾으면, 화면을 덮고 있는 레이어 자체를 지운다(공지일 뿐이라 조회에는 영향 없음)
+            try:
+                removed = await page.evaluate("""() => {
+                    let n = 0;
+                    document.querySelectorAll('div,section').forEach(el => {
+                        const st = getComputedStyle(el);
+                        if ((st.position === 'fixed' || st.position === 'absolute') &&
+                            Number(st.zIndex || 0) >= 100 &&
+                            el.offsetWidth > window.innerWidth * 0.5 &&
+                            el.offsetHeight > window.innerHeight * 0.3) { el.remove(); n++; }
+                    });
+                    return n;
+                }""")
+                if removed:
+                    closed += removed
+                    print(f"[안내] 화면을 덮고 있던 레이어 {removed}개를 제거했습니다.")
+            except Exception:
+                pass
+            break
+    return closed
+
+
+async def _goto_detail(page):
+    """매출상세조회 화면으로 가서 '조회기간 입력칸이 실제로 보일 때까지' 확인한다.
+
+    예전에는 goto 뒤 바로 document.getElementById('cal_date_fr').value 에 값을 넣었는데,
+    중간 화면에 걸리면 getElementById 가 null 이라
+    'Cannot set properties of null' 이라는, 원인을 알 수 없는 오류만 남았다
+    (2026-11-02·11-03 실패). 이제는 어디에 걸렸는지 화면과 주소로 알려 준다."""
+    for attempt in range(3):
+        await page.goto(DETAIL_URL, wait_until="domcontentloaded")
+        try:
+            await page.wait_for_load_state("networkidle", timeout=10000)
+        except Exception:
+            pass
+        fr = await _find_first(page, DATE_FR_CANDIDATES, timeout=4000)
+        if fr:
+            return
+        await _dismiss_overlays(page)
+    await _save_debug(page)
+    raise RuntimeError(
+        "매출상세조회 화면의 조회기간 입력칸을 찾지 못했습니다 — 로그인 뒤 다른 화면에 "
+        "걸려 있거나 화면 양식이 바뀐 것으로 보입니다. "
+        + (await _where(page))
+        + " / 실패 시점 화면은 실행 결과의 Artifacts(card-sales-debug) 에 PNG 로 올라갑니다."
+    )
 
 
 async def search_range(page, date_fr: str, date_to: str):
     """조회기간을 YYMMDD 형식으로 설정하고 화면의 검색 함수를 호출한다
     (기존 코드와 동일한 부분 - 이미 안정적으로 동작 확인됨)."""
-    await page.evaluate(
-        """([fr, to]) => {
-            document.getElementById('cal_date_fr').value = fr;
-            document.getElementById('cal_date_to').value = to;
-        }""",
-        [date_fr, date_to],
-    )
+    fr_el = await _find_first(page, DATE_FR_CANDIDATES, timeout=4000)
+    to_el = await _find_first(page, DATE_TO_CANDIDATES, timeout=4000)
+    if not fr_el or not to_el:
+        await _save_debug(page)
+        raise RuntimeError("조회기간 입력칸을 찾지 못했습니다. " + (await _where(page)))
+    # 화면의 달력 위젯이 붙어 있어도 값만 직접 넣는 방식이 가장 안정적이었다.
+    await fr_el.evaluate("(el, v) => { el.value = v; }", date_fr)
+    await to_el.evaluate("(el, v) => { el.value = v; }", date_to)
     await page.evaluate("() => { if (typeof doSearch === 'function') doSearch(); }")
     # 오래된/넓은 기간일수록 서버 조회에 시간이 더 걸릴 수 있어 넉넉히 대기.
     await page.wait_for_timeout(2500)
@@ -314,7 +439,7 @@ async def main():
         page = await browser.new_page(accept_downloads=True)
         try:
             await login(page)
-            await page.goto(DETAIL_URL, wait_until="domcontentloaded")
+            await _goto_detail(page)
             await search_range(page, fr_str, to_str)
             xlsx_path = await download_excel(page)
             raw_records = parse_excel(xlsx_path)
@@ -325,6 +450,10 @@ async def main():
             # 거래가 없는 날 앱이 "오늘 자료가 아직 수집되지 않았습니다"를 띄운다.
             write_transactions("seoul", records)
             print(f"Firebase 기록 완료 (branch=seoul, {len(records)}건)")
+        except Exception:
+            # 어떤 단계에서 깨지든 그 시점 화면을 남겨 둔다 (2026-11-03)
+            await _save_debug(page)
+            raise
         finally:
             await browser.close()
 
