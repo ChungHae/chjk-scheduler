@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r257 2026-11-09 -->
+<!-- test build r258 2026-11-09 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -3160,6 +3160,7 @@
       <span id="purchaseCount" style="font-size:11px;color:#9ca3af;white-space:nowrap;margin-left:6px"></span>
       <span style="flex:1"></span>
       <input type="file" id="purchaseUploadFile" accept=".xlsx,.xls" style="display:none">
+      <button class="btn" id="pvInqNewBtn" onclick="pvInqOpen({})" title="브랜드 대리점 담당자에게 품번 견적·납기 문의 메일" style="border-color:#1B3A6B;color:#1B3A6B;font-size:11.5px;padding:3px 10px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;height:28px;box-sizing:border-box"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/><path d="M12 2v3"/></svg><span style="font-size:11.5px;font-weight:700">품번 문의</span></button>
       <button class="btn" id="pvInqBoxBtn" onclick="pvInqBox()" title="보낸 품번 문의 · 회신 여부" aria-label="문의함" style="border-color:#b45309;color:#b45309;font-size:11.5px;padding:3px 10px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;height:28px;box-sizing:border-box"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg><span style="font-size:11.5px;font-weight:700">문의함</span></button>
       <span class="qic-div" style="width:1px;align-self:stretch;background:#d3dae4;margin:2px 4px"></span>
       <button class="qic" id="purchaseAddBtn" data-tip="매입처 추가" aria-label="매입처 추가" style="border-color:#1B3A6B;color:#1B3A6B"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
@@ -7689,10 +7690,6 @@ function reloadState() {
           +'<div style="display:flex;gap:8px">'
           +'<button onclick="document.getElementById(\'qDlMenuOverlay\').style.display=\'none\'; qOpenMailSend();" style="'+_DLB+';background:#1B3A6B;color:#fff;border-color:#1B3A6B" onmouseover="this.style.background=\'#14305c\'" onmouseout="this.style.background=\'#1B3A6B\'">메일 보내기 (PDF·HTML 첨부)</button>'
           +'</div></div>'
-        +'<div><div style="font-size:12px;font-weight:700;color:#334155;margin-bottom:9px">매입처 문의 <span style="font-weight:500;color:#9ca3af;font-size:11px">· 목록의 품번을 브랜드 대리점 담당자에게 견적·납기 문의 · 회신은 내 메일로</span></div>'
-          +'<div style="display:flex;gap:8px">'
-          +'<button onclick="document.getElementById(\'qDlMenuOverlay\').style.display=\'none\'; pvInqOpen({fromCart:true});" style="'+_DLB+';border-color:#b45309;color:#b45309" onmouseover="this.style.background=\'#fff7ed\'" onmouseout="this.style.background=\'#fff\'">매입처에 문의 메일</button>'
-          +'</div></div>'
       +'</div></div>';
     ov.style.display='flex';
   };
@@ -8988,7 +8985,7 @@ function reloadState() {
   window.pvInqBox=function(f){ if(f) window._pvInqFilter=f; var all=(typeof pvInq!=='undefined'?pvInq:[]).slice().sort(function(a,b){ return (b.at||0)-(a.at||0); }); var fl=window._pvInqFilter; var list=all.filter(function(q){ return fl==='all'||q.status===fl; });
     var tab=function(k,l){ return '<button class="btn" onclick="pvInqBox(\''+k+'\')" style="padding:4px 10px;'+(fl===k?'background:#1B3A6B;color:#fff;border-color:#1B3A6B':'')+'">'+l+'</button>'; };
     var h='<div style="padding:14px 20px;border-bottom:2px solid #1B3A6B;display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-size:16px;font-weight:700;color:#1B3A6B">매입처 문의함 <span style="font-size:12px;font-weight:500;color:#6b7280;margin-left:6px">회신 대기 '+_pvInqWait()+'건</span></span><span style="display:flex;gap:4px;margin-left:auto">'+tab('wait','대기')+tab('reply','회신 받음')+tab('done','완료')+tab('all','전체')+'</span><button class="btn" onclick="document.getElementById(\'pvInqBoxOverlay\').style.display=\'none\'" style="padding:4px 10px">닫기</button></div><div style="padding:12px 20px;display:flex;flex-direction:column;gap:8px">';
-    if(!list.length) h+='<div style="padding:30px;text-align:center;color:#9ca3af;font-size:13px">'+(all.length?'이 상태의 문의가 없습니다.':'아직 보낸 문의가 없습니다. 견적 다운로드 > [매입처에 문의 메일] 또는 매입처 카드의 ✉ 에서 보냅니다.')+'</div>';
+    if(!list.length) h+='<div style="padding:30px;text-align:center;color:#9ca3af;font-size:13px">'+(all.length?'이 상태의 문의가 없습니다.':'아직 보낸 문의가 없습니다. 매입처 툴바의 [품번 문의] 또는 매입처 카드의 ✉ 에서 보냅니다.')+'</div>';
     list.forEach(function(q){ var d=new Date(q.at||0); var ds=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); var age=Math.floor((Date.now()-(q.at||0))/86400000);
       var pill={wait:'<span style="background:#fef3c7;color:#b45309">회신 대기'+(age>=3?' · '+age+'일':'')+'</span>', reply:'<span style="background:#dcfce7;color:#15803d">회신 받음</span>', done:'<span style="background:#e5e7eb;color:#374151">완료</span>'}[q.status]||'';
       h+='<div class="pvi-row"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="color:#1B3A6B">'+esc(q.no||'')+'</b><span style="font-weight:700">'+esc(q.brand||'')+'</span><span style="color:#6b7280">'+esc((q.vendors||[]).join(', '))+'</span><span class="pvi-pill">'+pill+'</span><span style="margin-left:auto;font-size:11.5px;color:#9ca3af">'+esc(ds)+' · '+esc(q.by||'')+(q.quoteNo?' · 견적 '+esc(q.quoteNo):'')+'</span></div>'
