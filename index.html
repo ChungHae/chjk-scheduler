@@ -2938,6 +2938,7 @@
       <button class="qic" id="qLedgerBtn" onclick="qOpenLedger()" data-tip="원장 관리" aria-label="원장 관리" style="border-color:#b45309;color:#b45309"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.2A2.2 2.2 0 0 1 6.2 3H19a1 1 0 0 1 1 1v13"/><path d="M4 5.2V19a2 2 0 0 0 2 2h14"/><path d="M20 17H6.2A2.2 2.2 0 0 0 4 19.2"/><path d="M8 7.5h8M8 11h5"/></svg></button>
       <button class="qic" id="qLoadBtn" onclick="qOpenLoad()" data-tip="견적 불러오기" aria-label="견적 불러오기" style="border-color:#1a1a1a;color:#1a1a1a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V6a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.6.8l1 1.4a2 2 0 0 0 1.6.8H19a2 2 0 0 1 2 2v1"/><path d="M3 8h17.4a1 1 0 0 1 .97 1.25l-1.7 6.8A2 2 0 0 1 17.73 18H5a2 2 0 0 1-2-2Z"/></svg></button>
       <button class="qic" id="qSaveBtn" onclick="qSaveQuote()" data-tip="견적 저장하기" aria-label="견적 저장하기" style="border-color:#1a1a1a;color:#1a1a1a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h10.2a2 2 0 0 1 1.4.6l2.8 2.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M8 3v5h7V3"/><path d="M7 21v-6h10v6"/></svg></button>
+      <button class="qic" id="qBulkBtn" onclick="qBulkRateOpen()" data-tip="마진율·DC율 일괄 적용" aria-label="마진율·DC율 일괄 적용" style="border-color:#0d9488;color:#0d9488"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/></svg></button>
       <span class="qic-div" style="width:1px;align-self:stretch;background:#d3dae4;margin:2px 4px"></span>
       <button class="qic" onclick="qCartClear()" data-tip="비우기" aria-label="비우기" style="border-color:#cfd4da;color:#6b7280"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16"/><path d="M9.5 6.5V4.6a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.9"/><path d="M6.5 6.5 7.4 19a2 2 0 0 0 2 1.9h5.2a2 2 0 0 0 2-1.9l.9-12.5"/><path d="M10.5 10.5v6M13.5 10.5v6"/></svg></button>
       <button class="qic" onclick="qOpenQuoteUpload()" data-tip="견적 업로드" aria-label="견적 업로드" style="border-color:#16a34a;color:#16a34a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></button>
@@ -7092,7 +7093,7 @@ function reloadState() {
   }
   function _qPushCartNew(r){
     if(_qCart.length===1 && !_qCartHasContent()) _qCart=[];   // 빈 첫 줄이면 이 항목으로 대체
-    _qCart.push({vid:_qCurId, vname:_qVName(_qCurId), spec:r.spec, name:r.name||'', e:r.e, buy:r.buy, small:(r.small!=null?r.small:null), pl:r.pl?true:false, sell:r.sell, disc:r.disc||'', eta:r.eta||'', qty:1, psrc:_qNorm(r.spec||'')});   // r200
+    _qCart.push({vid:_qCurId, vname:_qVName(_qCurId), spec:r.spec, name:r.name||'', e:r.e, buy:r.buy, small:(r.small!=null?r.small:null), pl:r.pl?true:false, sell:(_qOwnRow(r)?r.sell:null), disc:r.disc||'', eta:(_qOwnRow(r)?(r.eta||''):''), qty:1, psrc:_qNorm(r.spec||'')});   // r200 · r260
     try{ _qCartCopyAbove(_qCart.length-1); }catch(_e){}   // r194: 위에 같은 규격이 있으면 그 가격으로
     _qCartSave(); renderQCart();
   }
@@ -7520,10 +7521,6 @@ function reloadState() {
         +'<div><div style="font-size:12px;font-weight:700;color:#334155;margin-bottom:9px">메일 발송 <span style="font-weight:500;color:#9ca3af;font-size:11px">· chjk@chjk.co.kr 에서 고객에게 바로</span>'+(_isAdmin()?'<a onclick="document.getElementById(\'qDlMenuOverlay\').style.display=\'none\'; mailOpenCfg();" style="float:right;font-weight:500;color:#1B3A6B;text-decoration:underline;cursor:pointer;font-size:11px">메일 설정</a>':'')+'</div>'
           +'<div style="display:flex;gap:8px">'
           +'<button onclick="document.getElementById(\'qDlMenuOverlay\').style.display=\'none\'; qOpenMailSend();" style="'+_DLB+';background:#1B3A6B;color:#fff;border-color:#1B3A6B" onmouseover="this.style.background=\'#14305c\'" onmouseout="this.style.background=\'#1B3A6B\'">메일 보내기 (PDF·HTML 첨부)</button>'
-          +'</div></div>'
-        +'<div><div style="font-size:12px;font-weight:700;color:#334155;margin-bottom:9px">매입처 문의 <span style="font-weight:500;color:#9ca3af;font-size:11px">· 목록의 품번을 브랜드 대리점 담당자에게 견적·납기 문의 · 회신은 내 메일로</span></div>'
-          +'<div style="display:flex;gap:8px">'
-          +'<button onclick="document.getElementById(\'qDlMenuOverlay\').style.display=\'none\'; pvInqOpen({fromCart:true});" style="'+_DLB+';border-color:#b45309;color:#b45309" onmouseover="this.style.background=\'#fff7ed\'" onmouseout="this.style.background=\'#fff\'">매입처에 문의 메일</button>'
           +'</div></div>'
       +'</div></div>';
     ov.style.display='flex';
@@ -8820,7 +8817,7 @@ function reloadState() {
   window.pvInqBox=function(f){ if(f) window._pvInqFilter=f; var all=(typeof pvInq!=='undefined'?pvInq:[]).slice().sort(function(a,b){ return (b.at||0)-(a.at||0); }); var fl=window._pvInqFilter; var list=all.filter(function(q){ return fl==='all'||q.status===fl; });
     var tab=function(k,l){ return '<button class="btn" onclick="pvInqBox(\''+k+'\')" style="padding:4px 10px;'+(fl===k?'background:#1B3A6B;color:#fff;border-color:#1B3A6B':'')+'">'+l+'</button>'; };
     var h='<div style="padding:14px 20px;border-bottom:2px solid #1B3A6B;display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-size:16px;font-weight:700;color:#1B3A6B">매입처 문의함 <span style="font-size:12px;font-weight:500;color:#6b7280;margin-left:6px">회신 대기 '+_pvInqWait()+'건</span></span><span style="display:flex;gap:4px;margin-left:auto">'+tab('wait','대기')+tab('reply','회신 받음')+tab('done','완료')+tab('all','전체')+'</span><button class="btn" onclick="document.getElementById(\'pvInqBoxOverlay\').style.display=\'none\'" style="padding:4px 10px">닫기</button></div><div style="padding:12px 20px;display:flex;flex-direction:column;gap:8px">';
-    if(!list.length) h+='<div style="padding:30px;text-align:center;color:#9ca3af;font-size:13px">'+(all.length?'이 상태의 문의가 없습니다.':'아직 보낸 문의가 없습니다. 견적 다운로드 > [매입처에 문의 메일] 또는 매입처 카드의 ✉ 에서 보냅니다.')+'</div>';
+    if(!list.length) h+='<div style="padding:30px;text-align:center;color:#9ca3af;font-size:13px">'+(all.length?'이 상태의 문의가 없습니다.':'아직 보낸 문의가 없습니다. 매입처 탭에서 대리점(업체) 카드를 누르면 문의 메일을 쓸 수 있습니다.')+'</div>';
     list.forEach(function(q){ var d=new Date(q.at||0); var ds=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); var age=Math.floor((Date.now()-(q.at||0))/86400000);
       var pill={wait:'<span style="background:#fef3c7;color:#b45309">회신 대기'+(age>=3?' · '+age+'일':'')+'</span>', reply:'<span style="background:#dcfce7;color:#15803d">회신 받음</span>', done:'<span style="background:#e5e7eb;color:#374151">완료</span>'}[q.status]||'';
       h+='<div class="pvi-row"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="color:#1B3A6B">'+esc(q.no||'')+'</b><span style="font-weight:700">'+esc(q.brand||'')+'</span><span style="color:#6b7280">'+esc((q.vendors||[]).join(', '))+'</span><span class="pvi-pill">'+pill+'</span><span style="margin-left:auto;font-size:11.5px;color:#9ca3af">'+esc(ds)+' · '+esc(q.by||'')+(q.quoteNo?' · 견적 '+esc(q.quoteNo):'')+'</span></div>'
@@ -8853,6 +8850,169 @@ function reloadState() {
     return { added:added, merged:merged, contacts:nc };
   }
   (function(){ var st=document.createElement('style'); st.textContent='.pvq-tbl{width:100%;border-collapse:collapse;font-size:12.5px} .pvq-tbl th{font-size:11px;color:#6b7280;font-weight:600;text-align:left;padding:2px 4px;border-bottom:1px solid #e5e7eb} .pvq-tbl td{padding:2px 4px} .pvq-tbl input:not([type=checkbox]){width:100%;box-sizing:border-box;padding:5px 7px;border:1px solid #d6e0ec;border-radius:6px;font-size:12.5px;font-family:inherit} .pvi-row{border:1px solid #e5e9f0;border-radius:8px;padding:9px 12px;background:#fff} .pvi-pill span{display:inline-block;font-size:11px;font-weight:700;padding:1px 8px;border-radius:10px} .pvi-badge{display:none;margin-left:3px;min-width:16px;height:16px;line-height:16px;border-radius:8px;background:#dc2626;color:#fff;font-size:10px;font-weight:700;text-align:center;padding:0 4px} .pv-mail-btn{background:none;border:none;cursor:pointer;color:#1B3A6B;padding:0 3px;display:inline-flex;align-items:center}'; document.head.appendChild(st); })();
+
+  // ─── r257: 업체·매입처 담당자에게 바로 메일 (전산 발송 / 네이버 웍스에서 쓰기) ───
+  var _MQ_WORKS_WRITE='https://mail.worksmobile.com/w/write';   // 웍스 작성 화면 (to·subject 쿼리)
+  window._mq=null;
+  // o: { vname, book:[{email,name,tag}], to:[], subject, body, kind:'client'|'vendor' }
+  window.mailQuickOpen=function(o){ o=o||{};
+    var vname=String(o.vname||'').trim();
+    var book=Array.isArray(o.book)?o.book:(vname?_mailAddrBook(vname):[]);
+    var to=(o.to||[]).filter(function(e){ return _ML_RE.test(e); });
+    if(!to.length && book.length===1) to=[book[0].email];
+    var my=_pvMyEmail();
+    window._mq={ vname:vname, book:book, to:to, cc:my, my:my, kind:o.kind||'client', subj:o.subject||'', body:o.body||'', subjEdited:!!o.subject, bodyEdited:!!o.body };
+    _mqRender();
+  };
+  function _mqWho(){ var q=window._mq; var c=(q.to||[]).map(function(e){ return q.book.find(function(b){ return b.email.toLowerCase()===e.toLowerCase(); }); }).find(function(b){ return b&&b.name; }); return c?c.name:''; }
+  function _mqDefaults(){ var q=window._mq; var m=_pvMe(); var SUP=_qSupplierInfo(m.branch); var who=_mqWho();
+    if(!q.subjEdited) q.subj='[충해전기] '+(q.vname?q.vname+' ':'')+'안내';
+    if(!q.bodyEdited) q.body=(q.vname?q.vname+' ':'')+(who?who+' 님':'담당자님')+', 안녕하세요.\n'+SUP.corp+' '+m.staff+'입니다.\n\n\n\n감사합니다.\n\n─────────────────\n'+m.staff+(m.phone?' · '+m.phone:'')+(q.my?' · '+q.my:'')+'\n'+SUP.corp+' · TEL '+SUP.tel+' · FAX '+SUP.fax+'\n'+SUP.addr.replace(/\n/g,' ');
+  }
+  function _mqWorksUrl(){ var q=window._mq; var to=_mlSplit((document.getElementById('mqTo')||{}).value||q.to.join(',')); var subj=(document.getElementById('mqSubj')||{}).value||q.subj; return _MQ_WORKS_WRITE+'?to='+encodeURIComponent(to.join(','))+(subj?'&subject='+encodeURIComponent(subj):''); }
+  function _mqRender(){ var q=window._mq; if(!q) return; _mqDefaults();
+    var toL=q.to.map(function(e){ return e.toLowerCase(); });
+    var h='<div style="padding:14px 20px;border-bottom:2px solid #1B3A6B;display:flex;justify-content:space-between;align-items:center"><span style="font-size:16px;font-weight:700;color:#1B3A6B">메일 보내기 <span style="font-size:12px;font-weight:500;color:#6b7280;margin-left:6px">'+esc(q.vname||'')+'</span></span><button class="btn" onclick="document.getElementById(\'mailQuickOverlay\').style.display=\'none\'" style="padding:4px 10px">닫기</button></div>'
+      +'<div style="padding:14px 20px;display:flex;flex-direction:column;gap:11px">';
+    h+='<div><div style="'+_MLL+'">받는 사람 <span style="font-weight:400;color:#9ca3af">— 여러 명은 쉼표 · 아래 담당자를 눌러 넣기/빼기</span></div><input id="mqTo" value="'+esc(q.to.join(', '))+'" placeholder="받는 사람 메일" style="'+_MLI+'" onchange="mqTo(this.value)">';
+    h+='<div class="ml-book" style="margin-top:6px">'+(q.book.length?q.book.map(function(b,i){ var on=toL.indexOf(b.email.toLowerCase())>=0; return '<span class="ml-chip'+(on?' on':'')+'" onclick="mqChip('+i+')" title="'+esc(b.email)+'">'+(on?'✓ ':'')+(b.name?('<b>'+esc(b.name)+'</b> '):'')+(b.tag?('<i>'+esc(b.tag)+'</i> '):'')+esc(b.email)+'</span>'; }).join(''):'<span class="ml-book-empty">이 업체에 저장된 메일 주소가 없습니다. 받는 사람에 직접 적어 주세요 — 보내면 업체 담당자로 기억합니다.</span>')+'</div></div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><div style="'+_MLL+'">참조(CC)</div><input id="mqCc" value="'+esc(q.cc||'')+'" style="'+_MLI+'" onchange="window._mq.cc=this.value"></div>'
+      +'<div><div style="'+_MLL+'">회신 받을 내 메일 (Reply-To)</div><input id="mqMy" value="'+esc(q.my||'')+'" placeholder="이름@chjk.co.kr" style="'+_MLI+'" onchange="mqMy(this.value)"></div></div>';
+    h+='<div><div style="'+_MLL+'">제목</div><input id="mqSubj" value="'+esc(q.subj)+'" style="'+_MLI+'" oninput="window._mq.subj=this.value; window._mq.subjEdited=true"></div>';
+    h+='<div><div style="'+_MLL+';display:flex;align-items:center">본문<a onclick="window._mq.subjEdited=false; window._mq.bodyEdited=false; _mqRender()" style="margin-left:auto;font-weight:500;color:#1B3A6B;text-decoration:underline;cursor:pointer;font-size:11px">기본 문구로 되돌리기</a></div><textarea id="mqBody" style="'+_MLI+';min-height:220px;resize:vertical;line-height:1.55" oninput="window._mq.body=this.value; window._mq.bodyEdited=true">'+esc(q.body)+'</textarea></div>';
+    h+='<div style="display:flex;align-items:center;gap:10px;padding-top:4px;border-top:1px solid #eef1f4;flex-wrap:wrap"><span id="mqSt" style="font-size:12px;color:#6b7280;flex:1;min-width:120px"></span>'
+      +'<button class="btn" onclick="mqOpenWorks()" title="네이버 웍스 메일 작성 화면을 새 탭에 엽니다 (받는 사람·제목 채워짐). 웍스에 로그인돼 있어야 합니다." style="padding:7px 12px;border-color:#03c75a;color:#03843d;font-weight:700">네이버 웍스에서 쓰기 ↗</button>'
+      +'<button id="mqSend" class="btn" onclick="mailQuickSend()" style="padding:7px 18px;background:#1B3A6B;color:#fff;border-color:#1B3A6B;font-weight:700">전산에서 바로 보내기</button></div>';
+    h+='<div style="font-size:11px;color:#9ca3af;margin-top:-4px">전산 발송은 지점 공용 계정(chjk@ / 화성)으로 나가고, 답장은 "회신 받을 내 메일"로 옵니다. 첨부가 필요하면 [네이버 웍스에서 쓰기]를 쓰세요.</div>';
+    h+='</div>';
+    _mailOverlay('mailQuickOverlay', h, 720);
+  }
+  window.mqTo=function(v){ var q=window._mq; if(!q) return; q.to=_mlSplit(v); _mqRender(); };
+  window.mqChip=function(i){ var q=window._mq; if(!q) return; var b=q.book[i]; if(!b) return; var k=b.email.toLowerCase(); var idx=q.to.findIndex(function(a){ return a.toLowerCase()===k; }); if(idx>=0) q.to.splice(idx,1); else q.to.push(b.email); _mqRender(); };
+  window.mqMy=function(v){ var q=window._mq; if(!q) return; q.my=String(v||'').trim(); var cc=_mlSplit(q.cc); if(q.my&&!cc.some(function(a){ return a.toLowerCase()===q.my.toLowerCase(); })) cc.push(q.my); q.cc=cc.join(', '); _mqRender(); };
+  window.mqOpenWorks=function(){ var q=window._mq; if(!q) return; q.to=_mlSplit((document.getElementById('mqTo')||{}).value); if(!q.to.length){ document.getElementById('mqSt').innerHTML='<span style="color:#dc2626">받는 사람을 먼저 넣어 주세요.</span>'; return; } var u=_mqWorksUrl(); var w=window.open(u,'_blank','noopener'); if(!w){ document.getElementById('mqSt').innerHTML='<span style="color:#b45309">팝업이 막혔습니다 — 주소창 오른쪽 팝업 허용 후 다시 누르세요.</span>'; return; } try{ if(q.vname && q.kind==='client') _mailRemember(q.vname, _mqWho(), q.to.join(', ')); }catch(_e){} document.getElementById('mqSt').textContent='웍스 작성 화면을 새 탭에 열었습니다.'; };
+  window.mailQuickSend=async function(){ var q=window._mq; if(!q) return; var st=document.getElementById('mqSt'), btn=document.getElementById('mqSend');
+    var to=_mlSplit((document.getElementById('mqTo')||{}).value); q.to=to; if(!to.length){ st.innerHTML='<span style="color:#dc2626">받는 사람을 넣어 주세요.</span>'; return; }
+    q.cc=(document.getElementById('mqCc')||{}).value||''; var bad=to.concat(_mlSplit(q.cc)).find(function(a){ return !_ML_RE.test(a); }); if(bad){ st.innerHTML='<span style="color:#dc2626">주소 형식이 이상합니다: '+esc(bad)+'</span>'; return; }
+    q.my=String((document.getElementById('mqMy')||{}).value||'').trim(); if(q.my&&!_ML_RE.test(q.my)){ st.innerHTML='<span style="color:#dc2626">회신 받을 내 메일 주소 형식이 이상합니다.</span>'; return; }
+    var subj=(document.getElementById('mqSubj')||{}).value||q.subj, body=(document.getElementById('mqBody')||{}).value||q.body;
+    if(!String(body).replace(/\s/g,'')){ st.innerHTML='<span style="color:#dc2626">본문이 비어 있습니다.</span>'; return; }
+    var cfg=await _mailLoadCfg(true); if(cfg._loadErr){ st.innerHTML='<span style="color:#dc2626">메일 설정을 불러오지 못했습니다. 잠시 후 다시 눌러 주세요.</span>'; return; }
+    if(!cfg.url||!cfg.key){ st.innerHTML='<span style="color:#dc2626">메일 발송 설정이 아직 없습니다 (관리자 · 견적 다운로드 > 메일 설정).</span>'; return; }
+    var m=_pvMe(); var SUP=_qSupplierInfo(m.branch); var cc=_mlSplit(q.cc).filter(function(a){ return to.map(function(t){ return t.toLowerCase(); }).indexOf(a.toLowerCase())<0; }).join(', ');
+    btn.disabled=true; btn.textContent='보내는 중…'; st.textContent='발송 중…';
+    try{
+      var html='<div style="font-family:\'Malgun Gothic\',\'맑은 고딕\',sans-serif;font-size:14px;line-height:1.7;color:#1f2937;white-space:pre-wrap">'+esc(body)+'</div>';
+      var r=await fetch(_mailUrl(cfg,'/send'), {method:'POST', headers:{'Content-Type':'application/json','X-Mail-Key':cfg.key}, body:JSON.stringify({account:_mailAcctOf(m.branch), to:to.join(', '), cc:cc, replyTo:q.my||'', subject:subj, text:body, html:html, fromName:SUP.corp+' '+m.staff, attachments:[]})});
+      var j=null; try{ j=await r.json(); }catch(_j){}
+      if(!r.ok||!j||!j.ok) throw new Error((j&&j.error)||('HTTP '+r.status));
+      var rem=0; try{ if(q.vname && q.kind==='client') rem=_mailRemember(q.vname, _mqWho(), to.join(', ')); }catch(_e){}
+      _pvSaveMyEmail(q.my);
+      document.getElementById('mailQuickOverlay').style.display='none';
+      showInfoModal('메일 발송 완료', (q.vname?esc(q.vname)+' 에 ':'')+'메일을 보냈습니다.\n\n받는 사람: '+esc(to.join(', '))+(cc?('\n참조: '+esc(cc)):'')+(q.my?('\n회신 받을 곳: '+esc(q.my)):'')+(rem?('\n\n새 주소 '+rem+'건을 업체 담당자로 기억했습니다.'):''));
+    }catch(e){ st.innerHTML='<span style="color:#dc2626">발송 실패: '+esc(e&&e.message||String(e))+'</span>'; }
+    finally{ btn.disabled=false; btn.textContent='전산에서 바로 보내기'; }
+  };
+  // 업체 관리 목록의 ✉
+  window.clxMailOpen=function(ev, nm){ try{ ev.stopPropagation(); }catch(_e){} mailQuickOpen({ vname:nm, kind:'client' }); };
+  // 매입처 카드의 담당자 메일 → 바로 쓰기
+  window.pvMailOpen=function(ev, vid, email){ try{ ev.preventDefault(); ev.stopPropagation(); }catch(_e){} var v=_pvVendors().find(function(x){ return x.id===vid; }); if(!v) return;
+    var book=[]; (v.contacts||[]).forEach(function(c){ if(c&&c.email&&_ML_RE.test(c.email)) book.push({ email:c.email, name:c.name||'', tag:c.role||'' }); });
+    mailQuickOpen({ vname:String(v.distributor||v.brand||''), kind:'vendor', book:book, to:email?[email]:[] }); };
+  (function(){ var st=document.createElement('style'); st.textContent='.clx-mail-btn{background:none;border:none;cursor:pointer;color:#1B3A6B;padding:2px 4px;display:inline-flex;align-items:center;border-radius:4px} .clx-mail-btn:hover{background:#eaf1fb}'; document.head.appendChild(st); })();
+  // r259: 매입처 카드 클릭 → 문의 작성 (전화·메일 링크, 수정·삭제 버튼은 그대로 동작)
+  window.pvCardClick=function(ev, vid){ var t=ev&&ev.target; if(t&&t.closest&&t.closest('a,button,input,label')) return; if(window.getSelection&&String(window.getSelection())) return; pvInqOpen({vendorId:vid}); };
+  (function(){ var st=document.createElement('style'); st.textContent='.pv-card:hover{background:#f4f8fe}'; document.head.appendChild(st); })();
+
+  // ─── r260: 다른 거래처 원장에서 가져온 줄은 판매가·예상납기를 비운다 (이 거래처 이력 없음 → 일반품 판매가 없음이 정상) ───
+  function _qOwnRow(r){ return !!r && (typeof _qRows!=='undefined') && (_qRows||[]).indexOf(r)>=0; }
+  // ─── r260: 마진율 / DC율 일괄 적용 ───
+  window.qBulkRateOpen=function(){
+    if(typeof _guardW==='function' && !_guardW()) return;
+    var rows=(_qCart||[]).filter(function(c){ return c && String(c.spec||'').trim(); });
+    if(!rows.length){ showInfoModal('일괄 적용','견적 목록에 품번이 없습니다.'); return; }
+    var nSmall=rows.filter(_qbIsSmall).length;
+    var st=window._qbState||{mode:'margin', rate:'', scope:'empty', small:'exclude'};
+    var R=function(name,val,label,cur){ return '<label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="'+name+'" value="'+val+'"'+(cur===val?' checked':'')+' onchange="_qbPrev()">'+label+'</label>'; };
+    var h='<div style="padding:14px 20px;border-bottom:2px solid #1B3A6B;display:flex;justify-content:space-between;align-items:center"><span style="font-size:16px;font-weight:700;color:#1B3A6B">마진율 · DC율 일괄 적용</span><button class="btn" onclick="document.getElementById(\'qBulkOverlay\').style.display=\'none\'" style="padding:4px 10px">닫기</button></div>'
+      +'<div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;font-size:13px;color:#374151">'
+      +'<div><div style="'+_MLL+'">무엇을</div><div style="display:flex;gap:18px;flex-wrap:wrap">'+R('qbMode','margin','<b>마진율</b> → 판매가 = 구매가 ÷ (1 − 마진)',st.mode)+R('qbMode','dc','<b>DC율</b> → 구매가 = E가 × (1 − DC)',st.mode)+'</div></div>'
+      +'<div style="display:flex;align-items:center;gap:8px"><div style="'+_MLL+';margin:0">비율</div><input id="qbRate" value="'+esc(st.rate)+'" inputmode="decimal" placeholder="예: 15" style="'+_MLI+';width:110px;text-align:right" oninput="_qbPrev()" onkeydown="if(event.key===\'Enter\'){ event.preventDefault(); qBulkRateApply(); }"><span style="font-weight:700">%</span>'
+      +'<span style="display:flex;gap:4px;margin-left:8px">'+[5,10,15,20,25,30].map(function(p){ return '<button type="button" class="btn" onclick="document.getElementById(\'qbRate\').value=\''+p+'\'; _qbPrev()" style="padding:3px 8px;font-size:11.5px">'+p+'</button>'; }).join('')+'</span></div>'
+      +'<div><div style="'+_MLL+'">어느 줄에</div><div style="display:flex;gap:18px;flex-wrap:wrap">'+R('qbScope','empty','비어 있는 칸만 채우기',st.scope)+R('qbScope','all','전체 줄 덮어쓰기',st.scope)+'</div></div>'
+      +'<div><div style="'+_MLL+'">소물류 <span style="font-weight:400;color:#9ca3af">— 소물가가 있는 줄 '+nSmall+'건</span></div><div style="display:flex;gap:18px;flex-wrap:wrap">'+R('qbSmall','exclude','소물류 제외',st.small)+R('qbSmall','include','소물류 포함',st.small)+'</div></div>'
+      +'<div id="qbPrev" style="background:#f4f8fe;border:1px solid #d6e0ec;border-radius:8px;padding:10px 12px;font-size:12.5px;line-height:1.6"></div>'
+      +'<div style="display:flex;justify-content:flex-end;gap:8px;border-top:1px solid #eef1f4;padding-top:10px"><button class="btn" onclick="document.getElementById(\'qBulkOverlay\').style.display=\'none\'" style="padding:7px 14px">취소</button><button id="qbApply" class="btn" onclick="qBulkRateApply()" style="padding:7px 18px;background:#1B3A6B;color:#fff;border-color:#1B3A6B;font-weight:700">적용</button></div>'
+      +'</div>';
+    _mailOverlay('qBulkOverlay', h, 560);
+    _qbPrev(); setTimeout(function(){ var r=document.getElementById('qbRate'); if(r){ r.focus(); r.select(); } },30);
+  };
+  function _qbIsSmall(c){ return c && c.small!=null && c.small!=='' && !isNaN(Number(c.small)); }
+  function _qbRead(){ var g=function(n){ var e=document.querySelector('#qBulkOverlay input[name="'+n+'"]:checked'); return e?e.value:''; };
+    var raw=String((document.getElementById('qbRate')||{}).value||'').replace(/[^\d.]/g,'');
+    return { mode:g('qbMode')||'margin', rate:raw, scope:g('qbScope')||'empty', small:g('qbSmall')||'exclude' }; }
+  function _qbPlan(st){   // 줄마다 바꿀지 / 왜 건너뛰는지
+    var rate=Number(st.rate)/100; var out={ apply:[], skip:{small:0, disc:0, nobase:0, filled:0, locked:0} };
+    (_qCart||[]).forEach(function(c,i){
+      if(!c || !String(c.spec||'').trim()) return;
+      if(c.disc && String(c.disc).trim()){ out.skip.disc++; return; }
+      if(st.small==='exclude' && _qbIsSmall(c)){ out.skip.small++; return; }
+      if(st.mode==='margin'){
+        if(c.buy==null||c.buy===''){ out.skip.nobase++; return; }
+        if(st.scope==='empty' && c.sell!=null && c.sell!==''){ out.skip.filled++; return; }
+        out.apply.push({i:i, val:_qCalcSell(c.buy, rate)});
+      } else {
+        if(c.pl){ out.skip.locked++; return; }   // 가격표 확판/소물 잠금 줄은 구매가를 바꾸지 않는다
+        if(c.e==null||c.e===''){ out.skip.nobase++; return; }
+        if(st.scope==='empty' && c.buy!=null && c.buy!==''){ out.skip.filled++; return; }
+        out.apply.push({i:i, val:_qCalcBuy(c.e, rate)});
+      }
+    });
+    return out;
+  }
+  window._qbPrev=function(){ var el=document.getElementById('qbPrev'); if(!el) return; var st=_qbRead(); window._qbState=st;
+    var r=Number(st.rate); var btn=document.getElementById('qbApply');
+    if(st.rate===''||isNaN(r)){ el.innerHTML='<span style="color:#9ca3af">비율(%)을 넣으면 몇 줄에 적용되는지 미리 보여 드립니다.</span>'; if(btn) btn.disabled=true; return; }
+    if(r<0 || r>=100){ el.innerHTML='<span style="color:#dc2626">0 이상 100 미만으로 넣어 주세요.</span>'; if(btn) btn.disabled=true; return; }
+    var p=_qbPlan(st); var s=p.skip; var parts=[];
+    if(s.filled) parts.push('이미 값 있음 '+s.filled); if(s.small) parts.push('소물류 '+s.small); if(s.nobase) parts.push((st.mode==='margin'?'구매가 없음 ':'E가 없음 ')+s.nobase); if(s.locked) parts.push('확판/소물 잠금 '+s.locked); if(s.disc) parts.push('단종/변경 '+s.disc);
+    el.innerHTML='<b style="color:#14305c">'+p.apply.length+'줄</b>에 '+(st.mode==='margin'?'마진율 '+r+'% → 판매가':'DC율 '+r+'% → 구매가')+'를 넣습니다.'+(parts.length?'<br><span style="color:#6b7280">건너뜀: '+parts.join(' · ')+'</span>':'');
+    if(btn) btn.disabled=!p.apply.length;
+  };
+  window.qBulkRateApply=function(){ var st=_qbRead(); var r=Number(st.rate); if(st.rate===''||isNaN(r)||r<0||r>=100) return;
+    var p=_qbPlan(st); if(!p.apply.length) return;
+    try{ _qPushUndo(); }catch(_e){}
+    p.apply.forEach(function(a){ var c=_qCart[a.i]; if(!c) return; if(st.mode==='margin') c.sell=a.val; else c.buy=a.val; });
+    _qCartSave(); renderQCart();
+    document.getElementById('qBulkOverlay').style.display='none';
+    try{ _mtToast((st.mode==='margin'?'마진율 ':'DC율 ')+r+'% 를 '+p.apply.length+'줄에 적용했습니다 (Ctrl+Z 로 되돌리기)'); }catch(_e2){}
+  };
+
+  // ─── r261 ① 규격 칸에 한 품번을 붙여넣으면, 목록에 똑같은 규격이 있을 때 클릭 없이 바로 그 규격으로 채운다 ───
+  function _qPasteRowIdx(el){ var m=String(el.getAttribute('oninput')||'').match(/qCartSpecInput\((\d+)/); return m?Number(m[1]):-1; }
+  async function _qPasteSpecAuto(el, txt){
+    var i=_qPasteRowIdx(el); if(i<0) return false;
+    var s=el.selectionStart, e=el.selectionEnd, v=el.value||'';
+    var nv=(s!=null&&e!=null&&!(s===0&&e===v.length)&&el.dataset.xed==='1')?(v.slice(0,s)+txt+v.slice(e)):txt;   // 편집 모드면 커서 자리에, 아니면 칸 전체를 바꿈
+    nv=String(nv).trim(); el.value=nv;
+    try{ if(!_qAllReady) await _qEnsureAllIdx(); }catch(_e){}
+    qCartSpecInput(i, el);
+    var qh=_qNormH(nv);
+    var ix=(_qcsCur||[]).findIndex(function(vw){ return vw && vw.r && _qNormH(vw.r.spec)===qh; });
+    if(ix>=0){ qCartSpecPick(i, ix, false); try{ _qcsHide(); }catch(_e2){} return true; }
+    return false;   // 똑같은 규격이 없으면 지금처럼 목록만 보여 줌 (Enter = 입력한 그대로)
+  }
+  // ─── r261 ② 메일 발송·다운로드 뒤 자동 비우기 (저장된 견적만) + [다시 열기] ───
+  function _qAfterOut(label){
+    var id=_qLoadedId, no=_qQuoteNo;
+    var saved=!!(id && (quoteSaved||[]).find(function(x){ return x.id===id; }));
+    if(!saved){ showInfoModal(label, '견적이 저장되지 않아 목록을 그대로 두었습니다. 저장한 뒤 다시 시도해 주세요.'); return false; }
+    _qResetQuoteScreen();
+    var t=document.getElementById('qOutToast'); if(!t){ t=document.createElement('div'); t.id='qOutToast'; t.style.cssText='position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:100080;background:#14305c;color:#fff;border-radius:10px;padding:11px 14px 11px 18px;font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.25);display:flex;align-items:center;gap:12px;max-width:92vw'; document.body.appendChild(t); }
+    t.innerHTML='<span>'+esc(label)+' 완료 · "'+esc(no||'')+'" 저장 — 새 견적을 쓸 수 있게 목록을 비웠습니다</span><button type="button" style="background:#fff;color:#14305c;border:none;border-radius:6px;padding:5px 10px;font-weight:700;cursor:pointer;font-family:inherit;font-size:12px" onclick="document.getElementById(\'qOutToast\').style.display=\'none\'; qLoadSaved(\''+esc(id)+'\')">다시 열기</button><a style="color:#cbd5e1;cursor:pointer;font-size:15px" onclick="this.parentNode.style.display=\'none\'">✕</a>';
+    t.style.display='flex'; clearTimeout(t._h); t._h=setTimeout(function(){ t.style.display='none'; }, 12000);
+    return true;
+  }
   function _mailAcctOf(branch){ return (branch==='화성')?'hs':'seoul'; }   // r238
   function _mailBranchOf(acct){ return (acct==='hs')?'화성':'서울'; }
   function _mailQuoteDraft(forceBranch){
@@ -8923,6 +9083,7 @@ function reloadState() {
       _qMailLog(d.no, to, atts.map(function(a){return a.name;}));
       var _remembered=0; try{ var _rmcb=document.getElementById('mlRemember'); if(!_rmcb || _rmcb.checked) _remembered=_mailRemember(d.vname, d.mgr, to); }catch(_e){}   // r245 · r250: 체크 시만
       document.getElementById('mailSendOverlay').style.display='none';
+      setTimeout(function(){ try{ _qAfterOut('메일 발송'); }catch(_e){} }, 0);   // r261
       showInfoModal('메일 발송 완료', '"'+esc(d.no)+'" 견적서를 보냈습니다.\n\n받는 사람: '+esc(to)+(cc?('\n참조: '+esc(cc)):'')+'\n첨부: '+(atts.length?atts.map(function(a){return a.name;}).join(', '):'없음')+'\n\n이 견적은 "'+esc(d.no)+'" 번호로 자동 저장되었고, 불러오기 목록에 ✉ 표시가 붙습니다.'+(_remembered?('\n받는 사람 주소 '+_remembered+'건을 업체 상세에 저장했습니다 — 다음부터 자동으로 채워집니다.'):''));
     }catch(e){ st.innerHTML='<span style="color:#dc2626">발송 실패: '+esc(e&&e.message||String(e))+'</span>'; }
     finally{ btn.disabled=false; btn.textContent='보내기'; }
@@ -9419,6 +9580,7 @@ function reloadState() {
     var ov=document.getElementById('qHitpanOverlay'); if(ov) ov.style.display='none';
     try{
       await _ensureXlsxLib();
+      try{ await _qPersistQuote(); }catch(_pe){ showInfoModal('견적 저장 실패', (_pe&&_pe.message||String(_pe))+'\n\n히트판 엑셀은 계속 만들지만, 이 견적은 저장되지 않았습니다.'); }   // r261
       var cols=(typeof _qCols!=='undefined'&&_qCols)?_qCols:[];
       var col=colId?cols.find(function(x){return x.id===colId;}):null;
       var hasBigo=!!col;
@@ -9448,6 +9610,7 @@ function reloadState() {
       var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'히트판');
       var vn=(_qCart[0].vname||'견적'); var d=new Date(); var ds=d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
       XLSX.writeFile(wb,'히트판_'+vn+'_'+ds+'.xlsx');
+      _qAfterOut('히트판 엑셀');   // r261
     }catch(e){ showInfoModal('히트판 엑셀 실패', e.message||String(e)); }
   };
 
@@ -9459,7 +9622,7 @@ function reloadState() {
       var wb=_qBuildQuoteSheetWb();   // r229: 고객용 견적서(PDF 와 같은 모양 · 수식)
       var _fn=('견적서 '+(_qQuoteNo||(_qCart[0].vname||'견적'))).replace(/[<>:"/\\|?*]/g,' ').replace(/\s+/g,' ').trim();
       XLSX.writeFile(wb, _fn+'.xlsx');
-      if(_qQuoteNo) showInfoModal('자동 저장', '이 견적은 "'+esc(_qQuoteNo)+'" 번호로 자동 저장되었습니다.');
+      _qAfterOut('엑셀 다운로드');   // r261
     }catch(e){ showInfoModal('알림', '엑셀 내보내기 실패: '+e.message); }
   };
   // ─── r233: HTML 견적서 (도면·카탈로그 연동) ───
@@ -9602,7 +9765,7 @@ function reloadState() {
       var _fn=('견적서 '+(_qQuoteNo||(_qCart[0].vname||'견적'))).replace(/[<>:"/\\|?*]/g,' ').replace(/\s+/g,' ').trim();
       var blob=new Blob([html],{type:'text/html;charset=utf-8'}); var url=URL.createObjectURL(blob);
       var a=document.createElement('a'); a.href=url; a.download=_fn+'.html'; document.body.appendChild(a); a.click(); setTimeout(function(){ try{ document.body.removeChild(a); URL.revokeObjectURL(url); }catch(_e){} }, 1500);
-      if(_qQuoteNo) showInfoModal('HTML 견적서', '"'+esc(_fn)+'.html" 로 내려받았습니다. 카톡·메일에 파일 그대로 첨부하면 받는 쪽은 클릭만 하면 됩니다.\n이 견적은 "'+esc(_qQuoteNo)+'" 번호로 자동 저장되었습니다.');
+      _qAfterOut('HTML 다운로드');   // r261
     }catch(e){ showInfoModal('알림', 'HTML 내보내기 실패: '+(e&&e.message||String(e))); }
   };
   // r229: 고객용 견적서(_qBuildQuoteSheetWb)는 [일반 엑셀] 버튼이 쓴다. 아래 두 개는 PDF 와 같이 내려보내던 r218 잔재로 지금은 쓰지 않는다
@@ -11097,6 +11260,7 @@ function reloadState() {
     c.pl  =r.pl?true:false;
     c.sell=(r.sell!=null&&r.sell!=='')?Number(r.sell):null;
     c.disc=r.disc||''; c.eta=r.eta||'';
+    if(!_qOwnRow(r)){ c.sell=null; c.eta=''; }   // r260: 이 거래처 이력이 아니면 판매가 없음
     _qMarkPriceSrc(c);   // r200
     return true;
   }
@@ -11253,6 +11417,7 @@ function reloadState() {
     var el=document.activeElement; if(!(el&&el.closest&&el.closest('#qCart table.qcart-tbl tbody input.qc-in'))) return;
     var txt=''; try{ txt=(ev.clipboardData||window.clipboardData).getData('text'); }catch(e){}
     if(txt && (txt.indexOf('\t')>=0 || txt.indexOf('\n')>=0)){ ev.preventDefault(); _qgPasteText(txt); }
+    else if(txt && String(txt).trim() && el.getAttribute('data-mf')==='spec'){ ev.preventDefault(); _qPasteSpecAuto(el, String(txt)); }   // r261
   }, true);
   window.qCartGridKey = function(ev, el){
     var k=ev.key;
@@ -11390,6 +11555,7 @@ function reloadState() {
     c.pl  =r.pl?true:false;
     c.sell=(r.sell!=null&&r.sell!=='')?Number(r.sell):null;
     c.disc=r.disc||''; c.eta=r.eta||'';
+    if(!_qOwnRow(r)){ c.sell=null; c.eta=''; }   // r260
     _qMarkPriceSrc(c);   // r200
     try{ _qCartCopyAbove(i); }catch(_e){}   // r194: 위에 같은 규격이 있으면 그 가격으로
     _qCartSave(); _qcsHide(); renderQCart();
@@ -14189,13 +14355,13 @@ function reloadState() {
       arr.forEach((v, idx) => {
         const cs = v.contacts || [];
         const contactsHtml = cs.length
-          ? cs.map(c => `<div style="font-size:12px;color:#374151;display:flex;flex-wrap:nowrap;align-items:center;gap:6px;line-height:1.7;overflow:hidden">${c.role||c.name?`<span style="font-weight:600;color:#1a1a1a;flex-shrink:0;white-space:nowrap">${esc([c.role,c.name].filter(Boolean).join(' '))}</span>`:''}${c.phone?`<a href="tel:${esc(c.phone.replace(/[^0-9+]/g,''))}" style="color:#1a1a1a;text-decoration:none;flex-shrink:0;white-space:nowrap">${esc(c.phone)}</a>`:''}${c.email?`<a href="mailto:${esc(c.email)}" style="color:#1a1a1a;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${esc(c.email)}</a>`:''}</div>`).join('')
+          ? cs.map(c => `<div style="font-size:12px;color:#374151;display:flex;flex-wrap:nowrap;align-items:center;gap:6px;line-height:1.7;overflow:hidden">${c.role||c.name?`<span style="font-weight:600;color:#1a1a1a;flex-shrink:0;white-space:nowrap">${esc([c.role,c.name].filter(Boolean).join(' '))}</span>`:''}${c.phone?`<a href="tel:${esc(c.phone.replace(/[^0-9+]/g,''))}" style="color:#1a1a1a;text-decoration:none;flex-shrink:0;white-space:nowrap">${esc(c.phone)}</a>`:''}${c.email?`<a href="mailto:${esc(c.email)}" onclick="pvMailOpen(event,'${v.id}','${esc(c.email)}')" title="메일 보내기" style="color:#1B3A6B;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${esc(c.email)}</a>`:''}</div>`).join('')
           : '';
         const rows = [];
         if (v.fax) rows.push(`<span style="color:#1a1a1a">${esc(v.fax)}</span>`);
         if (v.address) rows.push(`<span style="color:#1a1a1a">${esc(v.address)}</span>`);
         const infoHtml = rows.map(r=>`<div style="font-size:12px;line-height:1.6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r}</div>`).join('');
-        html += `<div style="position:relative;padding:10px 12px;${idx>0?'border-top:1px solid #eef2f7':''}">
+        html += `<div class="pv-card" onclick="pvCardClick(event,'${v.id}')" title="눌러서 이 대리점에 견적·납기 문의 메일 쓰기" style="position:relative;padding:10px 12px;cursor:pointer;${idx>0?'border-top:1px solid #eef2f7':''}">
           <div style="position:absolute;top:8px;right:8px;display:flex;gap:4px">
             <button type="button" class="pv-mail-btn" onclick="pvInqOpen({vendorId:'${v.id}'})" title="이 대리점 담당자에게 품번 문의 메일" aria-label="문의 메일"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg></button>
             <button type="button" onclick="openPurchaseModal('${v.id}')" title="수정" aria-label="수정" style="background:none;border:none;cursor:pointer;color:#5b7ba6;padding:0 3px;display:inline-flex;align-items:center"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
@@ -18821,9 +18987,9 @@ function reloadState() {
     var TD='padding:8px 10px;border-bottom:1px solid #eef2f7;border-right:1px solid #eef2f7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle';
     html += '<div style="background:#fff;border:1px solid #d6deea;border-left:none;border-right:none;margin:0 calc(var(--mpx, 24px)*-1)">'
       + '<table style="width:100%;border-collapse:separate;border-spacing:0;min-width:980px;table-layout:fixed;font-size:12.5px">'
-      + '<colgroup><col style="width:220px"><col style="width:120px"><col style="width:104px"><col style="width:150px"><col><col style="width:130px"><col style="width:130px"></colgroup>'
+      + '<colgroup><col style="width:220px"><col style="width:120px"><col style="width:104px"><col style="width:150px"><col><col style="width:130px"><col style="width:130px"><col style="width:56px"></colgroup>'
       + '<thead><tr>'
-      +   '<th style="'+TH+'">업체명</th><th style="'+TH+'">사업자번호</th><th style="'+TH+'">지점</th><th style="'+TH+'">대표자</th><th style="'+TH+'">주소</th><th style="'+TH+'">대표전화</th><th style="'+TH+'">FAX</th>'
+      +   '<th style="'+TH+'">업체명</th><th style="'+TH+'">사업자번호</th><th style="'+TH+'">지점</th><th style="'+TH+'">대표자</th><th style="'+TH+'">주소</th><th style="'+TH+'">대표전화</th><th style="'+TH+'">FAX</th><th style="'+TH+'">메일</th>'
       + '</tr></thead><tbody>'
       + list.map(function(c){
           var nm=c[0], bz=c[1]||'', inf=_clxInfo(c);
@@ -18844,9 +19010,10 @@ function reloadState() {
             + '<td style="'+TD+'" title="'+esc(addr)+'">'+esc(addr)+'</td>'
             + '<td style="'+TD+';text-align:center">'+esc(inf.tel||'')+'</td>'
             + '<td style="'+TD+';text-align:center">'+esc(inf.fax||'')+'</td>'
+            + '<td style="'+TD+';text-align:center;padding:4px">'+(_mailAddrBook(nm).length?'<button type="button" class="clx-mail-btn" onclick="clxMailOpen(event,this.closest(\'tr\').dataset.nm)" title="이 업체 담당자에게 메일" aria-label="메일"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg></button>':'<span style="color:#d1d5db" title="저장된 메일 주소 없음 — 펼쳐서 담당자 메일을 넣어 주세요"><button type="button" class="clx-mail-btn" style="color:#d1d5db" onclick="clxMailOpen(event,this.closest(\'tr\').dataset.nm)" title="이 업체 담당자에게 메일" aria-label="메일"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg></button></span>')+'</td>'   // r257
             + '</tr>';
           if(exp){
-            tr += '<tr><td colspan="7" style="padding:0;border-bottom:2px solid #1B3A6B;background:#fff">'+_clxFormHtml(_key, c)+'</td></tr>';
+            tr += '<tr><td colspan="8" style="padding:0;border-bottom:2px solid #1B3A6B;background:#fff">'+_clxFormHtml(_key, c)+'</td></tr>';
           }
           return tr;
         }).join('')
