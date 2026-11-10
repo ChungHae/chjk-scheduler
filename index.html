@@ -7137,6 +7137,23 @@ function reloadState() {
     var r=_qRows.find(function(x){ return _qRowKey(x.spec)===_qRowKey(c.spec); });
     if(r&&r.info&&Object.keys(r.info).length) _qInfoPopup(r.info, c.spec);
   };
+  // r263: 추가 정보의 '구매 링크' 는 세 군데에 들어 있을 수 있다.
+  //   · info.link     — 규격 추가/수정 창이나 원장관리에서 직접 넣은 주소
+  //   · info.makerUrl — 원장 엑셀 '메이커(브랜드)' 칸에 걸려 있던 하이퍼링크
+  //   · info.srcUrl   — 원장 엑셀 '구매처' 칸에 걸려 있던 하이퍼링크
+  //  견적 ℹ️ 창은 예전부터 셋 다 봤는데 원장관리는 info.link 만 봐서, 같은 품번인데
+  //  견적에는 [바로가기]가 뜨고 원장에는 빈칸으로 보였다(2026-11-10 사용자 보고).
+  //  이제 두 화면이 이 함수 하나를 같이 쓴다.
+  function _qInfoUrl(info){ var i=info||{}; return String(i.link||i.makerUrl||i.srcUrl||'').trim(); }
+  // 직접 넣은 주소가 아니라 엑셀 칸에 걸려 있던 링크면, 어디서 온 값인지 한 줄로 알려 준다.
+  function _qInfoUrlFrom(info){
+    var i=info||{};
+    if(i.link) return '';
+    if(i.makerUrl) return '엑셀 메이커 칸에 걸려 있던 링크입니다. 저장하면 구매 링크로 옮겨 적습니다.';
+    if(i.srcUrl)   return '엑셀 구매처 칸에 걸려 있던 링크입니다. 저장하면 구매 링크로 옮겨 적습니다.';
+    return '';
+  }
+
   function _qInfoPopup(info, specLabel){
     var i=info||{};
     var line=function(label,val){
@@ -7147,7 +7164,7 @@ function reloadState() {
       if(!url) return '';
       return '<div style="display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid #f0f3f7"><span style="flex:0 0 70px;font-size:12px;color:#8a94a6;font-weight:700">'+label+'</span><span style="flex:1;min-width:0"><a href="'+esc(url)+'" target="_blank" rel="noopener" style="display:inline-block;background:#1B3A6B;color:#fff;border-radius:7px;font-size:12px;font-weight:700;padding:6px 14px;cursor:pointer;text-decoration:none">바로가기</a></span></div>';
     };
-    var _pl=i.link||i.makerUrl||i.srcUrl||'';
+    var _pl=_qInfoUrl(i);   // r263: 원장관리와 같은 규칙
     var body=line('브랜드',i.maker)+line('구매처',i.src)+linkRow('구매링크',_pl)+line('비고',i.remark);
     if(!body) body='<div style="color:#bbb;font-size:12px;padding:10px 0">추가 정보가 없습니다.</div>';
     var ov=document.getElementById('qInfoOverlay');
@@ -10299,7 +10316,8 @@ function reloadState() {
     if(!q) return true;
     var f=r.info||{};
     return _qNorm(r.spec).indexOf(q)>=0 || _qNorm(r.name).indexOf(q)>=0 || _qNorm(r.disc).indexOf(q)>=0
-        || _qNorm(f.maker).indexOf(q)>=0 || _qNorm(f.src).indexOf(q)>=0 || _qNorm(f.remark).indexOf(q)>=0;
+        || _qNorm(f.maker).indexOf(q)>=0 || _qNorm(f.src).indexOf(q)>=0 || _qNorm(f.remark).indexOf(q)>=0
+        || _qNorm(_qInfoUrl(f)).indexOf(q)>=0;   // r263: 구매 링크 주소로도 찾기
   }
   function _lmPct(v){ return (v==null||isNaN(v))?'':(v*100).toFixed(1)+'%'; }
   function _lmIn(i, f, val, cls, extra){
@@ -10332,7 +10350,7 @@ function reloadState() {
       var r=_lmRows[i];
       var _hasDisc=(r.disc!=null&&String(r.disc).trim()!=='');   // 단종/변경이면 DC율·구매가·마진율·판매가 입력 잠금
       var _if=r.info||{};
-      var _mk=_if.maker||'', _src=_if.src||'', _rm=_if.remark||'', _lk=String(_if.link||'').trim();
+      var _mk=_if.maker||'', _src=_if.src||'', _rm=_if.remark||'', _lk=_qInfoUrl(_if);   // r263: 엑셀 칸에 걸린 링크도 포함
       if(_lk && !/^https?:\/\//i.test(_lk)) _lk='http://'+_lk;
       var NUM=' inputmode="numeric" oninput="_qNumInput(this)"';
       return '<tr data-i="'+i+'">'
@@ -10580,6 +10598,9 @@ function reloadState() {
       var v=String(val==null?'':val).trim();
       if(!r.info) r.info={};
       if(v) r.info[field]=v; else delete r.info[field];
+      // r263: 구매 링크를 비웠으면 엑셀 칸에 걸려 있던 링크(makerUrl·srcUrl)도 같이 지운다.
+      //  안 그러면 지운 뒤에도 그쪽 값이 남아 링크가 계속 보인다.
+      if(field==='link' && !v){ delete r.info.makerUrl; delete r.info.srcUrl; }
       if(!Object.keys(r.info).length) delete r.info;
       _lmSave(); return;
     }
@@ -10619,7 +10640,8 @@ function reloadState() {
   window.qLedgerLink = function(i){
     if(!_guardW()) return;
     var r=_lmRows[i]; if(!r) return;
-    var cur=(r.info&&r.info.link)?String(r.info.link):'';
+    var cur=_qInfoUrl(r.info);                 // r263
+    var _from=_qInfoUrlFrom(r.info);           // r263: 엑셀 칸에서 온 링크면 안내
     var ov=document.getElementById('qlmLinkOv');
     if(!ov){ ov=document.createElement('div'); ov.id='qlmLinkOv'; ov.style.cssText='position:fixed;inset:0;z-index:100098;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px'; document.body.appendChild(ov); }
     var LB='padding:7px 12px;font-size:12.5px;font-family:inherit;background:#fff;border:1px solid #c8d2de;border-radius:0;cursor:pointer';
@@ -10629,6 +10651,8 @@ function reloadState() {
       +'<div style="padding:16px 14px;display:flex;flex-direction:column;gap:8px">'
         +'<div style="font-size:12px;color:#9ca3af">'+esc(r.spec||'(빈 규격)')+'</div>'
         +'<input id="qlmLinkIn" value="'+esc(cur)+'" placeholder="https://..." style="width:100%;box-sizing:border-box;padding:7px 10px;border:1px solid #c8d2de;border-radius:0;font-size:13px;font-family:inherit;outline:none">'
+        +(_from?('<div style="font-size:11px;color:#9ca3af;line-height:1.6">'+esc(_from)+'</div>'):'')
+        +'<div style="font-size:11px;color:#9ca3af;line-height:1.6">비우고 저장하면 이 규격의 구매 링크를 지웁니다.</div>'
       +'</div>'
       +'<div style="display:flex;gap:6px;padding:0 14px 14px">'
         +(cur?'<button onclick="qLedgerLinkOpen()" style="'+LB+';flex:1;color:#1B3A6B;border-color:#1B3A6B;font-weight:600">↗ 열기</button>':'')
@@ -11754,7 +11778,7 @@ function reloadState() {
       +'<div style="font-size:11px;color:#9ca3af">가격 ↔ DC율·마진율은 자동 계산됩니다.</div>'
       +'<div style="border-top:1px solid #eef2f7;padding-top:10px;font-size:11px;color:#9ca3af">추가 정보 (선택 · 견적서엔 안 나옴)</div>'
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><div style="'+lb+'">브랜드</div><input id="qsMaker" value="'+esc(info.maker||'')+'" style="'+inS+'"></div><div><div style="'+lb+'">구매처</div><input id="qsSrc" value="'+esc(info.src||'')+'" style="'+inS+'"></div></div>'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><div style="'+lb+'">비고</div><input id="qsRemark" value="'+esc(info.remark||'')+'" style="'+inS+'"></div><div><div style="'+lb+'">구매 링크</div><input id="qsLink" value="'+esc(info.link||'')+'" placeholder="https://..." style="'+inS+'"></div></div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><div style="'+lb+'">비고</div><input id="qsRemark" value="'+esc(info.remark||'')+'" style="'+inS+'"></div><div><div style="'+lb+'">구매 링크</div><input id="qsLink" value="'+esc(_qInfoUrl(info))+'" placeholder="https://..." style="'+inS+'"></div></div>'
       +'<div style="border-top:1px solid #eef2f7;padding-top:10px"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12.5px;color:#1a1a1a;font-weight:600"><input type="checkbox" id="qsDisc" '+(isDisc?'checked':'')+' onchange="qsToggleDisc()" style="width:15px;height:15px">이 규격은 단종/변경됨</label><div id="qsDiscBox" style="display:'+(isDisc?'':'none')+';margin-top:8px"><input id="qsDiscVal" value="'+esc(discVal)+'" placeholder="대체 품번" style="'+inS+'"><div style="font-size:11px;color:#9ca3af;margin-top:4px">품번을 적으면 대체 품번으로, 한글을 적으면 그 문구가 그대로 표시됩니다.</div></div></div>'
       +'</div>'
       +'<div style="display:flex;gap:6px;justify-content:flex-end;padding:12px 14px;border-top:1px solid #dde3ea"><button onclick="document.getElementById(\'qSpecOverlay\').style.display=\'none\'" style="padding:0 12px;height:28px;background:#fff;border:1px solid #c8d2de;border-radius:0;font-size:12px;color:#4b5563;cursor:pointer;font-family:inherit">닫기</button><button onclick="qsSave()" style="padding:0 14px;height:28px;background:#1a1a1a;color:#fff;border:1px solid #1a1a1a;border-radius:0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">'+(mode==='edit'?'저장':'추가')+'</button></div></div>';
@@ -11777,7 +11801,8 @@ function reloadState() {
     var _sr=((document.getElementById('qsSrc')||{}).value||'').trim(); if(_sr) _info.src=_sr;
     var _lk=((document.getElementById('qsLink')||{}).value||'').trim(); if(_lk) _info.link=_lk;
     var _rm=((document.getElementById('qsRemark')||{}).value||'').trim(); if(_rm) _info.remark=_rm;
-    if(_qsMode==='edit'&&_qsRid){ var _pr=_qRows.find(function(x){return x._rid===_qsRid;}); if(_pr&&_pr.info){ if(_pr.info.makerUrl&&_info.maker===_pr.info.maker) _info.makerUrl=_pr.info.makerUrl; if(_pr.info.srcUrl&&_info.src===_pr.info.src) _info.srcUrl=_pr.info.srcUrl; } }
+    // r263: 링크 칸을 비우고 저장했으면 엑셀 칸 링크(makerUrl·srcUrl)도 가져오지 않는다 — 그래야 실제로 지워진다.
+    if(_lk && _qsMode==='edit'&&_qsRid){ var _pr=_qRows.find(function(x){return x._rid===_qsRid;}); if(_pr&&_pr.info){ if(_pr.info.makerUrl&&_info.maker===_pr.info.maker) _info.makerUrl=_pr.info.makerUrl; if(_pr.info.srcUrl&&_info.src===_pr.info.src) _info.srcUrl=_pr.info.srcUrl; } }
     if(Object.keys(_info).length) row.info=_info;
     var _commit=function(oldSpec){ _qBlobPut(_qCurId,_qRows).then(function(){ var idx=quoteVendors.find(function(v){return v.id===_qCurId;}); if(idx) idx.count=_qRows.length; saveAll(); var ov=document.getElementById('qSpecOverlay'); if(ov) ov.style.display='none'; renderQResults(); if(oldSpec){ var rr=_qRows.find(function(x){return x._rid===_qsRid;}); if(rr) _qSyncCartFromRow(oldSpec, rr); } }).catch(function(err){ showInfoModal('알림', '저장 실패: '+err.message); }); };
     if(_qsMode==='edit'&&_qsRid){ var r=_qRows.find(function(x){return x._rid===_qsRid;}); if(!r) return; var _old=r.spec; Object.keys(r).forEach(function(k){ if(k!=='_rid') delete r[k]; }); Object.assign(r,row); _commit(_old); }
