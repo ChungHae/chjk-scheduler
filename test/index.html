@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r266 2026-11-12 -->
+<!-- test build r267 2026-11-12 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -2754,6 +2754,7 @@
 <nav class="page-nav">
   <button class="page-tab active" id="tabSchedule">일정</button>
   <button class="page-tab" data-page="estimate">견적</button>
+  <button class="page-tab" data-page="order">발주</button><!-- r267 -->
   <button class="page-tab" id="tabEtc">업무 사이트</button><!-- r252: 구 '기타' -->
   <button class="page-tab" data-page="purchase">매입처</button>
   <button class="page-tab" data-page="inventory">재고</button>
@@ -3106,7 +3107,6 @@
       <button class="qic" id="qLoadBtn" onclick="qOpenLoad()" data-tip="견적 불러오기" aria-label="견적 불러오기" style="border-color:#1a1a1a;color:#1a1a1a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V6a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.6.8l1 1.4a2 2 0 0 0 1.6.8H19a2 2 0 0 1 2 2v1"/><path d="M3 8h17.4a1 1 0 0 1 .97 1.25l-1.7 6.8A2 2 0 0 1 17.73 18H5a2 2 0 0 1-2-2Z"/></svg></button>
       <button class="qic" id="qSaveBtn" onclick="qSaveQuote()" data-tip="견적 저장하기" aria-label="견적 저장하기" style="border-color:#1a1a1a;color:#1a1a1a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h10.2a2 2 0 0 1 1.4.6l2.8 2.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M8 3v5h7V3"/><path d="M7 21v-6h10v6"/></svg></button>
       <button class="qic" id="qBulkBtn" onclick="qBulkRateOpen()" data-tip="마진율·DC율 일괄 적용" aria-label="마진율·DC율 일괄 적용" style="border-color:#0d9488;color:#0d9488"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/></svg></button>
-      <button class="qic" id="qDsBtn" onclick="qDsOpen()" data-tip="대성 발주 (WMIS)" aria-label="대성 발주" style="border-color:#c2410c;color:#c2410c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/></svg></button>
       <span class="qic-div" style="width:1px;align-self:stretch;background:#d3dae4;margin:2px 4px"></span>
       <button class="qic" onclick="qCartClear()" data-tip="비우기" aria-label="비우기" style="border-color:#cfd4da;color:#6b7280"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16"/><path d="M9.5 6.5V4.6a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.9"/><path d="M6.5 6.5 7.4 19a2 2 0 0 0 2 1.9h5.2a2 2 0 0 0 2-1.9l.9-12.5"/><path d="M10.5 10.5v6M13.5 10.5v6"/></svg></button>
       <button class="qic" onclick="qOpenQuoteUpload()" data-tip="견적 업로드" aria-label="견적 업로드" style="border-color:#16a34a;color:#16a34a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></button>
@@ -3149,6 +3149,7 @@
   </div>
 
   <!-- 매입처 페이지 -->
+  <div id="pageOrder" class="page-section"></div><!-- r267 대성 발주 -->
   <div id="pagePurchase" class="page-section">
     <div class="q-toolbar inv-toolbar">
       <span class="inv-flat-label">매입처</span>
@@ -9419,9 +9420,9 @@ function reloadState() {
   window.pvInqAgain=function(id){ var q0=(typeof pvInq!=='undefined'?pvInq:[]).find(function(x){ return x&&x.id===id; }); if(!q0) return; document.getElementById('pvInqBoxOverlay').style.display='none';
     var v=_pvVendors().find(function(x){ return q0.vendors && q0.vendors[0] && String(x.distributor||x.brand||'')===q0.vendors[0]; });
     pvInqOpen({ vendorId:v?v.id:'', brand:q0.brand, to:(q0.to||[]).slice() }); var q=window._pvq; q.subj=q0.subject||q.subj; if(q0.body){ q.body=q0.body; q.bodyEdited=true; } _pvq2Render(); };
-  // ─── r266: 견적 → 대성산업(WMIS) 발주 — Cloudflare Worker(wmis/worker.js) 중계 ───
-  //  견적 줄 → [대성 발주] → Worker /lookup 으로 대성 상품코드·대리점가·재고 확인 → 배송지(직원 지점: 서울/화성) → 확인 후 /order 저장
-  //  Worker 주소·열쇠 = Firebase <_AUTH_BASE>/sched_ds_cfg {url,key} (관리자가 [대성 설정]에서 입력). 대성 아이디·비밀번호는 Worker 비밀에만.
+  // ─── r267: 발주 페이지 — 대성산업(WMIS) 발주 (r266 의 견적 화면 버튼을 발주 탭으로 옮김) ───
+  //  업체명 → 그 업체 저장 견적 → [불러오기] → 품목 → Worker /lookup(대성 코드·대리점가·재고) → 배송지 → 확인 후 /order 저장
+  //  Worker 주소·열쇠 = Firebase <_AUTH_BASE>/sched_ds_cfg {url,key}. 대성 아이디·비밀번호는 Worker 비밀에만.
   var _dsCfg=null, _ds=null;
   async function _dsLoadCfg(force){
     if(_dsCfg && !force) return _dsCfg;
@@ -9454,45 +9455,66 @@ function reloadState() {
   }
   function _dsFmt(n){ return (n==null||n==='')?'':Number(n).toLocaleString('ko-KR'); }
   function _dsTomorrow(){ var d=new Date(Date.now()+86400000); if(d.getDay()===6) d=new Date(d.getTime()+2*86400000); else if(d.getDay()===0) d=new Date(d.getTime()+86400000); return d.toISOString().slice(0,10); }
-  window.qDsOpen=async function(){
-    var lines=(_qCart||[]).map(function(c,i){ return {i:i, pn:String((c&&c.spec)||'').trim(), qty:Math.max(1,Number(c&&c.qty)||1), alt:!!(c&&c.altOff)}; }).filter(function(x){ return x.pn && !x.alt; });
-    if(!lines.length){ showInfoModal('대성 발주','견적 목록에 품번이 없습니다.'); return; }
-    var br=_dsBranch();
-    _ds={ lines:lines.map(function(x){ return {pn:x.pn, qty:x.qty, on:true, st:'wait'}; }), deli:_dsDeliOf(br), deliDate:_dsTomorrow(),
-      remk:'충해전기 '+((typeof _qQuoteNo!=='undefined'&&_qQuoteNo)?_qQuoteNo+' ':'')+(((_qCart[0]||{}).vname)?'/ '+_qCart[0].vname:''), busy:false, msg:'' };
-    _dsRender(); _dsLookup();
-  };
-  async function _dsLookup(){
-    if(!_ds) return; _ds.busy=true; _ds.msg='대성에서 품번 확인 중…'; _dsRender();
-    try{
-      var j=await _dsCall('/lookup', {items:_ds.lines.map(function(l){ return {pn:l.pn, qty:l.qty}; })});
-      (j.items||[]).forEach(function(it, k){ var l=_ds.lines[k]; if(!l) return;
-        if(it.found){ l.st='ok'; l.code=it.code; l.name=it.name||''; l.price=it.price; l.stock=it.stock||null; }
-        else { l.st='none'; l.on=false; l.cands=it.cands||[]; } });
-      if(j.deliv&&j.deliv.deliPlace){ _ds.def=j.deliv; if(_ds.deli.branch==='서울'&&!_ds.deliEdited) _ds.deli=_dsDeliOf('서울', j.deliv); }
-      var nf=_ds.lines.filter(function(l){ return l.st==='none'; }).length;
-      _ds.msg=nf?('<span style="color:#b45309">대성에서 못 찾은 품번 '+nf+'개는 빼고 발주합니다.</span>'):'<span style="color:#15803d">모든 품번을 대성에서 찾았습니다.</span>';
-    }catch(e){ _ds.msg='<span style="color:#dc2626">'+esc(e.message||String(e))+'</span>'; _ds.lines.forEach(function(l){ if(l.st==='wait') l.st='err'; }); }
-    _ds.busy=false; _dsRender();
-  }
   function _dsStockTxt(s){ if(!s) return ''; return Object.keys(s).filter(function(k){ return s[k]!=null&&s[k]!==''; }).map(function(k){ return esc(k)+' '+esc(String(s[k])); }).join(' · '); }
-  function _dsRender(){
-    if(!_ds) return; var d=_ds; var I='box-sizing:border-box;padding:7px 9px;border:1.5px solid #d6e0ec;border-radius:8px;font-size:12.5px;font-family:inherit';
+  function _poYmd(t){ var d=new Date(t||0); if(!t||isNaN(d)) return ''; return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+  function _poQuotes(){ return (typeof quoteSaved!=='undefined'&&Array.isArray(quoteSaved))?quoteSaved.filter(function(q){ return q&&q.id; }):[]; }
+  function _poVendors(){   // 저장 견적의 업체명 — 최근 견적 순
+    var seen={}, out=[];
+    _poQuotes().slice().sort(function(a,b){ return (b.upd||b.savedAt||0)-(a.upd||a.savedAt||0); }).forEach(function(q){ var v=String(q.vname||'').trim(); if(v&&!seen[v]){ seen[v]=1; out.push(v); } });
+    return out;
+  }
+  function _poNew(){
+    var br=_dsBranch();
+    _ds={ vname:'', qid:'', qno:'', lines:[], deli:_dsDeliOf(br), deliDate:_dsTomorrow(), remk:'', busy:false, msg:'', done:false, def:null, deliEdited:false };
+  }
+  window.renderOrderPage=function(){
+    var pg=document.getElementById('pageOrder'); if(!pg) return;
+    if(!_ds) _poNew();
+    var d=_ds, I='box-sizing:border-box;padding:7px 9px;border:1.5px solid #d6e0ec;border-radius:8px;font-size:12.5px;font-family:inherit';
+    var H='font-size:14px;font-weight:700;color:#14305c;margin:0 0 8px;display:flex;align-items:center;gap:8px';
+    var CARD='background:#fff;border:1px solid #e5eaf1;border-radius:12px;padding:14px 16px;margin-bottom:14px';
+    // ① 업체 + 견적
+    var vlist=_poVendors();
+    var q=String(d.vname||'').trim(), ql=q.toLowerCase().replace(/\s+/g,'');
+    var quotes=_poQuotes().filter(function(x){ if(!ql) return true; return String(x.vname||'').toLowerCase().replace(/\s+/g,'').indexOf(ql)>=0; })
+      .sort(function(a,b){ return (b.upd||b.savedAt||0)-(a.upd||a.savedAt||0); }).slice(0, ql?40:15);
+    var qrows=quotes.map(function(x){
+      var ds=(x.dsOrders||[]).length;
+      return '<tr style="border-top:1px solid #eef2f7'+(x.id===d.qid?';background:#fff7ed':'')+'">'
+        +'<td style="padding:7px 8px;white-space:nowrap">'+esc(_poYmd(x.savedAt||x.upd))+'</td>'
+        +'<td style="padding:7px 8px;font-weight:700;color:#14305c">'+esc(x.title||'')+'</td>'
+        +'<td style="padding:7px 8px">'+esc(x.vname||'')+'</td>'
+        +'<td style="padding:7px 8px;text-align:right">'+(x.count||0)+'</td>'
+        +'<td style="padding:7px 8px;text-align:right">'+_dsFmt(x.total||0)+'</td>'
+        +'<td style="padding:7px 8px">'+esc(x.savedBy||'')+'</td>'
+        +'<td style="padding:7px 8px">'+(ds?'<span style="font-size:11px;font-weight:700;color:#c2410c;background:#fff7ed;border:1px solid #fed7aa;border-radius:999px;padding:1px 8px" title="'+_qa((x.dsOrders||[]).map(function(o){ return _poYmd(o.at)+' '+(o.no||'')+' '+(o.n||0)+'품목'; }).join('\n'))+'">대성 발주 '+ds+'</span>':'')+'</td>'
+        +'<td style="padding:5px 8px;text-align:right"><button class="btn" onclick="poLoadQuote(\''+_qa(x.id)+'\')" style="padding:4px 12px">'+(x.id===d.qid?'다시 불러오기':'불러오기')+'</button></td></tr>';
+    }).join('');
+    var sec1='<div style="'+CARD+'"><div style="'+H+'">① 업체 · 견적 선택</div>'
+      +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px"><span style="font-size:12.5px;font-weight:700;color:#14305c">업체명</span>'
+      +'<input id="poVendor" list="poVendorList" value="'+esc(d.vname)+'" placeholder="업체명 입력 (견적을 저장한 업체)" autocomplete="off" oninput="poVendorInput(this.value)" style="'+I+';width:320px;max-width:100%">'
+      +'<datalist id="poVendorList">'+vlist.slice(0,300).map(function(v){ return '<option value="'+_qa(v)+'">'; }).join('')+'</datalist>'
+      +'<span style="font-size:11.5px;color:#6b7280">'+(ql?('견적 '+quotes.length+'건'):'최근 견적 15건')+'</span></div>'
+      +'<div style="overflow:auto;border:1px solid #eef2f7;border-radius:9px;max-height:320px"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="background:#f6f8fb;color:#14305c;font-size:11.5px;position:sticky;top:0"><th style="padding:7px 8px;text-align:left">날짜</th><th style="padding:7px 8px;text-align:left">견적번호</th><th style="padding:7px 8px;text-align:left">업체</th><th style="padding:7px 8px;text-align:right">품목</th><th style="padding:7px 8px;text-align:right">공급가</th><th style="padding:7px 8px;text-align:left">작성</th><th style="padding:7px 8px;text-align:left"></th><th></th></tr></thead><tbody>'
+      +(qrows||'<tr><td colspan="8" style="padding:18px;text-align:center;color:#9ca3af">'+(ql?'이 업체의 저장된 견적이 없습니다.':'저장된 견적이 없습니다.')+'</td></tr>')+'</tbody></table></div></div>';
+    // ② 발주 품목
     var sum=0, cnt=0; d.lines.forEach(function(l){ if(l.on&&l.st==='ok'){ cnt++; sum+=(Number(l.price)||0)*l.qty; } });
     var rows=d.lines.map(function(l,k){
-      var st=l.st==='ok'?'<span style="color:#15803d">✔ '+esc(l.code||'')+'</span>':l.st==='none'?'<span style="color:#dc2626">대성에 없음</span>'+((l.cands&&l.cands.length)?'<div style="font-size:10.5px;color:#6b7280">비슷한 품번: '+l.cands.slice(0,3).map(function(c){ return '<a href="javascript:;" onclick="dsPickCand('+k+',\''+_qa(c.code)+'\')" style="color:#1B3A6B">'+esc(c.pn||c.code)+'</a>'; }).join(', ')+'</div>':''):l.st==='err'?'<span style="color:#dc2626">확인 실패</span>':'<span style="color:#9ca3af">확인 중…</span>';
+      var st=l.st==='ok'?'<span style="color:#15803d">✔ '+esc(l.code||'')+'</span>'+(l.pnUsed?'<div style="font-size:10.5px;color:#6b7280">'+esc(l.pnUsed)+' 로 발주</div>':''):l.st==='none'?'<span style="color:#dc2626">대성에 없음</span>'+((l.cands&&l.cands.length)?'<div style="font-size:10.5px;color:#6b7280">비슷한 품번: '+l.cands.slice(0,3).map(function(c){ return '<a href="javascript:;" onclick="dsPickCand('+k+',\''+_qa(c.code)+'\')" style="color:#1B3A6B">'+esc(c.pn||c.code)+'</a>'; }).join(', ')+'</div>':''):l.st==='err'?'<span style="color:#dc2626">확인 실패</span>':'<span style="color:#9ca3af">확인 중…</span>';
       return '<tr style="border-top:1px solid #eef2f7'+(l.on?'':';opacity:.55')+'">'
         +'<td style="padding:6px 4px;text-align:center"><input type="checkbox" '+(l.on?'checked':'')+(l.st==='ok'?'':' disabled')+' onchange="dsToggle('+k+',this.checked)"></td>'
-        +'<td style="padding:6px 6px;font-weight:700;color:#14305c">'+esc(l.pn)+(l.name?'<div style="font-size:10.5px;font-weight:400;color:#6b7280">'+esc(l.name)+'</div>':'')+'</td>'
-        +'<td style="padding:6px 4px"><input type="number" min="1" value="'+l.qty+'" onchange="dsQty('+k+',this.value)" style="'+I+';width:64px;text-align:right"></td>'
+        +'<td style="padding:6px 6px;font-weight:700;color:#14305c">'+esc(l.pn)+(l.alt?' <span style="font-size:10.5px;font-weight:400;color:#7c3aed">변경 제안</span>':'')+'</td>'
+        +'<td style="padding:6px 4px"><input type="number" min="1" value="'+l.qty+'" onchange="dsQty('+k+',this.value)" style="'+I+';width:68px;text-align:right"></td>'
         +'<td style="padding:6px 6px;text-align:right">'+_dsFmt(l.price)+'</td>'
         +'<td style="padding:6px 6px;font-size:11px;color:#374151">'+_dsStockTxt(l.stock)+'</td>'
         +'<td style="padding:6px 6px;font-size:11.5px">'+st+'</td></tr>';
     }).join('');
-    var html='<div style="padding:15px 20px;border-bottom:2px solid #c2410c;display:flex;justify-content:space-between;align-items:center"><span style="font-size:16px;font-weight:700;color:#c2410c">대성산업 발주 <span style="font-size:12px;font-weight:400;color:#6b7280">WMIS · SMC</span></span>'
-      +'<span>'+(_isAdmin()?'<button class="btn" onclick="dsOpenCfg()" style="margin-right:6px">대성 설정</button>':'')+'<button class="btn" onclick="document.getElementById(\'dsOverlay\').style.display=\'none\'">닫기</button></span></div>'
-      +'<div style="padding:14px 20px;display:flex;flex-direction:column;gap:12px">'
-      +'<div style="overflow:auto;border:1px solid #e5eaf1;border-radius:9px"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="background:#f6f8fb;color:#14305c;font-size:11.5px"><th style="padding:7px 4px;width:30px"></th><th style="padding:7px 6px;text-align:left">품번</th><th style="padding:7px 4px;text-align:left">수량</th><th style="padding:7px 6px;text-align:right">대리점가</th><th style="padding:7px 6px;text-align:left">재고</th><th style="padding:7px 6px;text-align:left">대성 코드</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+    var sec2='<div style="'+CARD+'"><div style="'+H+'">② 발주 품목 '+(d.qno?'<span style="font-size:12px;font-weight:400;color:#6b7280">'+esc(d.qno)+' · '+esc(d.vname||'')+'</span>':'')+'</div>'
+      +(d.lines.length?('<div style="overflow:auto;border:1px solid #eef2f7;border-radius:9px"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="background:#f6f8fb;color:#14305c;font-size:11.5px"><th style="padding:7px 4px;width:30px"></th><th style="padding:7px 6px;text-align:left">품번</th><th style="padding:7px 4px;text-align:left">수량</th><th style="padding:7px 6px;text-align:right">대리점가</th><th style="padding:7px 6px;text-align:left">대성 재고</th><th style="padding:7px 6px;text-align:left">대성 코드</th></tr></thead><tbody>'+rows+'</tbody></table></div>')
+        :'<div style="padding:18px;text-align:center;color:#9ca3af;font-size:12.5px;border:1px dashed #d6e0ec;border-radius:9px">위에서 견적을 [불러오기] 하면 품목이 여기에 나옵니다.</div>')
+      +'</div>';
+    // ③ 배송 · 발주
+    var sec3=!d.lines.length?'':('<div style="'+CARD+'"><div style="'+H+'">③ 배송 · 발주</div><div style="display:flex;flex-direction:column;gap:10px">'
       +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">'
       +'<div><div style="font-size:12px;font-weight:700;color:#14305c;margin-bottom:4px">배송지 <span style="font-weight:400;color:#6b7280">(지점)</span></div><div style="display:flex;gap:6px">'
         +['서울','화성'].map(function(b){ return '<button class="btn" onclick="dsBranch(\''+b+'\')" style="flex:1;'+(d.deli.branch===b?'background:#c2410c;color:#fff;border-color:#c2410c':'')+'">'+b+'</button>'; }).join('')+'</div></div>'
@@ -9505,39 +9527,83 @@ function reloadState() {
       +'<div><div style="font-size:12px;font-weight:700;color:#14305c;margin-bottom:4px">기타요청사항</div><input id="dsRemk" value="'+esc(d.remk)+'" onchange="_ds.remk=this.value" style="'+I+';width:100%"></div>'
       +'<div id="dsMsg" style="font-size:12px;min-height:18px">'+(d.msg||'')+'</div>'
       +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:13px;color:#14305c">발주 <b>'+cnt+'</b>품목 · 대리점가 합계 <b>'+_dsFmt(sum)+'</b>원 <span style="font-size:11px;color:#6b7280">(부가세 별도)</span></span>'
-      +'<span><button class="btn" onclick="_dsLookup()" '+(d.busy?'disabled':'')+'>다시 확인</button> <button class="btn btn-primary" id="dsGo" onclick="dsSubmit()" style="background:#c2410c;border-color:#c2410c" '+((d.busy||!cnt||d.done)?'disabled':'')+'>'+(d.done?'발주 완료':'대성에 발주')+'</button></span></div>'
-      +'</div>';
-    _mailOverlay('dsOverlay', html, 860);
+      +'<span><button class="btn" onclick="_dsLookup()" '+(d.busy?'disabled':'')+'>대성 다시 확인</button> <button class="btn btn-primary" id="dsGo" onclick="dsSubmit()" style="background:#c2410c;border-color:#c2410c" '+((d.busy||!cnt||d.done)?'disabled':'')+'>'+(d.done?'발주 완료':'대성에 발주')+'</button></span></div>'
+      +'</div></div>');
+    // ④ 최근 대성 발주
+    var hist=[]; _poQuotes().forEach(function(x){ (x.dsOrders||[]).forEach(function(o){ hist.push({o:o, q:x}); }); });
+    hist.sort(function(a,b){ return (b.o.at||0)-(a.o.at||0); });
+    var sec4='<div style="'+CARD+'"><div style="'+H+'">최근 대성 발주</div>'
+      +(hist.length?('<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="color:#6b7280;font-size:11px"><th style="padding:5px 8px;text-align:left">날짜</th><th style="padding:5px 8px;text-align:left">대성 주문번호</th><th style="padding:5px 8px;text-align:left">업체</th><th style="padding:5px 8px;text-align:left">견적번호</th><th style="padding:5px 8px;text-align:right">품목</th><th style="padding:5px 8px;text-align:right">대리점가 합계</th><th style="padding:5px 8px;text-align:left">배송</th><th style="padding:5px 8px;text-align:left">담당</th></tr></thead><tbody>'
+        +hist.slice(0,20).map(function(h){ var o=h.o; return '<tr style="border-top:1px solid #eef2f7"><td style="padding:5px 8px">'+esc(_poYmd(o.at))+'</td><td style="padding:5px 8px;font-weight:700;color:#c2410c">'+esc(o.no||'')+'</td><td style="padding:5px 8px">'+esc(h.q.vname||'')+'</td><td style="padding:5px 8px">'+esc(h.q.title||'')+'</td><td style="padding:5px 8px;text-align:right" title="'+_qa((o.items||[]).join('\n'))+'">'+(o.n||0)+'</td><td style="padding:5px 8px;text-align:right">'+_dsFmt(o.sum||0)+'</td><td style="padding:5px 8px">'+esc(o.branch||'')+'</td><td style="padding:5px 8px">'+esc(o.by||'')+'</td></tr>'; }).join('')
+        +'</tbody></table></div>'):'<div style="font-size:12px;color:#9ca3af">아직 없습니다.</div>')+'</div>';
+    var top='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap"><div style="font-size:17px;font-weight:700;color:#c2410c">대성산업 발주 <span style="font-size:12px;font-weight:400;color:#6b7280">WMIS · SMC · 저장하면 바로 접수</span></div>'
+      +'<span>'+(d.lines.length?'<button class="btn" onclick="poReset()" style="margin-right:6px">새 발주</button>':'')+(_isAdmin()?'<button class="btn" onclick="dsOpenCfg()">대성 설정</button>':'')+'</span></div>';
+    var keep=document.activeElement&&document.activeElement.id==='poVendor'?document.activeElement.selectionStart:null;
+    pg.innerHTML='<div style="max-width:1100px;margin:0 auto">'+top+sec1+sec2+sec3+sec4+'</div>';
+    if(keep!=null){ var vi=document.getElementById('poVendor'); if(vi){ vi.focus(); try{ vi.setSelectionRange(keep,keep); }catch(_e){} } }
+  };
+  var _poVT=null;
+  window.poVendorInput=function(v){ if(!_ds) _poNew(); _ds.vname=v; clearTimeout(_poVT); _poVT=setTimeout(function(){ renderOrderPage(); }, 180); };
+  window.poReset=function(){ var v=_ds?_ds.vname:''; _poNew(); _ds.vname=v; renderOrderPage(); };
+  window.poLoadQuote=async function(id){
+    var meta=_poQuotes().find(function(x){ return x.id===id; }); if(!meta) return;
+    if(!_ds) _poNew();
+    if(_ds.busy) return;
+    _ds.busy=true; _ds.msg='견적 품목 불러오는 중…'; renderOrderPage();
+    var items=await _qsBlobGet(id);
+    if(!Array.isArray(items)){ _ds.busy=false; _ds.msg='<span style="color:#dc2626">이 견적의 품목을 불러오지 못했습니다.</span>'; renderOrderPage(); return; }
+    var v=_ds.vname; _poNew(); _ds.vname=v||meta.vname||'';
+    _ds.qid=id; _ds.qno=meta.title||''; _ds.qvname=meta.vname||'';
+    _ds.lines=items.map(function(c){ return {pn:String((c&&c.spec)||'').trim(), qty:Math.max(1,Number(c&&c.qty)||1), alt:!!(c&&c.altOf), off:!!(c&&c.altOff)}; })
+      .filter(function(x){ return x.pn && !x.off; }).map(function(x){ return {pn:x.pn, qty:x.qty, alt:x.alt, on:true, st:'wait'}; });
+    _ds.remk='충해전기 '+(_ds.qno?_ds.qno+' ':'')+(_ds.qvname?'/ '+_ds.qvname:'');
+    if(!_ds.lines.length){ _ds.msg='<span style="color:#b45309">이 견적에 품번이 있는 줄이 없습니다.</span>'; renderOrderPage(); return; }
+    _dsLookup();
+  };
+  async function _dsLookup(){
+    if(!_ds||!_ds.lines.length) return; _ds.busy=true; _ds.msg='대성에서 품번 확인 중…'; renderOrderPage();
+    try{
+      var j=await _dsCall('/lookup', {items:_ds.lines.map(function(l){ return {pn:l.pn, qty:l.qty}; })});
+      (j.items||[]).forEach(function(it, k){ var l=_ds.lines[k]; if(!l) return;
+        if(it.found){ l.st='ok'; l.code=it.code; l.name=it.name||''; l.price=it.price; l.stock=it.stock||null; l.cands=null; l.pnUsed=''; }
+        else { l.st='none'; l.on=false; l.cands=it.cands||[]; } });
+      if(j.deliv&&j.deliv.deliPlace){ _ds.def=j.deliv; if(_ds.deli.branch==='서울'&&!_ds.deliEdited) _ds.deli=_dsDeliOf('서울', j.deliv); }
+      var nf=_ds.lines.filter(function(l){ return l.st==='none'; }).length;
+      _ds.msg=nf?('<span style="color:#b45309">대성에서 못 찾은 품번 '+nf+'개는 빼고 발주합니다. (비슷한 품번을 누르면 포함)</span>'):'<span style="color:#15803d">모든 품번을 대성에서 찾았습니다.</span>';
+    }catch(e){ _ds.msg='<span style="color:#dc2626">'+esc(e.message||String(e))+'</span>'; _ds.lines.forEach(function(l){ if(l.st==='wait') l.st='err'; }); }
+    _ds.busy=false; renderOrderPage();
   }
   window._dsLookup=_dsLookup;
-  window.dsToggle=function(k,v){ if(_ds&&_ds.lines[k]){ _ds.lines[k].on=!!v; _dsRender(); } };
-  window.dsQty=function(k,v){ if(_ds&&_ds.lines[k]){ _ds.lines[k].qty=Math.max(1,parseInt(v,10)||1); _dsRender(); } };
-  window.dsBranch=function(b){ if(!_ds) return; _ds.deli=_dsDeliOf(b, _ds.def); _ds.deliEdited=false; _dsRender(); };
+  window.dsToggle=function(k,v){ if(_ds&&_ds.lines[k]){ _ds.lines[k].on=!!v; renderOrderPage(); } };
+  window.dsQty=function(k,v){ if(_ds&&_ds.lines[k]){ _ds.lines[k].qty=Math.max(1,parseInt(v,10)||1); renderOrderPage(); } };
+  window.dsBranch=function(b){ if(!_ds) return; _ds.deli=_dsDeliOf(b, _ds.def); _ds.deliEdited=false; renderOrderPage(); };
   window.dsDeli=function(k,v){ if(!_ds) return; _ds.deli[k]=String(v||'').trim(); _ds.deliEdited=true; };
-  window.dsPickCand=function(k,code){ if(!_ds||!_ds.lines[k]) return; var c=(_ds.lines[k].cands||[]).find(function(x){ return x.code===code; }); if(!c) return; var l=_ds.lines[k]; l.st='ok'; l.on=true; l.code=c.code; l.name=c.name||''; l.price=c.price; l.stock=c.stock||null; l.pnUsed=c.pn||''; _dsRender(); };
+  window.dsPickCand=function(k,code){ if(!_ds||!_ds.lines[k]) return; var c=(_ds.lines[k].cands||[]).find(function(x){ return x.code===code; }); if(!c) return; var l=_ds.lines[k]; l.st='ok'; l.on=true; l.code=c.code; l.name=c.name||''; l.price=c.price; l.stock=c.stock||null; l.pnUsed=c.pn||''; renderOrderPage(); };
   window.dsSubmit=async function(){
     if(!_ds||_ds.busy||_ds.done) return; var d=_ds;
-    var items=d.lines.filter(function(l){ return l.on&&l.st==='ok'; }).map(function(l){ return {code:l.code, qty:l.qty, pn:l.pn}; });
+    var items=d.lines.filter(function(l){ return l.on&&l.st==='ok'; }).map(function(l){ return {code:l.code, qty:l.qty, pn:l.pnUsed||l.pn}; });
     if(!items.length) return;
-    if(!d.deli.addr||!d.deli.tel){ d.msg='<span style="color:#dc2626">배송지 주소와 연락처를 넣어 주세요.</span>'; _dsRender(); return; }
+    var codes={}; for(var i=0;i<items.length;i++){ if(codes[items[i].code]){ d.msg='<span style="color:#dc2626">같은 대성 코드가 두 줄 있습니다 ('+esc(items[i].pn)+'). 한 줄로 합쳐 주세요.</span>'; renderOrderPage(); return; } codes[items[i].code]=1; }
+    if(!d.deli.addr||!d.deli.tel){ d.msg='<span style="color:#dc2626">도착지와 전화번호를 넣어 주세요.</span>'; renderOrderPage(); return; }
     var sum=0; d.lines.forEach(function(l){ if(l.on&&l.st==='ok') sum+=(Number(l.price)||0)*l.qty; });
     if(!confirm('대성산업에 발주합니다. 저장하면 바로 대성에 접수됩니다.\n\n'+items.length+'품목 · 대리점가 합계 '+_dsFmt(sum)+'원 (부가세 별도)\n납품처: '+d.deli.type+' / '+d.deli.cmpy+'\n도착지: '+d.deli.addr+'\n납품요청일: '+d.deliDate+'\n\n발주할까요?')) return;
-    d.busy=true; d.msg='대성에 저장 중…'; _dsRender();
+    d.busy=true; d.msg='대성에 저장 중…'; renderOrderPage();
     try{
       var j=await _dsCall('/order', {deli:{type:d.deli.type, cmpy:d.deli.cmpy, addr:d.deli.addr, tel:d.deli.tel}, deliDate:d.deliDate, remk:d.remk, items:items});
-      try{ if(_qCartHasContent() && typeof _qPersistQuote==='function') await _qPersistQuote(); }catch(_e){}
-      _dsLog(j.orderNo||'', items, sum, d.deli.branch);
-      d.done=true; d.msg='<span style="color:#15803d;font-weight:700">대성에 저장했습니다'+(j.orderNo?' — 주문번호 '+esc(j.orderNo):'')+'.</span> <span style="color:#6b7280">대성 사이트 주문현황에서 확인할 수 있습니다.</span>';
-      try{ _mtToast('대성 발주 저장 완료'+(j.orderNo?' · '+j.orderNo:'')); }catch(_e2){}
+      _dsLog(d.qid, j.orderNo||'', items, sum, d.deli.branch);
+      d.done=true; d.msg='<span style="color:#15803d;font-weight:700">대성에 발주했습니다'+(j.orderNo?' — 주문번호 '+esc(j.orderNo):'')+'.</span> <span style="color:#6b7280">대성 사이트 주문현황에서 확인할 수 있습니다.</span>';
+      try{ _mtToast('대성 발주 완료'+(j.orderNo?' · '+j.orderNo:'')); }catch(_e2){}
     }catch(e){ d.msg='<span style="color:#dc2626">발주 실패: '+esc(e.message||String(e))+'</span>'; }
-    d.busy=false; _dsRender();
+    d.busy=false; renderOrderPage();
   };
-  function _dsLog(no, items, sum, branch){
+  function _dsLog(qid, no, items, sum, branch){
     var who=(typeof _authUser!=='undefined'&&_authUser&&_authUser.name)||'';
-    var q=(_qLoadedId?quoteSaved.find(function(x){ return x.id===_qLoadedId; }):null)||(_qQuoteNo?quoteSaved.find(function(x){ return x.title===_qQuoteNo; }):null);
+    var q=_poQuotes().find(function(x){ return x.id===qid; });
     if(!q) return;
     q.dsOrders=(q.dsOrders||[]).concat([{at:Date.now(), no:no, by:who, branch:branch, n:items.length, sum:sum, items:items.map(function(x){ return x.pn+'×'+x.qty; })}]);
+    q.upd=Date.now(); try{ _qsPend[q.id]=Date.now(); }catch(_e){}   // 서버 병합(r250) 때 이 기록이 이기도록
     saveAll();
+    try{ _qsScheduleVerify(); }catch(_e2){}
   }
   window.dsOpenCfg=async function(){
     if(!_isAdmin()){ showInfoModal('권한','대성 설정은 관리자만 할 수 있습니다.'); return; }
@@ -15977,7 +16043,7 @@ function reloadState() {
     try{ _fxSyncAcctNav(); }catch(_e){}   // r214: '자료 업로드' 는 마스터만
     document.querySelectorAll('.sub-tab').forEach(t => t.classList.toggle('active', t.dataset.page === page));
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-    const pageMap = { carduse:'pageCardUse', memo:'pageMemo', done:'pageDone', meeting:'pageMeeting', weekly:'pageWeekly', biz:'pageBiz', project:'pageProject', clients:'pageClients', assign:'pageAssign', personal:'pagePersonal', finance:'pageFinance', ar:'pageAr', inventory:'pageInventory', purchase:'pagePurchase', files:'pageFiles', estimate:'pageEstimate', fx:'pageFx', fxsum:'pageFx', fxup:'pageFx', fxfind:'pageFx', links:'pageLinks', cardsales:'pageCardSales', rules:'pageRules' };   // r247
+    const pageMap = { carduse:'pageCardUse', memo:'pageMemo', done:'pageDone', meeting:'pageMeeting', weekly:'pageWeekly', biz:'pageBiz', project:'pageProject', clients:'pageClients', assign:'pageAssign', personal:'pagePersonal', finance:'pageFinance', ar:'pageAr', inventory:'pageInventory', purchase:'pagePurchase', files:'pageFiles', estimate:'pageEstimate', fx:'pageFx', fxsum:'pageFx', fxup:'pageFx', fxfind:'pageFx', links:'pageLinks', cardsales:'pageCardSales', rules:'pageRules', order:'pageOrder' };   // r247
     document.getElementById(pageMap[page] || 'pageWeekly').classList.add('active');
     // 견적 화면에서만 .main 의 가로 스크롤을 풀어 툴바 sticky 가 화면 기준으로 붙게 한다
     var _mn=document.querySelector('.main'); if(_mn) _mn.classList.toggle('main-estimate', page==='estimate' || page==='clients');
@@ -16011,6 +16077,7 @@ function reloadState() {
       if(typeof updateInvFilterUI==='function') updateInvFilterUI();
       renderInventoryPage();
     }
+    if (page === 'order'){ try{ renderOrderPage(); }catch(_e){} }   // r267
     if (page === 'purchase'){
       var _ps=document.getElementById('purchaseSearch'); if(_ps) _ps.value='';
       renderPurchasePage();
