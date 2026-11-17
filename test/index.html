@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r270 2026-11-13 -->
+<!-- test build r271 2026-11-17 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -3110,6 +3110,7 @@
       <button class="qic" id="qAddBtn" onclick="openQAddModal()" data-tip="규격 추가" aria-label="규격 추가" style="display:none;border-color:#5b7ba6;color:#5b7ba6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
       <button class="qic" id="qLedgerBtn" onclick="qOpenLedger()" data-tip="원장 관리" aria-label="원장 관리" style="border-color:#b45309;color:#b45309"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.2A2.2 2.2 0 0 1 6.2 3H19a1 1 0 0 1 1 1v13"/><path d="M4 5.2V19a2 2 0 0 0 2 2h14"/><path d="M20 17H6.2A2.2 2.2 0 0 0 4 19.2"/><path d="M8 7.5h8M8 11h5"/></svg></button>
       <button class="qic" id="qLoadBtn" onclick="qOpenLoad()" data-tip="견적 불러오기" aria-label="견적 불러오기" style="border-color:#1a1a1a;color:#1a1a1a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V6a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.6.8l1 1.4a2 2 0 0 0 1.6.8H19a2 2 0 0 1 2 2v1"/><path d="M3 8h17.4a1 1 0 0 1 .97 1.25l-1.7 6.8A2 2 0 0 1 17.73 18H5a2 2 0 0 1-2-2Z"/></svg></button>
+      <button class="qic" id="qRecentBtn" onclick="qOpenRecent(event)" data-tip="최근 작업한 견적" aria-label="최근 작업한 견적" style="border-color:#1B3A6B;color:#1B3A6B"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></button>
       <button class="qic" id="qSaveBtn" onclick="qSaveQuote()" data-tip="견적 저장하기" aria-label="견적 저장하기" style="border-color:#1a1a1a;color:#1a1a1a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h10.2a2 2 0 0 1 1.4.6l2.8 2.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M8 3v5h7V3"/><path d="M7 21v-6h10v6"/></svg></button>
       <button class="qic" id="qBulkBtn" onclick="qBulkRateOpen()" data-tip="마진율·DC율 일괄 적용" aria-label="마진율·DC율 일괄 적용" style="border-color:#0d9488;color:#0d9488"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/></svg></button>
       <span class="qic-div" style="width:1px;align-self:stretch;background:#d3dae4;margin:2px 4px"></span>
@@ -10144,6 +10145,7 @@ function reloadState() {
           +'<span style="color:#9ca3af;font-size:12px">~</span>'
           +'<input type="date" id="qLoadTo" value="" title="종료일 (이 날짜까지)" onchange="_qLoadFilterChanged()" style="'+INP+'">'
         +'</span>'
+        +'<select id="qLoadSort" onchange="qLoadSortSet(this.value)" title="정렬" style="'+INP+'"><option value="work"'+(_qLoadSortMode()==='work'?' selected':'')+'>최근 작업순</option><option value="date"'+(_qLoadSortMode()==='date'?' selected':'')+'>견적일순</option></select>'   // r271
         +'<button class="btn" onclick="qLoadResetFilters()" style="font-size:12px;padding:6px 10px">초기화</button>'
       +'</div>'
       +'<div id="qLoadList" style="overflow:auto;flex:1;min-height:0"></div></div>';
@@ -10176,7 +10178,7 @@ function reloadState() {
     if(_f && _t && _f>_t){ var _sw=_f; _f=_t; _t=_sw; }
     // 견적 날짜(견적번호에 박힌 YYYYMMDD) 기준 최신순, 같으면 저장시각순
     var _qd=function(x){ var m=String(x&&x.title||'').match(/(\d{8})/); return m?m[1]:'00000000'; };
-    var list=quoteSaved.slice().sort(function(a,b){ var da=_qd(a), db=_qd(b); if(da!==db) return db<da?-1:1; return (b.savedAt||0)-(a.savedAt||0); });
+    var list=_qLoadSorted(_qd);   // r271: 최근 작업순(기본) / 견적일순
     list=list.filter(function(qq){
       if(q && (String(qq.vname||'').toLowerCase().indexOf(q)<0) && (String(qq.title||'').toLowerCase().indexOf(q)<0) && (String(qq.savedBy||'').toLowerCase().indexOf(q)<0) && (String(qq.note||'').toLowerCase().indexOf(q)<0)) return false;
       var _wf=((document.getElementById('qLoadWriter')||{}).value||''); if(_wf && (qq.savedBy||'')!==_wf) return false;
@@ -10205,6 +10207,7 @@ function reloadState() {
     box.innerHTML = (list.length ? list.map(function(qq){
       var dd=qq.savedAt?new Date(qq.savedAt):null;
       var ds=dd?(dd.getFullYear()+'.'+String(dd.getMonth()+1).padStart(2,'0')+'.'+String(dd.getDate()).padStart(2,'0')):'';
+      if(_qLoadSortMode()==='work' && _qWorkAt(qq)) ds=(ds?ds+' · ':'')+'최근 작업 '+_qAgo(_qWorkAt(qq));   // r271
       return '<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #f0f3f7">'
         +'<div style="flex:1;min-width:0"><div style="display:flex;align-items:flex-start;gap:8px;min-width:0"><span style="font-weight:700;color:#0f172a;font-size:14px;white-space:nowrap;flex-shrink:0">'+esc(qq.title)+'</span>'+(qq.note?'<span style="font-weight:600;font-size:12px;line-height:1.5;color:#1B3A6B;background:#eef4fb;border:1px solid #d6e4f5;padding:1px 7px;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all">'+esc(qq.note)+'</span>':'')+'</div>'
         +'<div style="font-size:11px;color:#9ca3af">'+esc(qq.vname||'')+' · '+(qq.count||0)+'건 · '+esc(qq.savedBy||'')+(ds?(' · '+ds):'')+((qq.mail&&qq.mail.length)?' · <span style="color:#1B3A6B;font-weight:700" title="'+esc(qq.mail.map(function(m){ return (m.at?new Date(m.at).toLocaleDateString():'')+' → '+(m.to||''); }).join('\n'))+'">✉ '+qq.mail.length+'회</span>':'')+'</div></div>'
@@ -10213,6 +10216,45 @@ function reloadState() {
         +'<button class="btn btn-danger" onclick="qDelSaved(\''+qq.id+'\')" title="삭제" aria-label="삭제" style="font-size:12px;padding:5px 8px;display:inline-flex;align-items:center"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16"/><path d="M9.5 6.5V4.6a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.9"/><path d="M6.5 6.5 7.4 19a2 2 0 0 0 2 1.9h5.2a2 2 0 0 0 2-1.9l.9-12.5"/><path d="M10.5 10.5v6M13.5 10.5v6"/></svg></button></div>';
     }).join('') : '<div style="padding:36px;text-align:center;color:#bbb;font-size:13px">조건에 맞는 저장 견적이 없습니다.</div>') + _moreN;
   };
+  // ─── r271: 최근 작업한 견적 바로 찾기 — 불러오기 '최근 작업순' 정렬 + 툴바 [최근 작업] 목록 ───
+  function _qWorkAt(q){ return Math.max(Number(q&&q.upd)||0, Number(q&&q.savedAt)||0); }
+  function _qLoadSortMode(){ try{ return localStorage.getItem('q_load_sort')||'work'; }catch(_e){ return 'work'; } }
+  window.qLoadSortSet=function(v){ try{ localStorage.setItem('q_load_sort', v); }catch(_e){} _qLoadPage=1; _qRenderLoadList(); };
+  function _qLoadSorted(_qd){
+    var L=quoteSaved.slice();
+    if(_qLoadSortMode()==='work') return L.sort(function(a,b){ return _qWorkAt(b)-_qWorkAt(a); });
+    return L.sort(function(a,b){ var da=_qd(a), db=_qd(b); if(da!==db) return db<da?-1:1; return (b.savedAt||0)-(a.savedAt||0); });
+  }
+  function _qAgo(t){ if(!t) return ''; var s=(Date.now()-t)/1000; if(s<60) return '방금'; if(s<3600) return Math.floor(s/60)+'분 전'; if(s<86400) return Math.floor(s/3600)+'시간 전'; var d=new Date(t); var y=new Date(); y.setDate(y.getDate()-1); if(d.toDateString()===y.toDateString()) return '어제 '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+  var _qRecentAll=false;
+  window.qOpenRecent=function(ev){
+    if(ev) ev.stopPropagation();
+    var pop=document.getElementById('qRecentPop');
+    if(pop && pop.style.display==='block'){ pop.style.display='none'; return; }
+    if(!pop){ pop=document.createElement('div'); pop.id='qRecentPop'; pop.style.cssText='position:fixed;z-index:100071;background:#fff;border:1px solid #d6e0ec;border-radius:10px;box-shadow:0 12px 32px rgba(15,23,42,.18);width:420px;max-width:calc(100vw - 24px);display:none'; document.body.appendChild(pop);
+      document.addEventListener('click', function(e){ var p=document.getElementById('qRecentPop'); if(p && p.style.display==='block' && !p.contains(e.target) && !(e.target.closest&&e.target.closest('#qRecentBtn'))) p.style.display='none'; }); }
+    _qRecentRender();
+    var b=document.getElementById('qRecentBtn'); var r=b?b.getBoundingClientRect():{left:20,bottom:120};
+    pop.style.display='block';
+    var left=Math.min(Math.max(12, r.left), window.innerWidth-pop.offsetWidth-12);
+    pop.style.left=left+'px'; pop.style.top=(r.bottom+6)+'px';
+  };
+  window.qRecentToggle=function(v){ _qRecentAll=!!v; _qRecentRender(); };
+  window.qRecentLoad=function(id){ var p=document.getElementById('qRecentPop'); if(p) p.style.display='none'; qLoadSaved(id); };
+  function _qRecentRender(){
+    var pop=document.getElementById('qRecentPop'); if(!pop) return;
+    var me=(typeof _authUser!=='undefined'&&_authUser&&_authUser.name)?_authUser.name:'';
+    var L=quoteSaved.filter(function(q){ return q && q.id && (_qRecentAll || !me || (q.savedBy||'')===me); }).sort(function(a,b){ return _qWorkAt(b)-_qWorkAt(a); }).slice(0,12);
+    var tab=function(on,lab,v){ return '<button class="btn" onclick="qRecentToggle('+v+')" style="padding:3px 10px;font-size:11.5px;'+(on?'background:#1B3A6B;color:#fff;border-color:#1B3A6B':'')+'">'+lab+'</button>'; };
+    pop.innerHTML='<div style="padding:9px 12px;border-bottom:1px solid #eef1f4;display:flex;align-items:center;gap:6px"><span style="font-size:13px;font-weight:700;color:#14305c;flex:1">최근 작업한 견적</span>'+tab(!_qRecentAll,'내 견적','false')+tab(_qRecentAll,'전체','true')+'</div>'
+      +(L.length?L.map(function(q){
+        return '<div onclick="qRecentLoad(\''+q.id+'\')" style="padding:8px 12px;border-bottom:1px solid #f3f5f8;cursor:pointer;display:flex;gap:8px;align-items:center" onmouseover="this.style.background=\'#f6f9fd\'" onmouseout="this.style.background=\'\'">'
+          +'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(q.vname||'')+(q.note?' <span style="font-weight:500;color:#1B3A6B;font-size:11.5px">· '+esc(q.note)+'</span>':'')+'</div>'
+          +'<div style="font-size:11px;color:#9ca3af">'+esc(q.title||'')+' · '+(q.count||0)+'건'+(_qRecentAll&&q.savedBy?' · '+esc(q.savedBy):'')+'</div></div>'
+          +'<div style="text-align:right;white-space:nowrap"><div style="font-size:12px;font-weight:700;color:#334155">'+(q.total!=null?_qFmt(q.total-(q.nego||0)):'-')+'</div><div style="font-size:10.5px;color:#6b7280">'+_qAgo(_qWorkAt(q))+'</div></div></div>';
+      }).join(''):'<div style="padding:22px;text-align:center;color:#9ca3af;font-size:12.5px">저장한 견적이 없습니다.</div>')
+      +'<div style="padding:7px 12px;text-align:right"><a href="javascript:;" onclick="document.getElementById(\'qRecentPop\').style.display=\'none\'; qOpenLoad()" style="font-size:12px;color:#1B3A6B">전체 목록(검색) →</a></div>';
+  }
   window.qLoadSaved = function(id){
     var meta=quoteSaved.find(function(x){ return x.id===id; }); if(!meta) return;
     var doLoad=function(){
