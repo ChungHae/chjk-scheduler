@@ -1,0 +1,65 @@
+    /* ── r272: 휴대폰(≤700px) 견적 화면 다시 짜기 ── */
+    @media (max-width: 700px) {
+      /* 툴바: 세로 + 줄바꿈 때문에 옆으로 수십 칸이 생겨 화면이 3~4배로 넓어지던 문제 → 가로 줄바꿈 격자로 */
+      #qSubQuote > .q-toolbar, #qSubQuote > div:first-child { flex-direction: row !important; flex-wrap: wrap !important; align-items: center !important; height: auto !important; min-height: 0 !important; max-height: none !important; position: static !important; overflow: visible !important; gap: 6px 6px !important; padding: 10px !important; margin: 0 0 10px !important; }
+      #qSubQuote > .q-toolbar > * { width: auto !important; max-width: 100% !important; margin: 0 !important; }
+      #qSubQuote > .q-toolbar > span:not(.qic-div):not(#qMetaInfo) { flex: 0 0 46px !important; font-size: 12px !important; }
+      #qSubQuote > div.q-toolbar:first-child > div:not(#qMetaInfo) { flex: 0 0 calc(100% - 52px) !important; min-width: 0 !important; padding: 0 !important; border: none !important; background: none !important; box-sizing: border-box !important; }
+      #qSubQuote > .q-toolbar > div input, #qSubQuote > .q-toolbar > input.q-flat { flex: 0 0 calc(100% - 52px) !important; width: 100% !important; min-width: 0 !important; height: 36px !important; border: 1px solid #d6e0ec !important; border-radius: 8px !important; background: #fff !important; padding: 4px 10px !important; font-size: 14px !important; box-sizing: border-box !important; }
+      #qSubQuote > .q-toolbar #qSpec { flex: 1 1 100% !important; height: 40px !important; font-size: 15px !important; border: 1.5px solid #1B3A6B !important; }
+      #qSubQuote > .q-toolbar #qMetaInfo { flex: 1 1 100% !important; flex-wrap: wrap; }
+      #qSubQuote > .q-toolbar .qic { flex: 0 0 34px !important; width: 34px !important; min-width: 34px !important; max-width: 34px !important; height: 34px !important; }
+      #qSubQuote > .q-toolbar .qic svg { width: 17px !important; height: 17px !important; }
+      #qSubQuote > .q-toolbar .qic-div { display: none !important; }
+      /* 표 대신 카드 */
+      #qCart.qmob-on > *:not(#qMobCards) { display: none !important; }
+      #qMobCards { display: flex; flex-direction: column; gap: 8px; }
+      .qmc { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 12px; box-shadow: 0 1px 2px rgba(15,23,42,.04); }
+      .qmc-h { display: flex; align-items: flex-start; gap: 8px; }
+      .qmc-no { font-size: 11px; color: #94a3b8; padding-top: 2px; min-width: 16px; }
+      .qmc-t { flex: 1; min-width: 0; }
+      .qmc-spec { font-size: 15px; font-weight: 700; color: #0f172a; word-break: break-all; }
+      .qmc-name { font-size: 12px; color: #64748b; margin-top: 1px; }
+      .qmc-del { border: 1px solid #fecaca; color: #dc2626; background: #fff; border-radius: 8px; width: 32px; height: 32px; font-size: 16px; line-height: 1; }
+      .qmc-r { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+      .qmc-qty { display: inline-flex; align-items: center; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; }
+      .qmc-qty button { width: 34px; height: 34px; border: none; background: #f1f5f9; font-size: 18px; color: #334155; }
+      .qmc-qty input { width: 46px; height: 34px; border: none; text-align: center; font-size: 15px; font-weight: 700; -moz-appearance: textfield; }
+      .qmc-f { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+      .qmc-f label { font-size: 10.5px; color: #94a3b8; }
+      .qmc-f input { height: 32px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0 8px; font-size: 14px; text-align: right; width: 100%; box-sizing: border-box; }
+      .qmc-amt { text-align: right; min-width: 84px; }
+      .qmc-amt b { font-size: 15px; color: #0f172a; }
+      .qmc-amt div { font-size: 10.5px; color: #94a3b8; }
+      .qmc details { margin-top: 8px; border-top: 1px dashed #e2e8f0; padding-top: 6px; }
+      .qmc summary { font-size: 12px; color: #1B3A6B; cursor: pointer; list-style: none; }
+      .qmc summary::-webkit-details-marker { display: none; }
+      .qmc-g { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; margin-top: 6px; }
+      .qmc-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+      .qmc-tag { font-size: 10.5px; padding: 1px 6px; border-radius: 999px; background: #f1f5f9; color: #475569; }
+      .qmc-sum { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+      .qmc-sum .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+      .qmc-sum input, .qmc-sum textarea { border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 8px; font-size: 14px; font-family: inherit; box-sizing: border-box; }
+      .qmc-total { font-size: 18px; font-weight: 800; color: #1B3A6B; }
+      .qmc-empty { padding: 26px 12px; text-align: center; color: #94a3b8; font-size: 13px; border: 1px dashed #cbd5e1; border-radius: 12px; }
+      #qcsBox { max-width: calc(100vw - 16px) !important; left: 8px !important; right: auto; }
+      #qcsBox .qcs-it { flex-wrap: wrap; white-space: normal !important; }
+      #qcsBox .qcs-it span { white-space: normal !important; }
+      .qmc-add { border: 1.5px dashed #93a8c6; background: #f8fbff; }
+      /* 일정(메모장): 날짜·체크·태그·아이콘이 한 줄을 다 차지해 글이 한두 글자씩 세로로 쌓이던 문제 → 글은 다음 줄 전체 폭 */
+      .mm-row .mm-body { flex-wrap: wrap !important; row-gap: 2px; min-width: 0; }
+      .mm-row .mm-body > .mm-txt { order: 5; flex: 1 1 100% !important; width: 100% !important; min-width: 0 !important; white-space: normal !important; word-break: break-word; padding-left: 2px; }
+      .mm-row .mm-body > .mm-act { order: 4; margin-left: auto !important; opacity: .55; display: inline-flex !important; }
+      .mm-row .mm-body > .mm-act button { width: 26px !important; height: 26px !important; padding: 3px !important; }
+      .mm-row .mm-body > .mm-act button svg { width: 15px !important; height: 15px !important; }
+      .mm-row .mm-body > .mm-chip { flex: 0 0 auto; }
+      /* 업체 목록: 8칸 표(최소 980px)가 화면을 넓히던 문제 → 업체명·지점·대표전화만, 나머지는 눌러서 펼친 상세에서 */
+      #clxList > div { overflow-x: auto; }
+      #clxList table { min-width: 0 !important; width: 100% !important; table-layout: auto !important; }
+      #clxList table colgroup { display: none; }
+      #clxList table thead th:nth-child(2), #clxList table thead th:nth-child(4), #clxList table thead th:nth-child(5), #clxList table thead th:nth-child(7), #clxList table thead th:nth-child(8),
+      #clxList table tbody tr[onclick] > td:nth-child(2), #clxList table tbody tr[onclick] > td:nth-child(4), #clxList table tbody tr[onclick] > td:nth-child(5), #clxList table tbody tr[onclick] > td:nth-child(7), #clxList table tbody tr[onclick] > td:nth-child(8) { display: none !important; }
+      #clxList table td, #clxList table th { white-space: normal !important; word-break: keep-all; }
+      /* 검색 결과도 화면 안에 */
+      #qResults { max-width: 100%; overflow-x: auto; }
+    }
