@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r273 2026-11-18 -->
+<!-- test build r274 2026-11-23 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -10105,6 +10105,10 @@ function reloadState() {
         +'<span style="flex:1"></span><div id="stTotBox" style="font-size:13px;color:#14305c">'+_stTotHtml(t)+'</div></div>'
         +'<div style="margin-top:10px"><input data-sf="memo" value="'+_stA(d.memo)+'" placeholder="비고 (명세서·세금계산서 비고란에 들어갑니다)" style="'+I+';width:100%"></div></div></div>';
   };
+  // ─── r274: 수량별 가격(MOQ) — 같은 규격이라도 줄마다 가격을 따로 둔다 ───
+  function _qQpKeyRows(i){ var c=_qCart[i]; if(!c) return []; var k=_qRowKey(c.spec||''); if(!k) return [i]; var o=[]; for(var j=0;j<_qCart.length;j++){ var p=_qCart[j]; if(p&&!p.disc&&_qRowKey(p.spec||'')===k) o.push(j); } return o.length?o:[i]; }
+  window.qCartQpToggle=function(i){ var c=_qCart[i]; if(!c) return; try{ _qPushUndo(); }catch(_e){} var on=!c.qp; _qQpKeyRows(i).forEach(function(j){ var p=_qCart[j]; if(on){ p.qp=true; p.once=true; } else { delete p.qp; } }); _qCartSave(); renderQCart(); var m=document.getElementById('qCartCtxMenu'); if(m) m.style.display='none'; };
+  window.qCartQpSame=function(i){ var c=_qCart[i]; if(!c) return; try{ _qPushUndo(); }catch(_e){} _qQpKeyRows(i).forEach(function(j){ _qCart[j].qp=true; _qCart[j].once=true; }); _qCartSave(); renderQCart(); var ov=document.getElementById('confirmOverlay'); if(ov) ov.style.display='none'; };
   function _mailAcctOf(branch){ return (branch==='화성')?'hs':'seoul'; }   // r238
   function _mailBranchOf(acct){ return (acct==='hs')?'화성':'서울'; }
   function _mailQuoteDraft(forceBranch){
@@ -11066,7 +11070,7 @@ function reloadState() {
       var _iR='text-align:right';
       var cVname=esc(c.vname);
       var cName=_m?('<input class="qc-in qc-fit" data-mf="name" autocomplete="off" value="'+esc(c.name||'')+'" oninput="qCartNameInput('+i+',this)" onchange="qCartCommit('+i+')" onkeydown="qCartNameKey(event,'+i+')" style="'+_iC+'">'):esc(c.name||'');
-      var cSpec=(_m?('<input class="qc-in" data-mf="spec" '+_qSpecAttrs(c,i)+' autocomplete="off" placeholder="'+(_lockInput?'거래처를 먼저 선택하세요':'규격 입력')+'" value="'+esc(c.spec||'')+'" data-orig="'+esc(c.spec||'')+'" oninput="qCartSpecInput('+i+',this)" onchange="qCartSpecChanged('+i+',this)" onkeydown="qCartSpecKey(event,'+i+')" style="'+_iC+'">'):esc(c.spec))+((c.changed||_hasDisc)?' <span style="font-size:9px;color:#dc2626;font-weight:700;background:#fef2f2;border:1px solid #fecaca;border-radius:4px;padding:1px 4px;white-space:nowrap;vertical-align:middle">단종/변경</span>':'');
+      var cSpec=(_m?('<input class="qc-in" data-mf="spec" '+_qSpecAttrs(c,i)+' autocomplete="off" placeholder="'+(_lockInput?'거래처를 먼저 선택하세요':'규격 입력')+'" value="'+esc(c.spec||'')+'" data-orig="'+esc(c.spec||'')+'" oninput="qCartSpecInput('+i+',this)" onchange="qCartSpecChanged('+i+',this)" onkeydown="qCartSpecKey(event,'+i+')" style="'+_iC+'">'):esc(c.spec))+((c.changed||_hasDisc)?' <span style="font-size:9px;color:#dc2626;font-weight:700;background:#fef2f2;border:1px solid #fecaca;border-radius:4px;padding:1px 4px;white-space:nowrap;vertical-align:middle">단종/변경</span>':'')+(c.qp?' <span class="q-qp" onclick="qCartQpToggle('+i+')" title="수량별 가격 — 같은 규격의 다른 줄과 가격을 맞추지 않고, 거래처 단가(원장)에도 저장하지 않습니다. 누르면 해제" style="font-size:9px;color:#7c3aed;font-weight:700;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:4px;padding:1px 4px;white-space:nowrap;vertical-align:middle;cursor:pointer">수량별</span>':'');
       var cEta=_m?('<input class="qc-in qc-fit" data-mf="eta" autocomplete="off" value="'+esc(c.eta||'')+'" oninput="qCartEtaInput('+i+',this)" onchange="qCartCommit('+i+')" onkeydown="qCartEtaKey(event,'+i+')" style="'+_iC+'">'):(c.eta?esc(c.eta):'-');
       var cOnce='<label title="켜면 이 견적에만 적용됩니다 (원장을 바꾸지 않음)" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer"><input type="checkbox" '+(c.once?'checked':'')+' onchange="qCartOnce('+i+',this.checked)" style="width:13px;height:13px;margin:0;cursor:pointer"></label>';
       var cInfo=_cartInfo[_qRowKey(c.spec)]?('<button onclick="qShowInfoSpec('+i+')" title="추가 정보 (브랜드·구매처·구매링크·비고)" style="border:none;background:none;color:#1B3A6B;font-size:11px;line-height:1;padding:2px 3px;cursor:pointer">ℹ️</button>'):'<span style="color:#d5dbe3">·</span>';
@@ -12016,6 +12020,7 @@ function reloadState() {
     var _selDelItem=_selR.length?(it('선택한 행 삭제 ('+_selR.length+'개)','_qgDeleteRows()','#dc2626')+'<div style="height:1px;background:#eef1f4;margin:4px 6px"></div>'):'';
     m.innerHTML='<div style="padding:7px 12px 8px;display:flex;align-items:center;gap:6px" onclick="event.stopPropagation()"><span style="font-size:12px;color:#6b7280">삽입 개수</span><input id="qCartInsCnt" type="text" inputmode="numeric" value="'+_insDef+'" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()" style="width:54px;padding:3px 6px;border:1px solid #c8d2de;border-radius:0;font-size:13px;font-family:inherit;text-align:center"><span style="font-size:12px;color:#6b7280">개</span></div>'
       +'<div style="height:1px;background:#eef1f4;margin:2px 6px"></div>'
+      +it(_qCart[i].qp?'수량별 가격 해제':'수량별 가격 <span style="color:#9ca3af;font-size:11px">· 같은 규격 가격 따로</span>','qCartQpToggle('+i+')','#7c3aed')
       +it('행 삽입 (I)'+(_selR.length>1?' <span style="color:#9ca3af;font-size:11px">· 선택 '+_selR.length+'행만큼</span>':''),'qCartInsertRow('+_insAt+',false,_qInsCnt())')
       +'<div style="height:1px;background:#eef1f4;margin:4px 6px"></div>'
       +_selDelItem
@@ -12058,11 +12063,13 @@ function reloadState() {
   }
   function _qCartCopyAbove(i){   // 새로 적은 줄: 위에 같은 규격이 있으면 그 줄의 E가·구매가·판매가를 그대로 가져온다
     var c=_qCart[i]; if(!c) return false;
+    if(c.qp) return false;   // r274
     var key=_qRowKey(c.spec||''); if(!key) return false;
     var same=function(a,b){ return (a==null?'':String(a))===(b==null?'':String(b)); };
     for(var j=i-1;j>=0;j--){
       var p=_qCart[j]; if(!p || p.disc) continue;
       if(_qRowKey(p.spec||'')!==key) continue;
+      if(p.qp){ c.qp=true; c.once=true; if(p.e!=null&&p.e!==''&&(c.e==null||c.e==='')) c.e=p.e; if(p.name&&!c.name) c.name=p.name; _qMarkPriceSrc(c); return true; }   // r274: 수량별 가격 규격 — E가만 가져오고 구매가·판매가는 비워 둔다
       var ch=false;
       if(p.e!=null && p.e!=='' && !same(c.e,p.e)){ c.e=p.e; ch=true; }
       if(p.buy!=null && p.buy!=='' && !same(c.buy,p.buy)){ c.buy=p.buy; ch=true; }       // 구매가가 같으면 DC율(역산)도 같다
@@ -12078,7 +12085,7 @@ function reloadState() {
   function _qCartSyncSameSpec(){   // r195: 같은 규격 줄끼리 값이 비어 있는 칸을 채운다 (엑셀 붙여넣기 · E가 직접 입력 모두)
     var byKey={};
     for(var i=0;i<_qCart.length;i++){
-      var c=_qCart[i]; if(!c || c.disc) continue;
+      var c=_qCart[i]; if(!c || c.disc || c.qp) continue;   // r274
       var k=_qRowKey(c.spec||''); if(!k) continue;
       if(!byKey[k]) byKey[k]=[]; byKey[k].push(i);
     }
@@ -12103,12 +12110,12 @@ function reloadState() {
     return n;
   }
   function _qCartSpreadTargets(i){
-    var c=_qCart[i]; if(!c) return [];
+    var c=_qCart[i]; if(!c || c.qp) return [];   // r274
     var key=_qRowKey(c.spec||''); if(!key) return [];
     var same=function(a,b){ return (a==null?'':String(a))===(b==null?'':String(b)); };
     var out=[];
     for(var j=0;j<_qCart.length;j++){
-      if(j===i) continue; var p=_qCart[j]; if(!p || p.disc) continue;
+      if(j===i) continue; var p=_qCart[j]; if(!p || p.disc || p.qp) continue;
       if(_qRowKey(p.spec||'')!==key) continue;
       if(!same(p.sell,c.sell) || !same(p.buy,c.buy)) out.push(j);
     }
@@ -12120,7 +12127,7 @@ function reloadState() {
     var tgt=_qCartSpreadTargets(i); if(!tgt.length) return;
     if(window._qSpreadBusy) return; window._qSpreadBusy=1;
     setTimeout(function(){ window._qSpreadBusy=0; }, 500);
-    showConfirmModal('같은 규격 가격 적용', '"'+esc(c.spec||'')+'" 규격이 이 견적에 '+(tgt.length+1)+'줄 있습니다.<br>나머지 '+tgt.length+'줄도 같은 <b>판매가·구매가</b>(DC율·마진율 동일)로 같게 할까요?', function(){
+    showConfirmModal('같은 규격 가격 적용', '"'+esc(c.spec||'')+'" 규격이 이 견적에 '+(tgt.length+1)+'줄 있습니다.<br>나머지 '+tgt.length+'줄도 같은 <b>판매가·구매가</b>(DC율·마진율 동일)로 같게 할까요?<br><br><a href="javascript:;" onclick="qCartQpSame('+i+')" style="color:#7c3aed;font-weight:700">아니요 — 수량(MOQ)에 따라 가격이 다릅니다</a><br><span style="font-size:11.5px;color:#6b7280">이 규격은 줄마다 가격을 따로 두고 다시 묻지 않습니다.</span>', function(){
       tgt.forEach(function(j){ var p=_qCart[j]; p.sell=c.sell; p.buy=c.buy; if(c.e!=null&&c.e!=='') p.e=c.e; });
       _qCartSave(); renderQCart();
     }, '적용', '#1B3A6B');
