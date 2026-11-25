@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r274 2026-11-23 -->
+<!-- test build r275 2026-11-25 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -17409,14 +17409,65 @@ function reloadState() {
     mtTaInput(el);
   };
   function _mtLines(el){ return String(el&&el.value||'').split('\n').map(function(s){ return s.trim(); }).filter(Boolean); }
+  // ─── r275: 회의록 쉽게 — 한 칸에 막 적고 저장 → 줄마다 이름만 눌러 담당 지정 ───
+  (function(){ try{ var st=document.createElement('style'); st.textContent='.mt-who{display:inline-flex;gap:4px;flex-wrap:wrap;align-items:center;flex-shrink:0;margin-left:6px}.mt-who button{border:1px solid #cbd5e1;background:#fff;border-radius:12px;padding:1px 8px;font-size:11.5px;cursor:pointer;font-family:inherit;color:#1B3A6B;font-weight:600;line-height:1.5}.mt-who button:hover{background:#1B3A6B;color:#fff;border-color:#1B3A6B}.mt-who select{border:1px solid #cbd5e1;border-radius:12px;padding:1px 4px;font-size:11.5px;font-family:inherit;color:#475569;background:#fff;max-width:92px}.mt-who .lb{font-size:11px;color:#9ca3af}.mt-quick textarea{min-height:120px;font-size:14px}.mt-more{margin-top:14px}.mt-more>summary{cursor:pointer;font-size:12.5px;color:#6b7280;padding:6px 2px}@media print{.mt-who{display:none}}'; document.head.appendChild(st); }catch(_e){} })();
+  function _mtAllNames(m){ var a=(m.attendees||[]).slice(); (members||[]).forEach(function(x){ if(x&&x.name&&a.indexOf(x.name)<0) a.push(x.name); }); return a; }
+  function _mtWhoHtml(m, it, isAgenda){
+    var att=(m.attendees||[]).slice(), all=_mtAllNames(m), rest=all.filter(function(n){ return att.indexOf(n)<0; });
+    var q=function(n){ return _mtEsc(n).replace(/'/g,'&#39;'); };
+    if(isAgenda){
+      return '<span class="mt-who"><span class="lb">담당</span>'+att.map(function(n){ return '<button type="button" onclick="mtAssign(\''+m.id+'\',\''+it.id+'\',\''+q(n)+'\')" title="'+q(n)+' 담당으로 — 그 사람 일정에도 올라갑니다">'+_mtEsc(n)+'</button>'; }).join('')
+        +(rest.length?('<select onchange="if(this.value) mtAssign(\''+m.id+'\',\''+it.id+'\',this.value)"><option value="">'+(att.length?'다른 사람':'담당 선택')+'</option>'+rest.map(function(n){ return '<option>'+_mtEsc(n)+'</option>'; }).join('')+'</select>'):'')+'</span>';
+    }
+    var cur=''; (m.reports||[]).forEach(function(r){ if((r.items||[]).some(function(i){ return i.id===it.id; })) cur=r.name; });
+    return '<span class="mt-who"><select title="담당 바꾸기" onchange="mtAssign(\''+m.id+'\',\''+it.id+'\',this.value)">'+all.map(function(n){ return '<option'+(n===cur?' selected':'')+'>'+_mtEsc(n)+'</option>'; }).join('')+'<option value="">담당 없음</option></select></span>';
+  }
+  function _mtPutRep(m, name, it){
+    var r=(m.reports||[]).find(function(x){ return x.name===name; }); if(!r){ r={ name:name, items:[] }; m.reports=m.reports||[]; m.reports.push(r); }
+    if((m.attendees||[]).indexOf(name)<0 && (members||[]).some(function(x){ return x.name===name; })){ m.attendees=m.attendees||[]; m.attendees.push(name); }
+    r.items.push(it); return r;
+  }
+  window.mtAssign = function(mid, iid, name){
+    var m=_mtFind(mid); if(!m) return; if(typeof _guardW==='function' && !_guardW()) return; if(_mtLocked(m)) return;
+    name=String(name||'').trim();
+    var it=(m.agenda||[]).find(function(x){ return x.id===iid; }), isAg=!!it, cur='';
+    if(!it){ (m.reports||[]).forEach(function(r){ (r.items||[]).forEach(function(i){ if(i.id===iid){ it=i; cur=r.name; } }); }); }
+    if(!it || name===cur){ renderMeetingPage(true); return; }
+    var text=(isAg && it.title)?(it.title+': '+(it.text||'')):(it.text||'');
+    var lines=[]; try{ lines=_mtMemoLinesOf(it); }catch(_e){}
+    m.del=m.del||{}; m.del[iid]=Date.now();
+    m.agenda=(m.agenda||[]).filter(function(x){ return x.id!==iid; });
+    (m.reports||[]).forEach(function(r){ r.items=(r.items||[]).filter(function(i){ return i.id!==iid; }); });
+    var ni={ id:_mtId(name?'mi':'ma'), text:text, done:!!it.done, by:it.by||_mtMe(), at:it.at||Date.now(), upd:Date.now() };
+    if(it.done){ ni.doneBy=it.doneBy; ni.doneAt=it.doneAt; } if(it.from) ni.from=it.from;
+    if(name){
+      _mtPutRep(m, name, ni);
+      if(!isAg && lines.length===1 && _mtMemberName(name)){ lines[0].owner=name; lines[0].mtRef={ mid:m.id, iid:ni.id }; ni.memoId=lines[0].id; try{ _mmSave(); }catch(_e){} }   // 담당 바꾸기: 일정 줄을 새 담당자에게 넘긴다
+      else { if(lines.length){ var ids=lines.map(function(l){ return l.id; }); memoLines=(memoLines||[]).filter(function(x){ return ids.indexOf(x.id)<0 || x.done; }); try{ _mmSave(); }catch(_e){} } try{ _mtMakeMemo(m, name, ni); }catch(_e){} }
+    } else {
+      ni.title=''; m.agenda.push(ni);
+      if(lines.length){ var ids2=lines.map(function(l){ return l.id; }); memoLines=(memoLines||[]).filter(function(x){ return ids2.indexOf(x.id)<0 || x.done; }); try{ _mmSave(); }catch(_e){} }
+    }
+    m.updatedAt=Date.now(); _mtSave(); renderMeetingPage(true);
+    _mtToast(name?('담당: '+name+(_mtMemberName(name)?' — 일정에 올렸습니다':'')):'담당 없음으로 돌렸습니다');
+  };
   window.mtSaveAgenda = function(id){
     var el=document.getElementById('mtAgIn'); if(!el) return; var lines=_mtLines(el);
-    if(!lines.length){ _mtToast('적힌 안건이 없습니다.'); return; }
+    if(!lines.length){ _mtToast('적힌 내용이 없습니다.'); return; }
     var m=_mtFind(id); if(!m) return; if(typeof _guardW==='function' && !_guardW()) return; if(_mtLocked(m)) return;
-    var _mn=0;
-    lines.forEach(function(t){ var p=_mtParseAgenda(t); var a={ id:_mtId('ma'), title:p.title, text:p.text, done:false, by:_mtMe(), at:Date.now() }; m.agenda.push(a); try{ _mtAgendaMemo(m, a); _mn+=(a.memoIds||[]).length; }catch(_e){} });   // r222: 참석자 일정에도
+    var names=_mtAllNames(m), na=0, cnt={}, nr=0, me=_mtMe();
+    lines.forEach(function(t){
+      t=t.replace(/^[-·•*]\s*/, '');
+      var sp=_mtSplitName(t, names), s0=t.replace(/^\[\s*/, '');
+      if(sp && sp.text && /^[\s\]:\uFF1A\-·]/.test(s0.slice(sp.name.length))){   // "함현식 ○○" 처럼 이름으로 시작하면 바로 그 사람 담당
+        var it={ id:_mtId('mi'), text:sp.text, done:false, by:me, at:Date.now() }; _mtPutRep(m, sp.name, it); try{ _mtMakeMemo(m, sp.name, it); }catch(_e){} cnt[sp.name]=(cnt[sp.name]||0)+1; nr++; return;
+      }
+      m.agenda.push({ id:_mtId('ma'), title:'', text:t, done:false, by:me, at:Date.now() }); na++;
+    });
     m.updatedAt=Date.now(); _mtSave(); el.value=''; try{ mtDraftKeep(el, id); }catch(_e){}
-    renderMeetingPage(true); _mtToast('안건 '+lines.length+'건 저장'+(_mn?(' — 참석자 일정에 '+_mn+'건 등록'):''));
+    renderMeetingPage(true);
+    _mtToast((na+nr)+'줄 저장'+(na?(' — '+na+'줄은 이름을 눌러 담당을 정하세요'):'')+(nr?(' · 담당 지정 '+Object.keys(cnt).map(function(k){ return k+' '+cnt[k]; }).join(' · ')):''));
+    setTimeout(function(){ var e2=document.getElementById('mtAgIn'); if(e2) e2.focus(); }, 30);
   };
   // 줄 앞의 이름 → 담당자. "함현식 …" / "함현식: …" / "[함현식] …" 모두 인식. 이름만 있는 줄은 그 아래 줄들의 담당자를 정한다.
   function _mtSplitName(line, names){
@@ -17495,6 +17546,7 @@ function reloadState() {
     return '<div class="mt-it'+(it.done?' done':'')+'"><span class="mt-chk" onclick="mtToggle(\''+m.id+'\',\''+it.id+'\')" title="'+(it.done?'완료 취소':'완료')+'">'+(it.done?'✓':'')+'</span>'
       +'<span class="mt-tx"'+(_lk?'':' onclick="mtEditItem(\''+m.id+'\',\''+it.id+'\')" title="클릭하면 수정"')+'>'+tx+'</span>'
       +(by?'<span class="mt-by">'+by+'</span>':'')+(it.memoId?'<span class="mt-by" title="담당자 일정에 등록됨">일정</span>':((it.memoIds&&it.memoIds.length)?'<span class="mt-by" title="참석자 '+it.memoIds.length+'명의 일정에 등록됨">일정 '+it.memoIds.length+'</span>':''))+(it.from?'<span class="mt-by" title="이전 회의에서 가져옴">↻</span>':'')
+      +(_lk?'':_mtWhoHtml(m, it, isAgenda))
       +(_lk?'':'<button class="mt-del" onclick="mtDelItem(\''+m.id+'\',\''+it.id+'\')" title="삭제">✕</button>')+'</div>';
   }
   function _mtDocHtml(m, print){
@@ -17513,14 +17565,14 @@ function reloadState() {
         +'<div class="k">참석자</div><div class="w">'+(members||[]).map(function(x){ var on=(m.attendees||[]).indexOf(x.name)>=0; return '<span class="mt-att'+(on?' on':'')+'" onclick="mtAttToggle(\''+id+'\',\''+_mtEsc(x.name)+'\')">'+_mtEsc(x.name)+'</span>'; }).join(' ')+'</div>'
         +'</div>';
     }
-    h+='<div class="mt-sec"><h3>1. 공통 추진 사항 및 협의 안건</h3>';
-    if(!(m.agenda||[]).length) h+='<div style="font-size:12.5px;color:#9ca3af;padding:6px">'+(print?'-':'아직 안건이 없습니다. 아래 칸에 "제목: 내용" 으로 적고 Enter.')+'</div>';
+    h+='<div class="mt-sec"><h3>1. 회의 내용'+((!print && m.status!=='final' && (m.agenda||[]).length)?' <span class="mt-goal-hint">— 이름을 누르면 그 사람 담당이 됩니다</span>':'')+'</h3>';
+    if(!print && m.status!=='final'){   // r275: 작성란 하나 — 막 적고 저장
+      h+='<div class="mt-write mt-quick"><textarea id="mtAgIn" data-dk="ag" data-mid="'+id+'" rows="5" placeholder="회의 내용을 편하게 적으세요. 한 줄에 하나씩.\n담당은 저장한 뒤 이름만 누르면 됩니다." oninput="mtTaInput(this)" onkeydown="mtTaKey(event,this)"></textarea>'
+        +'<div class="mt-write-bar"><span class="mt-hint">Enter 는 다음 줄 · 다 쓰면 [저장] (Ctrl+Enter)</span><button class="mt-btn pri" onclick="mtSaveAgenda(\''+id+'\')">저장</button></div></div>'; }
+    if(!(m.agenda||[]).length && print) h+='<div style="font-size:12.5px;color:#9ca3af;padding:6px">-</div>';
     (m.agenda||[]).forEach(function(a){ h+=_mtItemHtml(m, a, true, print); });
-    if(!print && m.status!=='final'){   // r213: 큰 작성란 — Enter 는 줄바꿈, [안건 저장] 으로 한 줄에 하나씩 등록
-      h+='<div class="mt-write"><textarea id="mtAgIn" data-dk="ag" data-mid="'+id+'" rows="3" placeholder="한 줄에 안건 하나 — 제목: 내용   (예: 신규 거래처 발굴: 담당자별 업종 분류에 따른 방문 영업 실시)" oninput="mtTaInput(this)" onkeydown="mtTaKey(event,this)"></textarea>'
-        +'<div class="mt-write-bar"><span class="mt-hint">Enter 는 다음 줄 · 다 쓰면 저장 (Ctrl+Enter) · 쓰다 만 글은 이 기기에 남습니다</span><button class="mt-btn pri" onclick="mtSaveAgenda(\''+id+'\')">안건 저장</button></div></div>'; }
     h+='</div>';
-    h+='<div class="mt-sec"><h3>2. 담당자별 업무 보고</h3>';
+    h+='<div class="mt-sec"><h3>2. 담당자별 업무</h3>';
     var names=(m.attendees||[]).slice(); (m.reports||[]).forEach(function(r){ if(names.indexOf(r.name)<0 && (r.items||[]).length) names.push(r.name); });
     if(!names.length) h+='<div style="font-size:12.5px;color:#9ca3af;padding:6px">참석자를 지정하면 담당자별 칸이 생깁니다.</div>';
     names.forEach(function(n){
@@ -17528,16 +17580,11 @@ function reloadState() {
       h+='<div class="mt-rep"><div class="nm">'+_mtEsc(n)+'</div><div>';
       if(!(r.items||[]).length && print) h+='<div style="font-size:12.5px;color:#9ca3af">-</div>';
       (r.items||[]).forEach(function(i){ h+=_mtItemHtml(m, i, false, print); });
-      if(!print && !(r.items||[]).length) h+='<div style="font-size:12.5px;color:#9ca3af">아직 없음 — 아래 작성란에 "'+_mtEsc(n)+' 업무내용" 으로 적고 저장</div>';   // r213
+      if(!print && !(r.items||[]).length) h+='<div style="font-size:12.5px;color:#9ca3af">아직 없음</div>';   // r213
       h+='</div></div>';
     });
-    if(!print && m.status!=='final'){   // r213: 담당자별 업무를 한 작성란에 쭉 쓰고 저장 — 줄 앞의 이름으로 담당자 배정
-      var _nm=names.slice(); (members||[]).forEach(function(x){ if(_nm.indexOf(x.name)<0) _nm.push(x.name); });
-      h+='<div class="mt-write"><div class="mt-names"><span>이름을 누르면 줄 앞에 들어갑니다:</span>'+_nm.map(function(n){ return '<button type="button" onclick="mtInsertName(\''+_mtEsc(n)+'\')">'+_mtEsc(n)+'</button>'; }).join('')+'</div>'
-        +'<textarea id="mtRepIn" data-dk="rep" data-mid="'+id+'" rows="5" placeholder="이름 업무내용   (예: 함현식 이노로보틱스 칠러 대체품 적용 협의)\n이름이 없는 줄은 바로 위 사람의 업무로, 처음부터 없으면 작성자 본인 업무로 들어갑니다." oninput="mtTaInput(this)" onkeydown="mtTaKey(event,this)"></textarea>'
-        +'<div class="mt-write-bar"><span class="mt-hint">Enter 는 다음 줄 · 다 쓰면 저장 (Ctrl+Enter) · 저장하면 각자의 일정에도 올라갑니다</span><button class="mt-btn pri" onclick="mtSaveReps(\''+id+'\')">업무 저장</button></div></div>';
-    }
-    h+='</div>'+_mtGoalsSecHtml(m, print)+'<div class="mt-foot">충해전기(주) '+_mtEsc(m.place||'')+'영업소</div></div>';   // r240: 3. 담당자별 목표
+    var _gHas=(m.goals||[]).some(function(b){ return b && (b.items||[]).length; });
+    h+='</div>'+((!print && !_gHas && m.status!=='final')?('<details class="mt-more"><summary>＋ 담당자별 목표 적기 (선택)</summary>'+_mtGoalsSecHtml(m, print)+'</details>'):((print && !_gHas)?'':_mtGoalsSecHtml(m, print)))+'<div class="mt-foot">충해전기(주) '+_mtEsc(m.place||'')+'영업소</div></div>';   // r240: 3. 담당자별 목표
     return h;
   }
   // ── r189: 회의록 항목 ↔ 담당자 일정(메모) 연동 ──
