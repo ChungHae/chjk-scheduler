@@ -9875,6 +9875,57 @@ function reloadState() {
     setTimeout(function(){ try{ f.contentWindow.focus(); f.contentWindow.print(); }catch(e){} }, 500);
   }
 
+  // ── 중복 확인 (r284) ────────────────────────────────────────
+  // 같은 발행일 + 물류출하일 + 업체 + 품목·수량 묶음이면 같은 자료로 본다.
+  function _asRowsSig(rows){
+    return (rows||[]).map(function(r){ return _qNorm(r && r.spec) + '*' + (Number(r && r.qty) || 0); })
+                     .sort().join('|');
+  }
+  function _asSameVendor(rec, draft){
+    if(rec.vid && draft.vid) return rec.vid === draft.vid;
+    return _qNorm(rec.vname) === _qNorm(draft.vname);
+  }
+  function _asDupOf(draft, d){
+    var rows = _asLRows; if(!rows || !rows.length) return null;
+    var sig = _asRowsSig(d.rows);
+    for(var i=0;i<rows.length;i++){
+      var v = rows[i];
+      if(!v || v.date !== d.date || String(v.ship||'') !== String(d.ship||'')) continue;
+      if(!_asSameVendor(v, draft)) continue;
+      if(_asRowsSig(v.rows) !== sig) continue;
+      return v;
+    }
+    return null;
+  }
+  // 저장된 목록을 한 번만 읽어 둔다 (화면은 건드리지 않는다)
+  async function _asEnsureList(){
+    if(_asLRows) return _asLRows;
+    try{
+      var r = await _fbFetch(_asDocUrl(null));
+      var d = r && r.ok ? (await r.json()) : null;
+      _asLRows = d ? Object.keys(d).map(function(k){ var v=d[k]||{}; if(!v.id) v.id=k; return v; })
+                           .filter(function(v){ return v && v.date; }) : [];
+      _asLRows.sort(function(a,b){ return String(a.date||'').localeCompare(String(b.date||'')) || ((a.no||0)-(b.no||0)) || ((a.at||0)-(b.at||0)); });
+    }catch(e){ _asLRows = null; }
+    return _asLRows;
+  }
+  function _asDupList(draft){
+    var out=[];
+    (draft.docs||[]).forEach(function(d,ci){ if(d.dup) out.push({ ci:ci, d:d, rec:d.dup }); });
+    return out;
+  }
+  // 올린 직후·업체를 이은 직후에 표시를 달아 준다
+  async function _asMarkDup(draft){
+    await _asEnsureList();
+    (draft.docs||[]).forEach(function(d){ d.dup = draft.vname ? _asDupOf(draft, d) : null; });
+    _asRender();
+  }
+  async function _asMarkDupAll(){
+    await _asEnsureList();
+    _asDrafts.forEach(function(dr){ (dr.docs||[]).forEach(function(d){ d.dup = dr.vname ? _asDupOf(dr, d) : null; }); });
+    _asRender();
+  }
+
   // ── 저장 ────────────────────────────────────────────────────
   async function _asSaveDocs(draft){
     if(_isViewer()) throw new Error('보기 전용 계정입니다.');
@@ -9956,7 +10007,10 @@ function reloadState() {
       + '<span class="as-cap">끌어다 놓아도 바뀝니다</span>'
       + '</div>';
     _asDrafts.forEach(function(dr, di){
-      h += '<div style="border:1px solid #c8d2de;margin-bottom:18px">';
+      var _dupN = _asDupList(dr).length;   // r284
+      h += '<div style="border:1px solid '+(_dupN?'#f0d9b5':'#c8d2de')+';margin-bottom:18px">';
+      if(_dupN) h += '<div style="padding:8px 12px;background:#fff8ef;border-bottom:1px solid #f0d9b5;font-size:12.5px;color:#b45309">'
+        + '\u26a0 <b>이미 저장된 거래명세표와 같은 내용이 '+_dupN+'건</b> 있습니다. 그대로 저장하면 같은 자료가 하나 더 쌓입니다.</div>';
       h += '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:#f4f8fe;border-bottom:1px solid #c8d2de">'
          + '<b style="font-size:13.5px;color:#1B3A6B">'+esc(dr.uname||'(유저명 없음)')+'</b>'
          + '<span style="font-size:11.5px;color:#8a94a6">'+esc(dr.ucode||'')+'</span>';
@@ -10010,6 +10064,9 @@ function reloadState() {
           + '<span style="justify-self:end;white-space:nowrap">비고 <input value="'+esc(d.memo||'')+'" onclick="event.stopPropagation()" oninput="asSetMemo('+di+','+ci+',this.value)" placeholder="(선택)" style="width:300px;height:26px;padding:0 7px;border:1px solid #c8d2de;border-radius:0;font-size:12px;font-family:inherit"></span>'
           + '</div>'
           + (d.warn ? ('<div style="margin-top:5px;font-size:11.5px;color:#b45309">'+esc(d.warn)+'</div>') : '')
+          // r284: 같은 발행일·출하일·업체·품목·수량이 이미 저장돼 있으면 알려 준다
+          + (d.dup ? ('<div style="margin-top:5px;font-size:11.5px;color:#b45309">\u26a0 이미 저장된 거래명세표와 같은 내용입니다 — '
+               + esc(d.dup.date||'') + ' · 번호 ' + esc(String(d.dup.no||'')) + (d.dup.by?(' · '+esc(d.dup.by)):'') + ' 작성</div>') : '')
           ;
         if(d.open){
         var _SHOW=200, _part=d.rows.slice(0,_SHOW);
@@ -10220,6 +10277,7 @@ function reloadState() {
         _asDrafts.push(dr);
       }
       _asRender();
+      _asMarkDupAll();   // r284: 이미 저장된 것과 같은 내용인지 표시
     }catch(e){ showInfoModal('엑셀 읽기', String(e && e.message || e)); }
   }
   window.asLink = async function(di, nmIn){
@@ -10236,6 +10294,7 @@ function reloadState() {
     await _asSaveMap(dr.key, v?v.id:'', nm);
     if(!v) showInfoModal('업체 연결','"'+esc(nm)+'" 에는 견적 원장이 없어 품목을 찾아오지 못합니다. 품목은 직접 넣으면 원장이 새로 만들어집니다.');
     _asRender();
+    _asMarkDup(_asDrafts[di]);   // r284
   };
   window.asUnlink = function(di){ _asDrafts[di].vname=''; _asDrafts[di].vid=''; _asDrafts[di].docs=[]; _asRender(); };
   window.asPreview = function(di){
@@ -10243,13 +10302,24 @@ function reloadState() {
     var w=window.open('','_blank'); if(!w){ showInfoModal('미리보기','팝업이 막혀 있습니다.'); return; }
     w.document.write(_asDocHtml(dr, dr.docs, 'form')); w.document.close();
   };
-  window.asSavePrint = function(di){
+  window.asSavePrint = async function(di){
     var dr=_asDrafts[di];
     if(!dr.vname){ showInfoModal('거래명세표','업체를 먼저 이어 주세요.'); return; }
     var n=dr.docs.length, miss=_asEmptyRows(dr);
-    showConfirmModal('거래명세표 저장·인쇄',
+    // r284: 저장 직전에 다시 한 번 확인한다 (다른 사람이 그 사이 저장했을 수도 있다)
+    await _asEnsureList();
+    dr.docs.forEach(function(d){ d.dup = _asDupOf(dr, d); });
+    var dups = _asDupList(dr);
+    if(dups.length) _asRender();
+    var _dupTxt = dups.length
+      ? ('\n\n\u26a0 중복 내역 ' + dups.length + '건 — 같은 발행일·물류출하일·업체·품목·수량이 이미 저장돼 있습니다.\n'
+         + dups.slice(0,5).map(function(x){ return '  · ' + (x.d.date||'') + ' 번호 ' + (x.rec.no||'') + ' (' + (x.d.rows.length) + '품목)'; }).join('\n')
+         + (dups.length>5 ? ('\n  … 모두 '+dups.length+'건') : '')
+         + '\n그대로 저장하면 같은 자료가 하나 더 쌓입니다.')
+      : '';
+    showConfirmModal(dups.length ? '중복 확인 — 그대로 저장할까요?' : '거래명세표 저장·인쇄',
       '거래명세표 '+n+'건을 저장하고 인쇄합니다.' + (miss?('\n품목이 비어 있는 줄 '+miss+'개는 품번만 찍힙니다.'):'')
-      + '\n양식 용지를 프린터에 넣고 진행하세요.',
+      + '\n양식 용지를 프린터에 넣고 진행하세요.' + _dupTxt,
       async function(){
         try{
           var pairs=Object.keys(dr._newNames||{}).map(function(s){ return { spec:s, name:dr._newNames[s] }; });
@@ -10260,7 +10330,7 @@ function reloadState() {
           showInfoModal('저장 완료', '거래명세표 '+n+'건을 저장했습니다.' + (added?('\n원장에 품목 '+added+'건을 등록했습니다.'):''));
           _asDrafts.splice(di,1); _asRender();
         }catch(e){ showInfoModal('저장 실패', String(e && e.message || e)); }
-      }, '저장하고 인쇄', '#1B3A6B');
+      }, dups.length ? '중복이지만 그대로 저장' : '저장하고 인쇄', dups.length ? '#b45309' : '#1B3A6B');
   };
   // ── 저장된 명세표 ───────────────────────────────────────────
   // ───────── r282 저장된 명세표 (현재 화면) ─────────
