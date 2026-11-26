@@ -36,9 +36,11 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
      await pg.evaluate(()=>!document.querySelector('.page-nav .page-tab[data-page="purchase"]')));
   const nav = await pg.evaluate(()=>Array.from(document.querySelectorAll('.page-nav .page-tab')).map(b=>b.textContent.trim()).join(','));
   ok('상단 메뉴에서 매입처만 빠졌다',
-     ['일정,견적,발주,업무,재고,회계,자료실,내규','일정,견적,발주,거래명세서,업무,재고,회계,자료실,내규'].indexOf(nav)>=0, nav);
+     ['일정,견적,발주,업무,재고,회계,자료실,내규','일정,견적,발주,거래명세서,업무,재고,회계,자료실,내규',
+      '일정,견적,발주,업무,회계,자료실,내규','일정,견적,발주,거래명세서,업무,회계,자료실,내규'].indexOf(nav)>=0, nav);   // r282: 재고도 업무 하위로
   const sub = await pg.evaluate(()=>Array.from(document.querySelectorAll('#etcSubNav .sub-tab')).map(b=>b.textContent.trim()).join(','));
-  ok('업무 하위 탭 = 사이트 · 매입처 · 감사', sub==='사이트,매입처,감사', sub);
+  ok('업무 하위 탭에 사이트·매입처·감사가 이 순서로 있다',
+     ['사이트,매입처,감사','사이트,매입처,재고,감사'].indexOf(sub)>=0, sub);   // r282: 재고가 매입처와 감사 사이로
 
   await pg.evaluate(()=>__T("switchPage('purchase')")); await pg.waitForTimeout(800);
   ok('매입처를 열면 업무 탭이 켜진다',
@@ -50,7 +52,7 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
   ok('매입처 화면이 그려진다',
      await pg.evaluate(()=>document.getElementById('pagePurchase').innerHTML.length>200));
   ok('다른 탭으로 가면 업무 하위 줄이 숨는다', await (async()=>{
-       await pg.evaluate(()=>__T("switchPage('inventory')")); await pg.waitForTimeout(400);
+       await pg.evaluate(()=>__T("switchPage('files')")); await pg.waitForTimeout(400);   // r282: 재고가 업무 하위로
        return pg.evaluate(()=>getComputedStyle(document.getElementById('etcSubNav')).display==='none');
      })());
 
