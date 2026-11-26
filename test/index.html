@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r282 2026-11-26 -->
+<!-- test build r283 2026-11-26 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -159,14 +159,20 @@
     #pageAudit .q-flat:focus { border-color:#1B3A6B; }
     #pageAudit .asvd-item:hover { background:#f4f6f9; }
     /* r281: 거래명세표 줄 — 전표가 여러 개여도 항목이 세로로 맞게 */
-    #pageAudit .as-doc-row { display:grid; grid-template-columns:128px 152px 132px 92px minmax(260px,1fr) auto; align-items:center; column-gap:14px; row-gap:6px; font-size:12.5px; }
+    #pageAudit .as-doc-row { display:grid; grid-template-columns:18px 152px 132px 92px minmax(260px,1fr) auto; align-items:center; column-gap:14px; row-gap:6px; font-size:12.5px; }
     #pageAudit .as-doc-row > * { min-width:0; }
     /* r282: 감사 안 소카테고리 */
     #pageAudit .as-subtab { font-size:13px; font-weight:700; color:#8a94a6; padding:6px 12px; cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap; }
     #pageAudit .as-subtab:hover { color:#1B3A6B; }
     #pageAudit .as-subtab.on { color:#1B3A6B; border-bottom-color:#1B3A6B; }
     #pageAudit .as-lrow:hover { background:#f7f9fc; }
-    @media (max-width:980px){ #pageAudit .as-doc-row { grid-template-columns:128px 152px 132px 92px; } #pageAudit .as-doc-row > *:nth-child(n+5) { grid-column:1/-1; justify-self:start !important; } }
+    /* r283: 줄 아무 곳이나 눌러 접힘/펼침 */
+    #pageAudit .as-lrow { cursor:pointer; }
+    #pageAudit .as-doc-row { cursor:pointer; }
+    #pageAudit .as-doc-row input { cursor:text; }
+    #pageAudit .as-doc-head:hover { background:#f7f9fc; }
+    #pageAudit .as-cap { font-size:11.5px; color:#8a94a6; }
+    @media (max-width:980px){ #pageAudit .as-doc-row { grid-template-columns:18px 152px 132px 92px; } #pageAudit .as-doc-row > *:nth-child(n+5) { grid-column:1/-1; justify-self:start !important; } }
     #pageLinks .q-flat { box-sizing:border-box; height:26px; padding:4px 6px; margin:0; border:none !important; border-radius:0 !important; background:transparent; outline:none; font-size:13px; font-family:inherit; color:#14305c; }
     #pageLinks input.q-flat { width:300px; max-width:100%; }
     #pageLinks .q-flat:hover { background:rgba(27,58,107,.045); }
@@ -10142,7 +10148,8 @@ function reloadState() {
   var _AS_ROWS  = 13;                          // 한 장 품목 줄 수
   // 전표 좌상단(0,0) 기준 mm. 샘플 실측 → [인쇄 보정]에서 덮어쓸 수 있다.
   var _AS_POS0 = {
-    offX:0, offY:0,                            // 프린터 보정(전체 이동)
+    offX:-0.7, offY:0,                         // 프린터 보정(전체 이동) · r283 실측
+    sclX:0.9924, sclY:0.9950,                  // r283: 프린터 배율 보정 (1 = 그대로)
     slipX:26.2, slipY1:12.1, slipY2:150.4, slipW:171, slipH:127,
     fs:10,                                     // 기본 글자 크기(pt)
     noX:34.1,  headY:15.0,
@@ -10155,9 +10162,11 @@ function reloadState() {
     rowY:62.9,
     cNoR:6.6, cNameL:9.9, cQtyR:106.6, cPriceR:125.3, cSupR:149.4, cTaxR:169.8,
     emptyX:64.9,
-    sumY:114.9,
+    sumY:112.5,                                // r283: '계' 합계가 칸 바닥에 걸쳐 찍혀 가운데로
     memoX:0.8, memoY:121.5
   };
+  // r283: 사람이 [인쇄 보정]에서 만지는 값. 나머지(칸 좌표)는 양식 실측값이라 저장하지 않는다.
+  var _AS_KNOBS = ['offX','offY','sclX','sclY','slipX','slipY1','slipY2','rowY','fs'];
   var _asPos = null, _asCfgLoaded = false;
   function _asAuthBase(){ try{ return (typeof _AUTH_BASE!=='undefined' && _AUTH_BASE) ? _AUTH_BASE : _FB_PATH; }catch(e){ return _FB_PATH; } }
   function _asKeyUrl(k){ return _fbDbUrl+'/'+_asAuthBase()+'/'+k+'.json'; }
@@ -10170,14 +10179,14 @@ function reloadState() {
     if(!_fbDbUrl){ _asCfgLoaded=true; return; }
     try{
       var r = await _fbFetch(_asKeyUrl('sched_audit_cfg'));
-      if(r.ok){ var d = await r.json(); if(d && typeof d==='object') Object.keys(d).forEach(function(k){ if(k in _AS_POS0 && typeof d[k]==='number') _asPos[k]=d[k]; }); }
+      if(r.ok){ var d = await r.json(); if(d && typeof d==='object') Object.keys(d).forEach(function(k){ if(_AS_KNOBS.indexOf(k)>=0 && typeof d[k]==='number') _asPos[k]=d[k]; }); }
     }catch(e){}
     _asCfgLoaded = true;
   }
   async function _asSaveCfg(){
     if(_isViewer()) throw new Error('보기 전용 계정입니다.');
     if(!_fbDbUrl) throw new Error('동기화 연결이 필요합니다.');
-    var out={}; Object.keys(_AS_POS0).forEach(function(k){ out[k]=P()[k]; });
+    var out={}; _AS_KNOBS.forEach(function(k){ out[k]=P()[k]; });   // r283: 손잡이 값만 저장
     await _fbPutOk(_asKeyUrl('sched_audit_cfg'), out, '감사 인쇄 보정');
   }
 
@@ -10358,10 +10367,12 @@ function reloadState() {
     var p=P(), o=[];
     function F(x,y,txt,opt){
       opt=opt||{};
-      var st='position:absolute;white-space:pre;top:'+(y+p.offY)+'mm;font-size:'+(opt.fs||p.fs)+'pt;line-height:'+(opt.fs||p.fs)+'pt;';
-      if(opt.right) st+='right:'+((p.slipW-x)-p.offX)+'mm;text-align:right;';
-      else st+='left:'+(x+p.offX)+'mm;';
-      if(opt.w) st+='width:'+opt.w+'mm;overflow:hidden;';
+      var _sx=(p.sclX||1), _sy=(p.sclY||1);                     // r283: 프린터 배율 보정
+      var _px=x*_sx + p.offX, _py=y*_sy + p.offY;
+      var st='position:absolute;white-space:pre;top:'+_py+'mm;font-size:'+(opt.fs||p.fs)+'pt;line-height:'+(opt.fs||p.fs)+'pt;';
+      if(opt.right) st+='right:'+(p.slipW-_px)+'mm;text-align:right;';
+      else st+='left:'+_px+'mm;';
+      if(opt.w) st+='width:'+(opt.w*_sx)+'mm;overflow:hidden;';
       o.push('<div class="as-f" style="'+st+'">'+esc(txt==null?'':String(txt))+'</div>');
     }
     // 머리
@@ -10378,7 +10389,8 @@ function reloadState() {
     if(page===0){
       var _ko=_asKoAmt(head.total)+'整';
       var _koW=_ko.length*p.fs*0.3528, _koX=p.totKoX;                 // 한글 1자 = 글자 크기 그대로
-      if(_koX+_koW > p.totNumX-1.5) _koX=Math.max(1.0, p.totNumX-1.5-_koW);   // 겹치면 왼쪽으로 민다
+      var _koS=(p.sclX||1), _koNeed=(1.5 + _koW*(1-_koS))/_koS;              // r283: 배율을 감안한 여백
+      if(_koX+_koW > p.totNumX-_koNeed) _koX=Math.max(1.0, p.totNumX-_koNeed-_koW);   // 겹치면 왼쪽으로 민다
       F(_koX, p.totY, _ko);
       F(p.totNumX, p.totY, '(₩'+_asNum(head.total)+')');
     }
@@ -10445,50 +10457,63 @@ function reloadState() {
       +'.as-slip .as-f{z-index:2}';
     return '<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>거래명세표</title><style>'+css+'</style></head><body>'+pagesHtml.join('')+'</body></html>';
   }
-  // r282: 미리보기용 양식(선·칸 이름). 실제 인쇄는 글자만 나가고 이 그림은 쓰지 않는다.
-  //        종이 양식에 이미 있는 인감은 그리지 않는다(공개 저장소에 넣지 않는다).
+  // r283: 빈 양식 PDF(300dpi)를 실측해 그대로 그린다. 미리보기 전용 — 인쇄에는 쓰지 않는다.
+  //        종이에 이미 찍혀 있는 인감은 그리지 않는다(공개 저장소 원칙).
   function _asFormSvg(p){
-    var W=p.slipW, H=p.slipH, C='#4a6fb5';
-    var o=[];
-    function L(x1,y1,x2,y2,w){ o.push('<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+C+'" stroke-width="'+(w||0.22)+'"/>'); }
-    function T(x,y,t,sz,anchor,bold){ o.push('<text x="'+x+'" y="'+y+'" font-size="'+(sz||2.4)+'" fill="'+C+'" text-anchor="'+(anchor||'start')+'"'+(bold?' font-weight="700"':'')+'>'+esc(t)+'</text>'); }
-    // 바깥 테두리 + 가로 칸
-    o.push('<rect x="0.2" y="0.3" width="'+(W-0.5)+'" height="117.9" fill="none" stroke="'+C+'" stroke-width="0.45"/>');
-    [19.5,35.3,43.8,52.2,60.8,109.9].forEach(function(y){ L(0.2,y,W-0.3,y); });
-    // 제목
-    T(W/2,8.4,'거 래 명 세 서',6,'middle',1);
-    L(W*0.27,9.6,W*0.73,9.6,0.35);
-    T(W/2,13.6,'(공급받는자 보관용)',2.6,'middle');
-    T(1.6,18.0,'거래명세서 번호:',2.5);
-    T(W-26.5,18.0,'년',2.5); T(W-16.5,18.0,'월',2.5); T(W-6.5,18.0,'일',2.5);
-    // 공급자(종이에 미리 찍혀 있다) / 공급받는자(타자)
-    //   줄: 등록번호 19.5~27.2 · 상호·성명 27.2~35.3 · 주소 35.3~43.8 (타자 자리에서 역산)
-    [6.7,16.2,100.0,103.0].forEach(function(x){ L(x,19.5,x,43.8); });
-    L(0.2,27.2,100.0,27.2); L(103.0,27.2,W-0.3,27.2);
-    L(81.0,27.2,81.0,35.3); L(88.0,27.2,88.0,35.3);            // 공급자 성명
-    L(133.5,27.2,133.5,35.3); L(141.5,27.2,141.5,35.3);        // 공급받는자 성명
-    T(3.4,23.2,'공',2.4,'middle'); T(3.4,31.0,'급',2.4,'middle'); T(3.4,39.6,'자',2.4,'middle');
-    T(101.6,23.2,'공',2.0,'middle'); T(101.6,27.4,'급',2.0,'middle'); T(101.6,31.6,'받',2.0,'middle'); T(101.6,35.8,'는',2.0,'middle'); T(101.6,40.0,'자',2.0,'middle');
-    T(8.1,22.8,'등록',2.1); T(8.1,25.4,'번호',2.1);
-    T(8.6,31.9,'상 호',2.1); T(8.6,40.0,'주 소',2.1);
-    T(82.4,30.5,'성',2.0); T(82.4,33.3,'명',2.0);
-    T(134.9,30.5,'성',2.0); T(134.9,33.3,'명',2.0);
-    // 총금액 — 한글 금액과 같은 칸 왼쪽
-    T(1.6,48.6,'총금액',3.0,'start',1); T(14.5,48.6,'(공급가액+세액):',2.4);
-    // 품목표 머리
-    [7.7,96.5,107.0,128.1,150.3].forEach(function(x){ L(x,52.2,x,109.9); });
-    T(4.0,57.5,'번호',2.4,'middle'); T(52.0,57.5,'품 명 및 규 격',2.6,'middle');
-    T(101.7,57.5,'수 량',2.4,'middle'); T(117.5,57.5,'단   가',2.4,'middle');
-    T(139.2,57.5,'공급가액',2.4,'middle'); T(160.4,57.5,'세   액',2.4,'middle');
-    // 인수자·계
-    L(15.5,109.9,15.5,118.2); L(62.0,109.9,62.0,118.2); L(82.0,109.9,82.0,118.2);
-    L(128.1,109.9,128.1,118.2); L(150.3,109.9,150.3,118.2);   // 공급가액 계 · 세액 계
-    T(2.0,115.5,'인 수 자',2.5); T(64.5,115.5,'계',2.5);
-    T(58.5,115.5,'㊞',2.5);
-    // 꼬리말
-    T(W/2,123.0,'신한은행 : 100-001-944331  충해전기(주)      TEL : 02-2671-4474/5   FAX : 02-2672-3157',2.2,'middle');
-    T(W-1.0,126.3,'E-MAIL : chjk@chjk.co.kr',2.2,'end');
-    return '<svg class="as-form" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">'+o.join('')+'</svg>';
+    var W=p.slipW, H=p.slipH, C='#4a6fb5', o=[];
+    function L(x1,y1,x2,y2,w){ o.push('<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+C+'" stroke-width="'+(w||0.25)+'"/>'); }
+    function T(x,y,t,sz,anchor,bold,ls){
+      o.push('<text x="'+x+'" y="'+y+'" font-size="'+sz+'" fill="'+C+'" text-anchor="'+(anchor||'start')+'"'
+        + (bold?' font-weight="700"':'') + (ls?(' letter-spacing="'+ls+'"'):'') + '>' + esc(t) + '</text>');
+    }
+    // ── 테두리와 칸 ──
+    o.push('<rect x="0.45" y="0.30" width="170.95" height="118.10" fill="none" stroke="'+C+'" stroke-width="0.5"/>');
+    [18.46,43.95,52.41,60.88,110.07].forEach(function(y){ L(0.45,y,171.40,y); });
+    [26.93,35.39].forEach(function(y){ L(6.89,y,171.40,y); });
+    [6.89,16.40,91.81,100.53].forEach(function(x){ L(x,18.46,x,43.95); });
+    [50.24,56.67,135.50,141.93].forEach(function(x){ L(x,26.93,x,35.39); });
+    [96.93,107.56,128.72,150.95].forEach(function(x){ L(x,52.41,x,118.40); });
+    L(7.99,52.41,7.99,110.07);
+    [19.67,83.13].forEach(function(x){ L(x,110.07,x,118.40); });
+    // ── 제목 ──
+    T(83.8,8.9,'거 래 명 세 서',6.6,'middle',1);
+    L(52.3,9.74,116.2,9.74,0.3); L(52.3,10.42,116.2,10.42,0.3);
+    T(84.4,14.4,'(공급받는자 보관용)',2.4,'middle');
+    T(1.7,17.2,'거래명세서 번호:',2.6);
+    T(148.5,17.2,'년',2.6); T(156.5,17.2,'월',2.6); T(164.7,17.2,'일',2.6);
+    // ── 공급자 (종이에 미리 찍혀 있는 내용) ──
+    T(4.0,23.3,'공',2.8,'middle'); T(4.0,31.2,'급',2.8,'middle'); T(4.0,39.8,'자',2.8,'middle');
+    T(8.1,22.6,'등록',2.9); T(8.1,25.7,'번호',2.9);
+    T(8.1,32.3,'상 호',2.9); T(8.1,40.5,'주 소',2.9);
+    T(53.4,30.6,'성',2.3,'middle'); T(53.4,33.9,'명',2.3,'middle');
+    T(26.2,24.9,'113-81-14978',3.5,'start',0,0.85);
+    T(20.6,33.2,'충해전기(주)',3.6,'start',1);
+    T(59.6,33.2,'김 해 식',3.0);
+    T(21.0,39.6,'서울특별시 구로구 구로중앙로',2.9);
+    T(22.0,43.1,'구로기계공구상가 B블럭 13동 103호',2.9);
+    // ── 공급받는자 (타자로 채우는 칸) ──
+    ['공','급','받','는','자'].forEach(function(ch,i){ T(93.9, 22.4+i*4.2, ch, 2.2, 'middle'); });
+    T(96.6,22.6,'등록',2.1); T(96.6,25.7,'번호',2.1);
+    T(96.6,32.3,'상 호',2.1); T(96.6,40.5,'주 소',2.1);
+    T(138.6,30.6,'성',2.1,'middle'); T(138.6,33.9,'명',2.1,'middle');
+    // ── 총금액 ──
+    T(2.1,49.4,'총금액',3.5,'start',1); T(16.2,49.4,'(공급가액+세액):',2.6);
+    // ── 품목표 머리 ──
+    T(4.2,58.3,'번호',2.8,'middle');
+    T(52.4,58.3,'품 명 및 규 격',2.9,'middle');
+    T(102.3,58.3,'수 량',2.8,'middle');
+    T(118.1,58.3,'단   가',2.8,'middle');
+    T(139.8,58.3,'공급가액',2.8,'middle');
+    T(161.2,58.3,'세   액',2.8,'middle');
+    // ── 인수자 · 계 ──
+    T(2.8,115.9,'인 수 자',2.9);
+    T(80.0,115.9,'㈞',2.6,'middle');
+    T(89.0,115.9,'계',2.9);
+    // ── 꼬리말 ──
+    T(47.0,122.3,'신한은행 : 100-001-944331 충해전기(주)    TEL : 02-2671-4474/5   FAX : 02-2672-3157',2.35);
+    T(170.7,126.6,'E-MAIL : chjk@chjk.co.kr',2.35,'end');
+    return '<svg class="as-form" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg"'
+      + ' font-family="BatangChe, Batang, serif">'+o.join('')+'</svg>';
   }
   function _asPrintHtml(html){
     var old=document.getElementById('asPrintFrame'); if(old) old.remove();
@@ -10559,7 +10584,7 @@ function reloadState() {
       + (adm ? _asBtn('인쇄 보정','asCalib()') : '')
       + '<input type="file" id="asFile" accept=".xls,.xlsx,.htm,.html" style="display:none" onchange="asOnFile(event)">'
       + '</div>';
-    if(_asTab==='list'){ el.innerHTML = h + _asListHtml(); return; }
+    if(_asTab==='list'){ el.innerHTML = h + _asListHtml(); _asLRestore(); return; }
     h += '<div style="padding:14px 16px 40px">';
     if(!_asDrafts.length){
       h += '<div id="asDrop" style="border:2px dashed #c8d2de;background:#fafbfc;padding:38px 22px;text-align:center;line-height:1.9">'
@@ -10572,7 +10597,13 @@ function reloadState() {
       _asBindDrop();   // r279 — 엑셀 올리기 전 화면에서도 끌어다 놓을 수 있게
       return;
     }
-    h += '<div style="font-size:12px;color:#6b7280;margin-bottom:10px">파일: <b>'+esc(_asFileName)+'</b> · 품번 '+_asRaw.length+'줄</div>';
+    // r283: 잘못 올렸을 때 다시 올리거나 비울 수 있게
+    h += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:#6b7280;margin-bottom:10px">'
+      + '<span>파일: <b>'+esc(_asFileName)+'</b> · 품번 '+_asRaw.length+'줄</span>'
+      + _asBtn('다른 파일 올리기','asPick()')
+      + _asBtn('비우기','asClearFile()','warn')
+      + '<span class="as-cap">끌어다 놓아도 바뀝니다</span>'
+      + '</div>';
     _asDrafts.forEach(function(dr, di){
       h += '<div style="border:1px solid #c8d2de;margin-bottom:18px">';
       h += '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:#f4f8fe;border-bottom:1px solid #c8d2de">'
@@ -10618,32 +10649,34 @@ function reloadState() {
         var pages=Math.max(1, Math.ceil(d.rows.length/_AS_ROWS));
         h += '<div style="border-top:1px solid #eef2f7;padding:10px 12px">'
           // r281: 전표가 여러 줄이어도 항목이 세로로 맞도록 고정폭 격자. 접기 단추가 맨 앞.
-          + '<div class="as-doc-row">'
-          + '<button type="button" onclick="asToggleDoc('+di+','+ci+')" style="border:1px solid #c8d2de;background:#fff;border-radius:0;font-size:12px;padding:3px 9px;cursor:pointer;font-family:inherit;color:#1B3A6B;text-align:left">'
-          +   (d.open?'\u25be':'\u25b8')+' '+d.rows.length+'품목 · '+pages+'장'
-          + '</button>'
+          // r283: 접기 단추를 없애고 줄 아무 곳이나 누르면 접히고 펼쳐진다(칸 안 글자는 그대로 고친다).
+          + '<div class="as-doc-row as-doc-head" onclick="asToggleDoc('+di+','+ci+')" title="누르면 품목이 펼쳐집니다">'
+          + '<span style="color:#1B3A6B;font-size:12px">'+(d.open?'\u25be':'\u25b8')+'</span>'
           + '<span style="color:#8a94a6">물류출하일 '+esc(_asDot(d.ship))+'</span>'
           + '<span>발행일 <b>'+esc(d.date)+'</b></span>'
-          + '<span>번호 <input value="'+(d.no==null?'':d.no)+'" oninput="asSetNo('+di+','+ci+',this.value)" style="width:48px;height:26px;text-align:center;padding:0 4px;border:1px solid #c8d2de;border-radius:0;font-size:12.5px;font-family:inherit"></span>'
+          + '<span>번호 <input value="'+(d.no==null?'':d.no)+'" onclick="event.stopPropagation()" oninput="asSetNo('+di+','+ci+',this.value)" style="width:48px;height:22px;text-align:center;padding:0 4px;border:1px solid #c8d2de;border-radius:0;font-size:12.5px;font-family:inherit"></span>'
           + '<span>공급가액 <b>'+_asNum(supply)+'</b> · 세액 <b>'+_asNum(tax)+'</b> · 합계 <b>'+_asNum(supply+tax)+'</b></span>'
-          + '<span style="justify-self:end;white-space:nowrap">비고 <input value="'+esc(d.memo||'')+'" oninput="asSetMemo('+di+','+ci+',this.value)" placeholder="(선택)" style="width:150px;height:26px;padding:0 7px;border:1px solid #c8d2de;border-radius:0;font-size:12px;font-family:inherit"></span>'
+          + '<span style="justify-self:end;white-space:nowrap">비고 <input value="'+esc(d.memo||'')+'" onclick="event.stopPropagation()" oninput="asSetMemo('+di+','+ci+',this.value)" placeholder="(선택)" style="width:300px;height:26px;padding:0 7px;border:1px solid #c8d2de;border-radius:0;font-size:12px;font-family:inherit"></span>'
           + '</div>'
           + (d.warn ? ('<div style="margin-top:5px;font-size:11.5px;color:#b45309">'+esc(d.warn)+'</div>') : '')
           ;
         if(d.open){
         var _SHOW=200, _part=d.rows.slice(0,_SHOW);
         h += '<table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:12px"><thead><tr style="background:#f7f9fc;color:#5b7ba6">'
-          + '<th style="padding:4px 6px;text-align:right;width:36px">번호</th><th style="padding:4px 6px;text-align:left">품명 및 규격</th>'
-          + '<th style="padding:4px 6px;text-align:center;width:60px">수량</th><th style="padding:4px 6px;text-align:right;width:90px">단가</th>'
-          + '<th style="padding:4px 6px;text-align:right;width:100px">공급가액</th><th style="padding:4px 6px;text-align:right;width:90px">세액</th></tr></thead><tbody>';
+          + '<th style="padding:6px;text-align:center;width:44px">번호</th>'
+          + '<th style="padding:6px 8px;text-align:left;width:150px">품목</th>'
+          + '<th style="padding:6px 8px;text-align:left">규격</th>'
+          + '<th style="padding:6px;text-align:center;width:60px">수량</th><th style="padding:6px;text-align:right;width:90px">단가</th>'
+          + '<th style="padding:6px;text-align:right;width:100px">공급가액</th><th style="padding:6px;text-align:right;width:90px">세액</th></tr></thead><tbody>';
         _part.forEach(function(r,i){
           h += '<tr style="border-bottom:1px solid #f1f4f8">'
-            + '<td style="padding:3px 6px;text-align:right;color:#8a94a6">'+(i+1)+'</td>'
-            + '<td style="padding:3px 6px">'+(r.name?('<b>'+esc(r.name)+'</b>  '):'<span style="color:#dc2626">(품목 없음) </span>')+esc(r.spec)+'</td>'
-            + '<td style="padding:3px 6px;text-align:center">'+_asNum(r.qty)+'</td>'
-            + '<td style="padding:3px 6px;text-align:right">'+_asNum(r.price)+'</td>'
-            + '<td style="padding:3px 6px;text-align:right">'+_asNum(r.supply)+'</td>'
-            + '<td style="padding:3px 6px;text-align:right">'+_asNum(r.tax)+'</td></tr>';
+            + '<td style="padding:6px;text-align:center;color:#8a94a6">'+(i+1)+'</td>'
+            + '<td style="padding:6px 8px;text-align:left">'+(r.name?('<b>'+esc(r.name)+'</b>'):'<span style="color:#dc2626">(품목 없음)</span>')+'</td>'
+            + '<td style="padding:6px 8px;text-align:left">'+esc(r.spec)+'</td>'
+            + '<td style="padding:6px;text-align:center">'+_asNum(r.qty)+'</td>'
+            + '<td style="padding:6px;text-align:right">'+_asNum(r.price)+'</td>'
+            + '<td style="padding:6px;text-align:right">'+_asNum(r.supply)+'</td>'
+            + '<td style="padding:6px;text-align:right">'+_asNum(r.tax)+'</td></tr>';
         });
         h += '</tbody></table>';
         if(d.rows.length>_SHOW) h += '<div style="padding:6px 2px;font-size:12px;color:#8a94a6">앞 '+_SHOW+'줄만 보여 줍니다 · 나머지 '+(d.rows.length-_SHOW)+'줄도 저장·인쇄에는 그대로 들어갑니다.</div>';
@@ -10755,7 +10788,17 @@ function reloadState() {
       if(_qNorm(txt).indexOf(k)>=0){ td.innerHTML = (v?('<b>'+esc(v)+'</b>  '):'<span style="color:#dc2626">(품목 없음) </span>')+esc(spec); }
     });
   };
-  window.asPick = function(){ var i=document.getElementById('asFile'); if(i) i.click(); };
+  window.asPick = function(){ var i=document.getElementById('asFile'); if(i){ i.value=''; i.click(); } };
+  // r283: 올린 파일과 작성 중인 거래명세표를 비운다 (저장한 것은 그대로)
+  window.asClearFile = function(){
+    showConfirmModal('비우기',
+      '올린 파일과 작성 중인 거래명세표를 모두 비웁니다.\n저장해 둔 명세표는 지워지지 않습니다.',
+      function(){
+        _asDrafts=[]; _asRaw=[]; _asFileName=''; _asShowInput=false;
+        var f=document.getElementById('asFile'); if(f) f.value='';
+        _asRender();
+      }, '비우기', '#dc2626');
+  };
   window.asOnFile = async function(ev){
     var f = ev.target.files && ev.target.files[0]; ev.target.value='';
     await _asTakeFile(f);
@@ -10775,7 +10818,25 @@ function reloadState() {
     var z=document.getElementById('asDrop');
     if(z){ z.style.borderColor = on ? '#1B3A6B' : '#c8d2de'; z.style.background = on ? '#eaf1fb' : '#fafbfc'; }
   }
+  // r283: 드롭다운 밖을 누르면 닫는다 (한 번만 건다)
+  function _asBindDD(){
+    if(window.__asDDBound) return; window.__asDDBound = true;
+    document.addEventListener('mousedown', function(ev){
+      var t = ev.target;
+      Array.prototype.forEach.call(document.querySelectorAll('#pageAudit [id^="asVdd"], #pageAudit #asLVdd'), function(dd){
+        if(dd.style.display==='none') return;
+        var inp = document.getElementById(dd.id.replace('dd','').replace('asV','asV').replace('asL','asL'));
+        if(dd.contains(t)) return;
+        if(inp && inp===t) return;
+        // 짝이 되는 입력칸(asV0 ↔ asVdd0 · asLV ↔ asLVdd)
+        var pair = document.getElementById(dd.id==='asLVdd' ? 'asLV' : ('asV'+dd.id.slice(5)));
+        if(pair && (pair===t || pair.contains(t))) return;
+        dd.style.display='none';
+      });
+    }, true);
+  }
   function _asBindDrop(){
+    _asBindDD();                       // r283: 드롭다운 닫기도 같이 건다
     var el=document.getElementById('pageAudit');
     if(!el || el.__asDrop) return;
     el.__asDrop = 1;
@@ -10855,6 +10916,12 @@ function reloadState() {
   var _asLRows = null, _asListBusy = false;
   var _asLF = { vname:'', from:'', to:'', q:'' };
   var _asLPage = 0, _asLOpen = {};
+  var _asLFocus = null;                       // r283: 다시 그린 뒤 커서를 둘 칸
+  function _asLRestore(){
+    var id=_asLFocus; _asLFocus=null; if(!id) return;
+    var e=document.getElementById(id); if(!e) return;
+    try{ e.focus(); e.setSelectionRange(e.value.length, e.value.length); }catch(_e){}
+  }
   var _AS_PER = 20;
   window.asTab = function(t){ _asTab = (t==='list')?'list':'new'; _asRender(); if(_asTab==='list' && !_asLRows) asLLoad(); };
   window.asLLoad = async function(force){
@@ -10895,9 +10962,9 @@ function reloadState() {
       +   '<div id="asLVdd" style="display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;background:#fff;border:1px solid #d6e4f5;border-radius:8px;box-shadow:0 8px 22px rgba(27,58,107,.15);max-height:240px;overflow:auto;z-index:50"></div>'
       + '</div>'
       + '<span style="font-weight:700;color:#14305c;margin-left:4px">기간</span>'
-      + '<input type="date" id="asLFrom" value="'+esc(_asLF.from)+'" onchange="asLSet(\'from\',this.value)" style="height:28px;padding:0 6px;border:1px solid #c8d2de;border-radius:0;font-size:12.5px;font-family:inherit">'
+      + '<input type="text" id="asLFrom" inputmode="numeric" maxlength="10" placeholder="20260101" value="'+esc(_asLF.from)+'" oninput="asLDateIn(this,\'from\')" onkeydown="asLDateKey(event,this,\'from\')" onblur="asLDateIn(this,\'from\',1)" style="width:104px;height:28px;padding:0 8px;text-align:center;border:1px solid #c8d2de;border-radius:0;font-size:12.5px;font-family:inherit">'
       + '<span style="color:#8a94a6">~</span>'
-      + '<input type="date" id="asLTo" value="'+esc(_asLF.to)+'" onchange="asLSet(\'to\',this.value)" style="height:28px;padding:0 6px;border:1px solid #c8d2de;border-radius:0;font-size:12.5px;font-family:inherit">'
+      + '<input type="text" id="asLTo" inputmode="numeric" maxlength="10" placeholder="20261231" value="'+esc(_asLF.to)+'" oninput="asLDateIn(this,\'to\')" onkeydown="asLDateKey(event,this,\'to\')" onblur="asLDateIn(this,\'to\',1)" style="width:104px;height:28px;padding:0 8px;text-align:center;border:1px solid #c8d2de;border-radius:0;font-size:12.5px;font-family:inherit">'
       + '<span style="font-weight:700;color:'+(ready?'#14305c':'#c3cad5')+';margin-left:4px">품목·규격</span>'
       + '<input id="asLQ" type="text" value="'+esc(_asLF.q)+'" oninput="asLSet(\'q\',this.value)" placeholder="'+(ready?'품목명 또는 품번':'업체와 기간을 먼저 정하세요')+'"'
       +   (ready?'':' disabled')+' style="width:200px;height:28px;padding:0 8px;border:1px solid '+(ready?'#c8d2de':'#e5e7eb')+';border-radius:0;font-size:12.5px;font-family:inherit;background:'+(ready?'#fff':'#f3f4f6')+'">'
@@ -10923,11 +10990,11 @@ function reloadState() {
       + '<th style="padding:6px 8px;text-align:right;width:100px">세액</th>'
       + '<th style="padding:6px 8px;text-align:right;width:110px">합계</th>'
       + '<th style="padding:6px 8px;text-align:left;width:70px">작성</th>'
-      + '<th style="padding:6px 8px;width:170px"></th></tr></thead><tbody>';
+      + '<th style="padding:6px 8px;width:116px"></th></tr></thead><tbody>';
     part.forEach(function(v){
       var op=!!_asLOpen[v.id];
-      h += '<tr class="as-lrow" style="border-bottom:1px solid #f1f4f8">'
-        + '<td style="padding:5px 8px">'+esc(v.date||'')+'</td>'
+      h += '<tr class="as-lrow" onclick="asLToggle(\''+esc(v.id)+'\')" title="누르면 내역이 펼쳐집니다" style="border-bottom:1px solid #f1f4f8">'
+        + '<td style="padding:5px 8px"><span style="color:#5b7ba6;margin-right:4px">'+(op?'\u25be':'\u25b8')+'</span>'+esc(v.date||'')+'</td>'
         + '<td style="padding:5px 8px;text-align:center">'+esc(String(v.no||''))+'</td>'
         + '<td style="padding:5px 8px">'+esc(v.vname||'')+'</td>'
         + '<td style="padding:5px 8px;text-align:center">'+((v.rows||[]).length)+'</td>'
@@ -10936,26 +11003,29 @@ function reloadState() {
         + '<td style="padding:5px 8px;text-align:right"><b>'+_asNum(v.total)+'</b></td>'
         + '<td style="padding:5px 8px;color:#8a94a6">'+esc(v.by||'')+'</td>'
         + '<td style="padding:5px 8px;text-align:right;white-space:nowrap">'
-        +   '<button type="button" onclick="asLToggle(\''+esc(v.id)+'\')" style="border:1px solid #c8d2de;background:#fff;border-radius:0;font-size:11.5px;padding:2px 8px;cursor:pointer;color:#1B3A6B">'+(op?'\u25be 내역':'\u25b8 내역')+'</button> '
-        +   '<button type="button" onclick="asLPrint(\''+esc(v.id)+'\')" style="border:1px solid #c8d2de;background:#fff;border-radius:0;font-size:11.5px;padding:2px 8px;cursor:pointer">인쇄</button> '
-        +   '<button type="button" onclick="asLDel(\''+esc(v.id)+'\')" title="삭제" style="border:1px solid #fecaca;background:#fff5f5;border-radius:0;font-size:11.5px;padding:2px 8px;cursor:pointer;color:#dc2626">삭제</button>'
+        +   '<button type="button" onclick="event.stopPropagation();asLPrint(\''+esc(v.id)+'\')" style="border:1px solid #c8d2de;background:#fff;border-radius:0;font-size:11.5px;padding:2px 8px;cursor:pointer">인쇄</button> '
+        +   '<button type="button" onclick="event.stopPropagation();asLDel(\''+esc(v.id)+'\')" title="삭제" style="border:1px solid #fecaca;background:#fff5f5;border-radius:0;font-size:11.5px;padding:2px 8px;cursor:pointer;color:#dc2626">삭제</button>'
         + '</td></tr>';
       if(op){
-        h += '<tr><td colspan="9" style="padding:0 8px 10px;background:#fcfdff">'
-          + (v.memo?('<div style="font-size:12px;color:#6b7280;margin:6px 0">비고: '+esc(v.memo)+'</div>'):'')
-          + '<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#f3f6fa;color:#5b7ba6">'
-          + '<th style="padding:3px 6px;text-align:right;width:36px">번호</th><th style="padding:3px 6px;text-align:left">품명 및 규격</th>'
-          + '<th style="padding:3px 6px;text-align:center;width:60px">수량</th><th style="padding:3px 6px;text-align:right;width:90px">단가</th>'
-          + '<th style="padding:3px 6px;text-align:right;width:100px">공급가액</th><th style="padding:3px 6px;text-align:right;width:90px">세액</th></tr></thead><tbody>'
+        // r283: 번호 44 + 품목 110 = 위 표의 발행일 100 + 번호 54 → 규격이 '업체' 와 같은 자리에서 시작한다
+        h += '<tr><td colspan="9" style="padding:0 0 10px;background:#fcfdff">'
+          + (v.memo?('<div style="font-size:12px;color:#6b7280;margin:6px 0 6px 8px">비고: '+esc(v.memo)+'</div>'):'')
+          + '<table style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed"><thead><tr style="background:#f3f6fa;color:#5b7ba6">'
+          + '<th style="padding:6px 8px;text-align:center;width:44px">번호</th>'
+          + '<th style="padding:6px 8px;text-align:left;width:110px">품목</th>'
+          + '<th style="padding:6px 8px;text-align:left">규격</th>'
+          + '<th style="padding:6px 8px;text-align:center;width:60px">수량</th><th style="padding:6px 8px;text-align:right;width:90px">단가</th>'
+          + '<th style="padding:6px 8px;text-align:right;width:110px">공급가액</th><th style="padding:6px 8px;text-align:right;width:100px">세액</th></tr></thead><tbody>'
           + (v.rows||[]).slice(0,200).map(function(r,i){ return '<tr style="border-bottom:1px solid #f1f4f8">'
-              + '<td style="padding:2px 6px;text-align:right;color:#8a94a6">'+(i+1)+'</td>'
-              + '<td style="padding:2px 6px">'+(r.name?('<b>'+esc(r.name)+'</b>  '):'')+esc(r.spec)+'</td>'
-              + '<td style="padding:2px 6px;text-align:center">'+_asNum(r.qty)+'</td>'
-              + '<td style="padding:2px 6px;text-align:right">'+_asNum(r.price)+'</td>'
-              + '<td style="padding:2px 6px;text-align:right">'+_asNum(r.supply)+'</td>'
-              + '<td style="padding:2px 6px;text-align:right">'+_asNum(r.tax)+'</td></tr>'; }).join('')
+              + '<td style="padding:6px 8px;text-align:center;color:#8a94a6">'+(i+1)+'</td>'
+              + '<td style="padding:6px 8px;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.name||'')+'">'+(r.name?('<b>'+esc(r.name)+'</b>'):'')+'</td>'
+              + '<td style="padding:6px 8px;text-align:left">'+esc(r.spec)+'</td>'
+              + '<td style="padding:6px 8px;text-align:center">'+_asNum(r.qty)+'</td>'
+              + '<td style="padding:6px 8px;text-align:right">'+_asNum(r.price)+'</td>'
+              + '<td style="padding:6px 8px;text-align:right">'+_asNum(r.supply)+'</td>'
+              + '<td style="padding:6px 8px;text-align:right">'+_asNum(r.tax)+'</td></tr>'; }).join('')
           + '</tbody></table>'
-          + (((v.rows||[]).length>200)?('<div style="padding:5px 2px;font-size:12px;color:#8a94a6">앞 200줄만 보여 줍니다 · 모두 '+(v.rows||[]).length+'줄</div>'):'')
+          + (((v.rows||[]).length>200)?('<div style="padding:5px 8px;font-size:12px;color:#8a94a6">앞 200줄만 보여 줍니다 · 모두 '+(v.rows||[]).length+'줄</div>'):'')
           + '</td></tr>';
       }
     });
@@ -10971,11 +11041,42 @@ function reloadState() {
   }
   window.asLGo = function(n){ var arr=_asLFiltered(); var pages=Math.max(1,Math.ceil(arr.length/_AS_PER));
     _asLPage = Math.max(0, Math.min(pages-1, n)); _asRender(); };
+  // r283: 20260101 → 2026-01-01 로 바꿔 넣고, 시작 날짜를 다 적으면 끝 날짜 칸으로 넘어간다
+  function _asYmdOk(y,m,d){
+    if(y<1900 || y>2999 || m<1 || m>12 || d<1 || d>31) return false;
+    var dt=new Date(y, m-1, d);
+    return dt.getFullYear()===y && dt.getMonth()===m-1 && dt.getDate()===d;
+  }
+  window.asLDateIn = function(el, which, isBlur){
+    var g = String(el.value||'').replace(/[^0-9]/g,'').slice(0,8);
+    var t = g;
+    if(g.length>6) t = g.slice(0,4)+'-'+g.slice(4,6)+'-'+g.slice(6);
+    else if(g.length>4) t = g.slice(0,4)+'-'+g.slice(4);
+    el.value = t;
+    if(g.length<8){
+      el.style.borderColor = '#c8d2de';
+      if(isBlur && !g && _asLF[which]){ _asLF[which]=''; if(!_asLReady()) _asLF.q=''; _asLPage=0; _asRender(); }
+      return;
+    }
+    var y=+g.slice(0,4), m=+g.slice(4,6), d=+g.slice(6,8);
+    if(!_asYmdOk(y,m,d)){ el.style.borderColor='#dc2626'; return; }
+    el.style.borderColor = '#c8d2de';
+    if(_asLF[which] === t) return;        // 값이 그대로면 다시 그리지 않는다(블러 때 커서가 날아간다)
+    _asLF[which] = t;
+    if(!_asLReady()) _asLF.q = '';
+    _asLPage = 0;
+    _asLFocus = (which==='from' && !isBlur) ? 'asLTo' : null;
+    _asRender();
+  };
+  window.asLDateKey = function(ev, el, which){
+    if(ev.key==='Enter'){ ev.preventDefault(); asLDateIn(el, which, 1);
+      if(which==='from'){ var t=document.getElementById('asLTo'); if(t) t.focus(); } }
+  };
   window.asLSet = function(k, v){
     _asLF[k] = String(v||'').trim();
     if(k!=='q' && !_asLReady()) _asLF.q='';
     _asLPage=0; _asRender();
-    if(k==='q'){ var e=document.getElementById('asLQ'); if(e){ e.focus(); e.setSelectionRange(e.value.length,e.value.length); } }
+    if(k==='q'){ var e=document.getElementById('asLQ'); if(e){ e.focus(); e.setSelectionRange(e.value.length,e.value.length); } }   // r283: 즉시 복원(아래 _asLRestore 와 중복돼도 해롭지 않다)
   };
   window.asLClear = function(){ _asLF={vname:'',from:'',to:'',q:''}; _asLPage=0; _asLOpen={}; _asRender(); };
   window.asLToggle = function(id){ _asLOpen[id] = !_asLOpen[id]; _asRender(); };
@@ -11089,6 +11190,7 @@ function reloadState() {
       + '<div style="padding:16px 18px;overflow:auto;display:flex;flex-direction:column;gap:9px">'
       + '<div style="font-size:12.5px;color:#6b7280;line-height:1.8">양식 용지에 글자가 칸에서 벗어나면 아래 값을 조금씩 바꿔 맞춥니다. 오른쪽·아래로 밀려면 <b>+</b>, 왼쪽·위로 당기려면 <b>−</b> 입니다. [시험 인쇄]는 칸 위치를 점선으로 같이 찍습니다.</div>'
       + fld('offX','가로 이동') + fld('offY','세로 이동')
+      + fld('sclX','가로 배율',0.001) + fld('sclY','세로 배율',0.001)
       + '<div style="height:1px;background:#eef2f7;margin:4px 0"></div>'
       + fld('slipX','전표 왼쪽') + fld('slipY1','첫째 전표 위') + fld('slipY2','둘째 전표 위')
       + fld('rowY','품목 첫 줄') + fld('fs','글자 크기(pt)',0.5)
@@ -11098,7 +11200,7 @@ function reloadState() {
     ov.style.display='flex';
   };
   function _asCalRead(){
-    ['offX','offY','slipX','slipY1','slipY2','rowY','fs'].forEach(function(k){
+    _AS_KNOBS.forEach(function(k){
       var e=document.getElementById('asC_'+k); if(!e) return;
       var v=parseFloat(e.value); if(!isNaN(v)) _asPos[k]=v;
     });
