@@ -190,10 +190,10 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
     var doc={ ship:'20261101', date:'2026-11-03', no:3, rows:[{spec:'X',name:'Y',qty:1,price:1,supply:1,tax:0}], memo:'' };
     var prev=__T("_asDocHtml")(dr,[doc],'form');
     var print=__T("_asDocHtml")(dr,[doc],false);
-    return { prevImg:/<img class="as-form"/.test(prev), prevSvg:/<svg class="as-form"/.test(prev),
-             printImg:/as-form" src/.test(print), printSvg:/<svg/.test(print) };
+    return { prevImg:/<img class="as-pageform"/.test(prev), prevSvg:/<svg class="as-form"/.test(prev),
+             printImg:/as-pageform/.test(print.replace(/<style>[\s\S]*?<\/style>/,'')), printSvg:/<svg/.test(print) };
   });
-  ok('양식 그림이 있으면 미리보기에 그림을 깐다', form.prevImg && !form.prevSvg, JSON.stringify(form));
+  ok('양식 그림이 있으면 미리보기에 그림을 깐다 (r287: 페이지 전체)', form.prevImg && !form.prevSvg, JSON.stringify(form));
   ok('인쇄본에는 그림도 SVG 도 안 들어간다', !form.printImg && !form.printSvg, JSON.stringify(form));
   await pg.evaluate(()=>{ __T("_asFormImg=null"); });
   ok('그림이 없으면 선으로 그린 양식으로 돌아간다', await pg.evaluate(()=>{
