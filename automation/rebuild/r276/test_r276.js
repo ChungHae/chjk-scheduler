@@ -36,7 +36,9 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
   const labels = await pg.evaluate(()=>Array.from(document.querySelectorAll('.page-nav .page-tab')).map(b=>b.textContent.trim()).join(','));
   // 정식(r272)에는 [거래명세서] 가 없고 테스트(r273 이후)에는 있다 — 둘 다 인정하되 '업무' 자리는 발주 다음으로 고정
   const NAV_OK = ['일정,견적,발주,업무,재고,회계,자료실,내규',
-                  '일정,견적,발주,거래명세서,업무,재고,회계,자료실,내규'];   // r279: 매입처는 업무 하위로
+                  '일정,견적,발주,거래명세서,업무,재고,회계,자료실,내규',
+                  '일정,견적,발주,업무,회계,자료실,내규',
+                  '일정,견적,발주,거래명세서,업무,회계,자료실,내규'];   // r279 매입처 · r282 재고도 업무 하위로
   ok('상단 메뉴 순서·이름', NAV_OK.indexOf(labels)>=0, labels);
 
   // ── 동작은 그대로 ──
@@ -55,7 +57,7 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
   ok('검색칸·지역 필터 그대로',
      await pg.evaluate(()=>!!document.getElementById('linksSearch') && !!document.getElementById('linksRegionFilter')));
   ok('다른 탭으로 가면 하위 탭 줄이 숨는다', await (async()=>{
-       await pg.evaluate(()=>__T("switchPage('inventory')")); await pg.waitForTimeout(400);
+       await pg.evaluate(()=>__T("switchPage('files')")); await pg.waitForTimeout(400);   // r282: 재고가 업무 하위로 들어가 자료실로 바꿈
        return pg.evaluate(()=>getComputedStyle(document.getElementById('etcSubNav')).display==='none');
      })());
 
