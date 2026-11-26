@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r286 2026-11-26 -->
+<!-- test build r287 2026-11-26 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -10149,29 +10149,34 @@ function reloadState() {
   //   · 2026-11-26 사용자 지시. 좌표는 샘플 스캔(300dpi) 실측값이며 [인쇄 보정]으로 조정한다
   // ─────────────────────────────────────────────────────────────
   var _AS_NODE = 'audit_stmt';                 // <_FB_PATH>_audit_stmt/<id>
-  var _AS_PITCH = 3.5417;                      // 품목 줄 간격 mm (10pt)
+  function _asPitch(p){ return ((p.rowBot-p.rowPadB) - (p.rowTop+p.rowPad)) / _AS_ROWS; }
   var _AS_ROWS  = 13;                          // 한 장 품목 줄 수
   // 전표 좌상단(0,0) 기준 mm. 샘플 실측 → [인쇄 보정]에서 덮어쓸 수 있다.
   var _AS_POS0 = {
     offX:-0.7, offY:0,                         // 프린터 보정(전체 이동) · r283 실측
     sclX:0.9924, sclY:0.9950,                  // r283: 프린터 배율 보정 (1 = 그대로)
     slipX:26.2, slipY1:12.1, slipY2:150.4, slipW:171, slipH:127,
-    fs:10,                                     // 기본 글자 크기(pt)
-    noX:34.1,  headY:15.0,
-    dyX:137.7, dmX:151.9, ddX:161.0,
-    bizX:117.5, bizY:23.4,
-    vnX:103.5, vnY:28.3, vnW:29, vnFs:9,
-    ceoX:142.5, ceoY:28.3, ceoW:26, ceoFs:9,
-    adX:103.6, adY:36.2, adW:66, adFs:9,
-    totKoX:55.7, totNumX:102.3, totY:47.5,
-    rowY:62.9,
-    cNoR:6.6, cNameL:9.9, cQtyR:106.6, cPriceR:125.3, cSupR:149.4, cTaxR:169.8,
-    emptyX:64.9,
-    sumY:112.5,                                // r283: '계' 합계가 칸 바닥에 걸쳐 찍혀 가운데로
-    memoX:0.8, memoY:121.5
+    fs:10, fsSub:9, fsMin:6.5, pad:1.4,        // 글자 크기(pt) · 작은 칸 · 최소 · 칸 안쪽 여백(mm)
+    // ── 아래는 빈 양식(300dpi 실측)의 칸 좌표 [왼쪽, 위, 오른쪽, 아래] mm ──
+    cNo   :[26.5 , 12.90, 62.00, 18.45],       // 거래명세서 번호
+    cYear :[137.0, 12.90,147.90, 18.45],
+    cMon  :[150.87,12.90,156.46, 18.45],
+    cDay  :[158.92,12.90,164.84, 18.45],
+    cBiz  :[100.60,18.50,171.49, 26.98],       // 공급받는자 등록번호
+    cVname:[100.60,26.98,135.58, 35.48],       // 공급받는자 상호
+    cCeo  :[141.89,26.98,171.49, 35.48],       // 공급받는자 성명
+    cAddr :[100.60,35.48,171.49, 43.98],       // 공급받는자 주소 (두 줄까지)
+    addrLead:3.5,                              // 주소 두 줄일 때 줄 간격 mm
+    cTotKo:[47.50, 43.98,100.00, 52.44],       // 총금액 한글
+    cTotNo:[102.00,43.98,171.00, 52.44],       // 총금액 숫자
+    rowTop:60.94, rowBot:110.09, rowPad:1.0, rowPadB:0.5,   // 품목표 안쪽
+    xNo   :[0.54 , 8.08], xName:[8.08 , 97.04], xQty:[97.04,107.62],
+    xPrice:[107.62,128.80], xSup:[128.80,151.05], xTax:[151.05,171.49],
+    sumTop:110.09, sumBot:118.42,              // '계' 줄
+    cMemo :[1.20 ,118.90, 46.00,126.50]        // 비고 (테두리 아래 빈 자리)
   };
   // r283: 사람이 [인쇄 보정]에서 만지는 값. 나머지(칸 좌표)는 양식 실측값이라 저장하지 않는다.
-  var _AS_KNOBS = ['offX','offY','sclX','sclY','slipX','slipY1','slipY2','rowY','fs'];
+  var _AS_KNOBS = ['offX','offY','sclX','sclY','slipX','slipY1','slipY2','rowPad','fs'];
   var _asPos = null, _asCfgLoaded = false;
   function _asAuthBase(){ try{ return (typeof _AUTH_BASE!=='undefined' && _AUTH_BASE) ? _AUTH_BASE : _FB_PATH; }catch(e){ return _FB_PATH; } }
   function _asKeyUrl(k){ return _fbDbUrl+'/'+_asAuthBase()+'/'+k+'.json'; }
@@ -10381,59 +10386,111 @@ function reloadState() {
   }
 
   // ── 인쇄본 HTML ─────────────────────────────────────────────
+  // r287: 글자를 '칸' 안에 앉힌다 — 세로는 가운데, 가로는 칸 성격대로.
+  //        글자 폭은 바탕체 기준으로 셈한다(한글 1자 = 글자크기, 영숫자 = 절반).
+  function _asTextW(t, fs){
+    t = String(t==null?'':t); var w = 0;
+    for(var i=0;i<t.length;i++) w += (t.charCodeAt(i)>0x2000 ? 1 : 0.5);
+    return w * fs * 0.3528;
+  }
+  function _asShrink(t, avail, fs, lo){
+    lo = lo || 6.5;
+    while(fs > lo && _asTextW(t, fs) > avail) fs -= 0.25;
+    return fs;
+  }
+  // 한 줄로 안 되면 낱말 기준으로 길이가 비슷하게 두 줄로 쪼갠다
+  function _asTwoLines(t, avail, fs){
+    t = String(t==null?'':t).trim();
+    if(!t || _asTextW(t, fs) <= avail) return [t];
+    var w = t.split(/\s+/), best = null, bd = 1e9;
+    for(var i=1;i<w.length;i++){
+      var a = w.slice(0,i).join(' '), b = w.slice(i).join(' ');
+      var dd = Math.abs(_asTextW(a,fs) - _asTextW(b,fs));
+      if(dd < bd){ bd = dd; best = [a,b]; }
+    }
+    if(!best){ var h = Math.ceil(t.length/2); best = [t.slice(0,h), t.slice(h)]; }
+    return best;
+  }
   function _asSlipHtml(d, page, pages, head, grid){
-    var p=P(), o=[];
-    function F(x,y,txt,opt){
-      opt=opt||{};
-      var _sx=(p.sclX||1), _sy=(p.sclY||1);                     // r283: 프린터 배율 보정
-      var _px=x*_sx + p.offX, _py=y*_sy + p.offY;
-      var st='position:absolute;white-space:pre;top:'+_py+'mm;font-size:'+(opt.fs||p.fs)+'pt;line-height:'+(opt.fs||p.fs)+'pt;';
-      if(opt.right) st+='right:'+(p.slipW-_px)+'mm;text-align:right;';
-      else st+='left:'+_px+'mm;';
-      if(opt.w) st+='width:'+(opt.w*_sx)+'mm;overflow:hidden;';
+    var p = P(), o = [];
+    // 미리보기(양식 위)는 프린터 보정을 빼고 원래 좌표 그대로 보여 준다
+    if(grid === 'form') p = Object.assign({}, p, {offX:0, offY:0, sclX:1, sclY:1});
+    var SX = (p.sclX||1), SY = (p.sclY||1);
+    function box(x1, y1, x2, y2, txt, opt){
+      opt = opt || {};
+      var fs = opt.fs || p.fs, al = opt.al || 'l', pad = (opt.pad==null? p.pad : opt.pad);
+      var px = x1*SX + p.offX, py = y1*SY + p.offY;
+      var w = (x2-x1)*SX, h = (y2-y1)*SY;
+      var st = 'position:absolute;white-space:pre;overflow:hidden;'
+        + 'left:'+px+'mm;top:'+py+'mm;width:'+w+'mm;height:'+h+'mm;'
+        + 'line-height:'+h+'mm;font-size:'+fs+'pt;'
+        + 'text-align:'+(al==='r'?'right':(al==='c'?'center':'left'))+';'
+        + (al==='c' ? '' : (al==='r' ? 'padding-right:'+pad+'mm;' : 'padding-left:'+pad+'mm;'))
+        + 'box-sizing:border-box;';
       o.push('<div class="as-f" style="'+st+'">'+esc(txt==null?'':String(txt))+'</div>');
     }
+    function cell(c, txt, opt){ box(c[0], c[1], c[2], c[3], txt, opt); }
+    // 칸을 넘치면 글자를 줄여서 넣는다
+    function fitCell(c, txt, opt){
+      opt = opt || {};
+      var fs = _asShrink(txt, (c[2]-c[0]) - 2*p.pad, opt.fs || p.fsSub, p.fsMin);
+      cell(c, txt, {fs:fs, al:opt.al || 'c'});
+    }
     // 머리
-    F(p.noX, p.headY, d.no==null?'':String(d.no));
-    var dt=(d.date||'').split('-');
-    if(dt.length===3){ F(p.dyX,p.headY,dt[0]); F(p.dmX,p.headY,String(+dt[1])); F(p.ddX,p.headY,String(+dt[2])); }
-    F(p.bizX, p.bizY, head.biz||'');
-    var vn=_asWrap(head.vname||'', p.vnW, p.vnFs);
-    vn.forEach(function(t,i){ F(p.vnX, p.vnY+i*(p.vnFs*0.3528), t, {fs:p.vnFs, w:p.vnW}); });
-    F(p.ceoX, p.ceoY, head.ceo||'', {fs:p.ceoFs, w:p.ceoW});
-    var ad=_asWrap(head.addr||'', p.adW, p.adFs);
-    ad.forEach(function(t,i){ F(p.adX, p.adY+i*(p.adFs*0.3528), t, {fs:p.adFs, w:p.adW}); });
+    cell(p.cNo, d.no==null?'':String(d.no), {al:'l'});
+    var dt = (d.date||'').split('-');
+    if(dt.length===3){
+      cell(p.cYear, dt[0], {fs:p.fsSub, al:'r'});
+      cell(p.cMon, String(+dt[1]), {fs:p.fsSub, al:'c'});
+      cell(p.cDay, String(+dt[2]), {fs:p.fsSub, al:'c'});
+    }
+    fitCell(p.cBiz, head.biz||'', {fs:p.fs});
+    fitCell(p.cVname, head.vname||'');
+    fitCell(p.cCeo, head.ceo||'');
+    // 주소 — 한 줄이면 한 줄, 아니면 두 줄을 칸 가운데에 맞춰 넣는다
+    var ac = p.cAddr, aAvail = (ac[2]-ac[0]) - 2*p.pad;
+    var aLines = _asTwoLines(head.addr||'', aAvail, p.fsSub);
+    if(aLines.length <= 1){
+      fitCell(ac, aLines[0]||'');
+    }else{
+      var afs = p.fsSub;
+      while(afs > p.fsMin && Math.max(_asTextW(aLines[0],afs), _asTextW(aLines[1],afs)) > aAvail) afs -= 0.25;
+      var mid = (ac[1]+ac[3])/2, L = p.addrLead;
+      box(ac[0], mid-L, ac[2], mid, aLines[0], {fs:afs, al:'c'});
+      box(ac[0], mid, ac[2], mid+L, aLines[1], {fs:afs, al:'c'});
+    }
     // 총금액 — 첫 장에만
     if(page===0){
-      var _ko=_asKoAmt(head.total)+'整';
-      var _koW=_ko.length*p.fs*0.3528, _koX=p.totKoX;                 // 한글 1자 = 글자 크기 그대로
-      var _koS=(p.sclX||1), _koNeed=(1.5 + _koW*(1-_koS))/_koS;              // r283: 배율을 감안한 여백
-      if(_koX+_koW > p.totNumX-_koNeed) _koX=Math.max(1.0, p.totNumX-_koNeed-_koW);   // 겹치면 왼쪽으로 민다
-      F(_koX, p.totY, _ko);
-      F(p.totNumX, p.totY, '(₩'+_asNum(head.total)+')');
+      fitCell(p.cTotKo, _asKoAmt(head.total)+'整', {fs:p.fs, al:'l'});
+      fitCell(p.cTotNo, '(₩'+_asNum(head.total)+')', {fs:p.fs, al:'l'});
     }
-    // 품목
+    // 품목 — 표 안쪽을 13줄로 고르게 나눈다 (윗선에서 rowPad 만큼 띄운다)
+    var pitch = _asPitch(p), top = p.rowTop + p.rowPad;
     var start = page*_AS_ROWS, part = d.rows.slice(start, start+_AS_ROWS);
     part.forEach(function(r,i){
-      var y = p.rowY + i*_AS_PITCH;
-      F(p.cNoR,  y, String(start+i+1), {right:1});
-      F(p.cNameL,y, (r.name? (r.name+'  ') : '') + r.spec);
-      F(p.cQtyR, y, r.qty? _asNum(r.qty):'', {right:1});
-      F(p.cPriceR,y, r.price? _asNum(r.price):'', {right:1});
-      F(p.cSupR, y, _asNum(r.supply), {right:1});
-      F(p.cTaxR, y, _asNum(r.tax), {right:1});
+      var a = top + i*pitch, b = a + pitch;
+      box(p.xNo[0],    a, p.xNo[1],    b, String(start+i+1), {al:'c'});
+      var _nm = (r.name? (r.name+'  ') : '') + r.spec;
+      box(p.xName[0],  a, p.xName[1],  b, _nm,
+          {al:'l', fs:_asShrink(_nm, (p.xName[1]-p.xName[0]) - 2*p.pad, p.fs, p.fsMin)});
+      box(p.xQty[0],   a, p.xQty[1],   b, r.qty? _asNum(r.qty):'', {al:'r'});
+      box(p.xPrice[0], a, p.xPrice[1], b, r.price? _asNum(r.price):'', {al:'r'});
+      box(p.xSup[0],   a, p.xSup[1],   b, _asNum(r.supply), {al:'r'});
+      box(p.xTax[0],   a, p.xTax[1],   b, _asNum(r.tax), {al:'r'});
     });
     // 이하 여백 — 마지막 장이 13줄을 채우지 않았을 때만
     if(page===pages-1 && part.length < _AS_ROWS){
-      F(p.emptyX, p.rowY + part.length*_AS_PITCH, '- 이 하 여 백 -');
+      var ea = top + part.length*pitch;
+      box(p.xName[0], ea, p.xName[1], ea+pitch, '- 이 하 여 백 -', {al:'c'});
     }
     // 계 — 마지막 장에만
     if(page===pages-1){
-      F(p.cSupR, p.sumY, _asNum(head.supply), {right:1});
-      F(p.cTaxR, p.sumY, _asNum(head.tax), {right:1});
+      box(p.xSup[0], p.sumTop, p.xSup[1], p.sumBot, _asNum(head.supply), {al:'r'});
+      box(p.xTax[0], p.sumTop, p.xTax[1], p.sumBot, _asNum(head.tax), {al:'r'});
     }
-    if(d.memo) F(p.memoX, p.memoY, d.memo);
-    return '<div class="as-slip'+(grid===true?' as-grid':'')+'">'+(grid==='form'?_asFormSvg(p):'')+o.join('')+'</div>';
+    if(d.memo) cell(p.cMemo, d.memo, {fs:p.fsSub, al:'l'});
+    var _form = (grid==='form' && !_asFormImg) ? _asFormSvg(p) : '';
+    return '<div class="as-slip'+(grid===true?' as-grid':'')+'">'+_form+o.join('')+'</div>';
   }
   // 칸 너비(mm)에 맞춰 줄바꿈 — 한글 1자 = 글자크기, 영숫자 1자 = 글자크기/2
   function _asWrap(s, wmm, fs){
@@ -10456,7 +10513,7 @@ function reloadState() {
       var head={ biz:draft.biz, vname:draft.vname, ceo:draft.ceo, addr:draft.addr, supply:supply, tax:tax, total:supply+tax };
       var pages=Math.max(1, Math.ceil(d.rows.length/_AS_ROWS));
       for(var pg=0; pg<pages; pg++){
-        pagesHtml.push('<div class="as-page">'
+        pagesHtml.push('<div class="as-page">' + _asPageForm(grid)
           + '<div class="as-pos" style="top:'+p.slipY1+'mm">'+_asSlipHtml(d,pg,pages,head,grid)+'</div>'
           + '<div class="as-pos" style="top:'+p.slipY2+'mm">'+_asSlipHtml(d,pg,pages,head,grid)+'</div>'
           + '</div>');
@@ -10475,13 +10532,18 @@ function reloadState() {
       var d={ ship:v.ship, date:v.date, no:v.no, rows:rows, memo:v.memo||'' };
       var pages=Math.max(1, Math.ceil(rows.length/_AS_ROWS));
       for(var pg=0; pg<pages; pg++){
-        pagesHtml.push('<div class="as-page">'
+        pagesHtml.push('<div class="as-page">' + _asPageForm(grid)
           + '<div class="as-pos" style="top:'+p.slipY1+'mm">'+_asSlipHtml(d,pg,pages,head,grid)+'</div>'
           + '<div class="as-pos" style="top:'+p.slipY2+'mm">'+_asSlipHtml(d,pg,pages,head,grid)+'</div>'
           + '</div>');
       }
     });
     return _asWrapDoc(pagesHtml, p);
+  }
+  // r287: 등록된 양식 그림은 전표마다가 아니라 A4 한 장 전체에 깐다
+  function _asPageForm(grid){
+    if(grid !== 'form' || !_asFormImg) return '';
+    return '<img class="as-pageform" src="'+esc(_asFormImg)+'" alt="">';
   }
   function _asWrapDoc(pagesHtml, p){
     var css='@page{size:A4;margin:0}'
@@ -10495,6 +10557,7 @@ function reloadState() {
       +'.as-grid .as-f{outline:1px dotted #d9e2ef}'
       +'.as-form{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:1}'
       +'img.as-form{object-fit:fill}'
+      +'.as-pageform{position:absolute;left:0;top:0;width:210mm;height:297mm;object-fit:fill;pointer-events:none;z-index:0}'
       +'.as-slip .as-f{z-index:2}';
     return '<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>거래명세표</title><style>'+css+'</style></head><body>'+pagesHtml.join('')+'</body></html>';
   }
@@ -11427,7 +11490,7 @@ function reloadState() {
       + '<div style="font-size:11.5px;color:#8a94a6;line-height:1.7">양식 그림은 미리보기에만 깔립니다 — 인쇄에는 들어가지 않습니다. 그림은 사내전산 자료(Firebase)에 보관하고 공개 저장소에는 넣지 않습니다.</div>'
       + '<div style="height:1px;background:#eef2f7;margin:4px 0"></div>'
       + fld('slipX','전표 왼쪽') + fld('slipY1','첫째 전표 위') + fld('slipY2','둘째 전표 위')
-      + fld('rowY','품목 첫 줄') + fld('fs','글자 크기(pt)',0.5)
+      + fld('rowPad','품목 윗 여백') + fld('fs','글자 크기(pt)',0.5)
       + '</div>'
       + '<div style="display:flex;gap:8px;justify-content:flex-end;padding:13px 18px;border-top:1px solid #e5e5e5">'
       + _asBtn('시험 인쇄','asCalTest()') + ' ' + _asBtn('저장','asCalSave()','primary') + '</div></div>';
