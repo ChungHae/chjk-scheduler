@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r278 2026-11-26 -->
+<!-- test build r279 2026-11-26 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -151,6 +151,9 @@
     #pageLinks .inv-toolbar { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin: calc(var(--mpy)*-1) calc(var(--mpx)*-1) 14px; min-height:var(--snh,36px); padding:4px var(--mpx); background:#fff; border:0; border-bottom:1px solid #e5e5e5; box-shadow:0 2px 6px rgba(15,23,42,.06); box-sizing:border-box; }
     #pageLinks .inv-flat-label { font-size:12.5px; font-weight:700; color:#14305c; white-space:nowrap; flex-shrink:0; }
     #pageLinks .inv-flat-div { width:1px; height:18px; background:#e5e5e5; flex-shrink:0; margin:0 4px; }
+    /* r279: 감사 툴바 — 링크·매입처 툴바와 동일 스타일(r278 에서 빠져 있었다) */
+    #pageAudit .inv-toolbar { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin: calc(var(--mpy)*-1) calc(var(--mpx)*-1) 14px; min-height:var(--snh,36px); padding:4px var(--mpx); background:#fff; border:0; border-bottom:1px solid #e5e5e5; box-shadow:0 2px 6px rgba(15,23,42,.06); box-sizing:border-box; }
+    #pageAudit .inv-flat-label { font-size:12.5px; font-weight:700; color:#14305c; white-space:nowrap; flex-shrink:0; margin-right:6px; }
     #pageLinks .q-flat { box-sizing:border-box; height:26px; padding:4px 6px; margin:0; border:none !important; border-radius:0 !important; background:transparent; outline:none; font-size:13px; font-family:inherit; color:#14305c; }
     #pageLinks input.q-flat { width:300px; max-width:100%; }
     #pageLinks .q-flat:hover { background:rgba(27,58,107,.045); }
@@ -2826,8 +2829,7 @@
   <button class="page-tab" data-page="estimate">견적</button>
   <button class="page-tab" data-page="order">발주</button><!-- r267 -->
   <button class="page-tab" data-page="stmt">거래명세서</button><!-- r273 -->
-  <button class="page-tab" id="tabEtc">업무</button><!-- r252: 구 '기타' · r276: 이름 정리 -->
-  <button class="page-tab" data-page="purchase">매입처</button>
+  <button class="page-tab" id="tabEtc">업무</button><!-- r252: 구 '기타' · r276: 이름 정리 · r279: 매입처가 이 아래로 -->
   <button class="page-tab" data-page="inventory">재고</button>
   <button class="page-tab" id="tabAccounting">회계</button>
   <button class="page-tab" data-page="files">자료실</button>
@@ -2843,6 +2845,7 @@
 </nav>
 <nav class="sub-nav" id="etcSubNav" style="display:none">
   <button class="sub-tab" data-page="links">사이트</button><!-- r276: 이름 정리 -->
+  <button class="sub-tab" data-page="purchase">매입처</button><!-- r279: 상단 탭에서 옮겨 옴 -->
   <button class="sub-tab" data-page="audit">감사</button><!-- r278 -->
 </nav>
 <nav class="sub-nav" id="scheduleSubNav">
@@ -10484,10 +10487,9 @@ function reloadState() {
   };
   function _asRender(){
     var el = document.getElementById('pageAudit'); if(!el) return;
-    var adm = (typeof _isAdmin==='function') ? _isAdmin() : ((_authUser&&(_authUser.role==='master'||_authUser.role==='admin'))||false);
+    var adm = (_authUser && (_authUser.role==='master' || _authUser.role==='admin')) || ((typeof _isAdmin==='function') ? _isAdmin() : false);   // r279: 마스터도 보정 가능
     var h = '<div class="q-toolbar inv-toolbar">'
       + '<span class="inv-flat-label">감사</span>'
-      + '<span style="font-size:12px;color:#6b7280">SMC 유저특가 엑셀 → 거래명세표 (양식 용지에 글자만 인쇄)</span>'
       + '<span style="flex:1"></span>'
       + _asBtn('엑셀 올리기','asPick()','primary')
       + ' ' + _asBtn('저장된 명세표','asOpenList()')
@@ -10495,15 +10497,13 @@ function reloadState() {
       + '<input type="file" id="asFile" accept=".xls,.xlsx,.htm,.html" style="display:none" onchange="asOnFile(event)">'
       + '</div><div style="padding:14px 16px 40px">';
     if(!_asDrafts.length){
-      h += '<div style="border:1px solid #e5e7eb;background:#fafbfc;padding:22px;font-size:13px;color:#374151;line-height:1.9">'
-        + '<b style="color:#1B3A6B">쓰는 방법</b><br>'
-        + '① SMC UbiCom 에서 <b>유저특가 조회 → 엑셀</b> 로 받은 파일을 [엑셀 올리기] 로 넣습니다.<br>'
-        + '② 엑셀의 <b>유저명</b>에 우리 업체를 한 번 이어 주면 그 뒤로는 자동으로 연결됩니다.<br>'
-        + '③ <b>물류출하일</b>마다 거래명세표가 한 묶음씩 생기고, 발행일은 <b>물류출하일 + 2영업일</b>(토·일·공휴일 건너뜀)로 잡힙니다.<br>'
-        + '④ 품명은 그 업체 <b>원장</b>에서 품번으로 찾아 "품목 품번" 으로 적습니다. 못 찾으면 직접 넣을 수 있고, 넣은 값은 원장에도 등록됩니다.<br>'
-        + '⑤ [저장하고 인쇄] 를 누르면 누적 저장되고, <b>양식 용지</b>에 글자만 찍힙니다.'
+      h += '<div id="asDrop" style="border:2px dashed #c8d2de;background:#fafbfc;padding:40px 22px;text-align:center;line-height:1.9">'
+        + '<div style="font-size:14.5px;font-weight:700;color:#1B3A6B">엑셀을 여기에 끌어다 놓으세요</div>'
+        + '<div style="font-size:12.5px;color:#6b7280;margin-top:4px">SMC 유저특가 조회에서 받은 파일 · 위 [엑셀 올리기] 와 같습니다</div>'
+        + '<div style="font-size:12px;color:#8a94a6;margin-top:10px">물류출하일마다 한 장 · 발행일은 출하일 + 2영업일</div>'
         + '</div>';
       el.innerHTML = h + '</div>';
+      _asBindDrop();   // r279 — 엑셀 올리기 전 화면에서도 끌어다 놓을 수 있게
       return;
     }
     h += '<div style="font-size:12px;color:#6b7280;margin-bottom:10px">파일: <b>'+esc(_asFileName)+'</b> · 품번 '+_asRaw.length+'줄</div>';
@@ -10578,6 +10578,7 @@ function reloadState() {
     var opts=''; try{ opts=(allClients()||[]).slice(0,4000).map(function(c){ return '<option value="'+esc(c[0])+'">'; }).join(''); }catch(e){}
     h += '<datalist id="asClients">'+opts+'</datalist></div>';
     el.innerHTML = h;
+    _asBindDrop();   // r279
   }
   function _asDot(s){ s=String(s||''); return s.length===8 ? (s.slice(0,4)+'.'+s.slice(4,6)+'.'+s.slice(6,8)) : s; }
   function _asMissing(dr){
@@ -10604,7 +10605,40 @@ function reloadState() {
   window.asPick = function(){ var i=document.getElementById('asFile'); if(i) i.click(); };
   window.asOnFile = async function(ev){
     var f = ev.target.files && ev.target.files[0]; ev.target.value='';
+    await _asTakeFile(f);
+  };
+  // r279: 끌어다 놓기 — 화면 어디에 놓아도 받는다
+  function _asHasFile(ev){
+    try{ var dt=ev.dataTransfer; if(!dt) return false;
+      var t=dt.types; if(!t) return false;
+      for(var i=0;i<t.length;i++){ if(t[i]==='Files') return true; }
+      return false;
+    }catch(e){ return false; }
+  }
+  function _asDropOn(on){
+    var el=document.getElementById('pageAudit'); if(!el) return;
+    el.style.outline = on ? '3px dashed #1B3A6B' : '';
+    el.style.outlineOffset = on ? '-6px' : '';
+    var z=document.getElementById('asDrop');
+    if(z){ z.style.borderColor = on ? '#1B3A6B' : '#c8d2de'; z.style.background = on ? '#eaf1fb' : '#fafbfc'; }
+  }
+  function _asBindDrop(){
+    var el=document.getElementById('pageAudit');
+    if(!el || el.__asDrop) return;
+    el.__asDrop = 1;
+    el.addEventListener('dragenter', function(ev){ if(!_asHasFile(ev)) return; ev.preventDefault(); _asDropOn(true); });
+    el.addEventListener('dragover',  function(ev){ if(!_asHasFile(ev)) return; ev.preventDefault(); try{ ev.dataTransfer.dropEffect='copy'; }catch(e){} _asDropOn(true); });
+    el.addEventListener('dragleave', function(ev){ if(!el.contains(ev.relatedTarget)) _asDropOn(false); });
+    el.addEventListener('drop', function(ev){
+      if(!_asHasFile(ev)) return;
+      ev.preventDefault(); _asDropOn(false);
+      var f = ev.dataTransfer.files && ev.dataTransfer.files[0];
+      _asTakeFile(f);
+    });
+  }
+  async function _asTakeFile(f){
     if(!f) return;
+    if(!/\.(xls|xlsx|htm|html)$/i.test(f.name||'')){ showInfoModal('엑셀 읽기','SMC 유저특가 조회에서 받은 엑셀 파일(.xls)을 올려 주세요.'); return; }
     try{
       var buf = await f.arrayBuffer();
       _asRaw = _asParseFile(buf); _asFileName = f.name; _asShowInput=false;
@@ -10622,7 +10656,7 @@ function reloadState() {
       }
       _asRender();
     }catch(e){ showInfoModal('엑셀 읽기', String(e && e.message || e)); }
-  };
+  }
   window.asLink = async function(di){
     var inp=document.getElementById('asV'+di); if(!inp) return;
     var nm=(inp.value||'').trim(); if(!nm){ showInfoModal('업체 연결','업체명을 고르세요.'); return; }
@@ -17189,7 +17223,7 @@ function reloadState() {
     // 견적 작성 중 다른 카테고리로 이동 → 저장 여부 확인 (저장 안 하면 비움)
     try{ if(typeof _qLeaveGuard==='function' && _qLeaveGuard(page)) return; }catch(_e){}
     var _SCHED=['personal','weekly','biz','project','clients','memo','done','meeting'];   // r179·r184·r187
-    var _ETC=['links','audit'];   // r278
+    var _ETC=['links','purchase','audit'];   // r278 · r279: 매입처를 업무 아래로
     var _ACCT=['fx','fxsum','fxfind','fxup','cardsales','carduse'];   // r221: 입출금 탭 삭제 · r224 카드사용 · r254 자료 검색
     document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
     if(_SCHED.indexOf(page)>=0){ var _ts=document.getElementById('tabSchedule'); if(_ts) _ts.classList.add('active'); _lastSched=page; }
