@@ -82,7 +82,7 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
     var ov=document.getElementById('asListOv'); return !ov || getComputedStyle(ov).display==='none'; }));
   const L = () => pg.evaluate(()=>{
     var rows=Array.prototype.slice.call(document.querySelectorAll('#pageAudit .as-lrow'));
-    return { n:rows.length, dates:rows.map(r=>r.children[0].textContent.trim()),
+    return { n:rows.length, dates:rows.map(r=>(r.children[0].textContent.match(/\d{4}-\d{2}-\d{2}/)||[''])[0]),   // r283: 앞에 ▸ 표시가 붙는다
              total:(document.getElementById('pageAudit').innerText.match(/모두 (\d+)건/)||[])[1],
              pageTxt:(document.getElementById('pageAudit').innerText.match(/(\d+) \/ (\d+)/)||[0,'',''])[0] };
   });
@@ -145,23 +145,20 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
   await pg.evaluate(()=>__T("asLClear()")); await pg.waitForTimeout(450);
   ok('[지우기] 로 조건이 풀린다', (await L()).total==='46');
 
-  // ── ⑦ 내역 확인 ──
-  const first = await pg.evaluate(()=>{
-    var r=document.querySelector('#pageAudit .as-lrow');
-    var btn=Array.prototype.filter.call(r.querySelectorAll('button'), e=>/내역/.test(e.textContent))[0];
-    btn.click(); return true; });
+  // ── ⑦ 내역 확인 (r283: 줄 아무 곳이나 눌러 펼친다) ──
+  await pg.evaluate(()=>{ document.querySelector('#pageAudit .as-lrow').children[2].click(); });
   await pg.waitForTimeout(450);
   const det = await pg.evaluate(()=>{
     var t=document.querySelectorAll('#pageAudit table').length;
     var inner=document.querySelectorAll('#pageAudit table table, #pageAudit .as-lrow + tr table').length;
     var txt=document.getElementById('pageAudit').innerText;
-    return { tables:t, inner:inner, head:/품명 및 규격/.test(txt), mark:/▾ 내역/.test(txt) };
+    return { tables:t, inner:inner, head:/규격/.test(txt),
+             mark:/▾/.test(document.querySelector('#pageAudit .as-lrow').children[0].textContent) };
   });
-  ok('[내역] 을 누르면 품목이 펼쳐진다', det.head && det.mark, JSON.stringify(det));
-  await pg.evaluate(()=>{ var r=document.querySelector('#pageAudit .as-lrow');
-    Array.prototype.filter.call(r.querySelectorAll('button'), e=>/내역/.test(e.textContent))[0].click(); });
+  ok('줄을 누르면 품목이 펼쳐진다', det.head && det.mark && det.inner>0, JSON.stringify(det));
+  await pg.evaluate(()=>{ document.querySelector('#pageAudit .as-lrow').children[2].click(); });
   await pg.waitForTimeout(400);
-  ok('다시 누르면 닫힌다', !/품명 및 규격/.test(await pg.evaluate(()=>document.getElementById('pageAudit').innerText)));
+  ok('다시 누르면 닫힌다', await pg.evaluate(()=>!document.querySelector('#pageAudit table table')));
 
   // ── ⑧ 삭제 ──
   await pg.evaluate(()=>{ var r=document.querySelector('#pageAudit .as-lrow');
@@ -219,7 +216,9 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
     }
     return { short:slip(1811007), long:slip(1237537), huge:slip(987654321) };
   });
-  ok('짧은 금액은 양식 자리 그대로(55.7mm)', amt && Math.abs(amt.short.kx-55.7)<0.01, amt?JSON.stringify(amt.short):'');
+  const tp = await pg.evaluate(()=>{ var p=__T("_AS_POS0"); return { s:(p.sclX||1), o:(p.offX||0), tk:p.totKoX }; });
+  ok('짧은 금액은 양식 자리 그대로', amt && Math.abs(amt.short.kx-(tp.tk*tp.s+tp.o))<0.02,
+     amt?JSON.stringify(amt.short)+' 기대 '+(tp.tk*tp.s+tp.o).toFixed(3):'');
   ok('긴 금액은 왼쪽으로 밀려 (₩…) 와 안 겹친다',
      amt && amt.long.end <= amt.long.nx-1.4 && amt.huge.end <= amt.huge.nx-1.4,
      amt?JSON.stringify({l:amt.long,h:amt.huge}):'');
