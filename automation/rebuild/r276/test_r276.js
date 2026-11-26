@@ -35,8 +35,8 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
   // ── 메뉴 순서(r252 가 정한 순서에서 이름만 바뀐다) ──
   const labels = await pg.evaluate(()=>Array.from(document.querySelectorAll('.page-nav .page-tab')).map(b=>b.textContent.trim()).join(','));
   // 정식(r272)에는 [거래명세서] 가 없고 테스트(r273 이후)에는 있다 — 둘 다 인정하되 '업무' 자리는 발주 다음으로 고정
-  const NAV_OK = ['일정,견적,발주,업무,매입처,재고,회계,자료실,내규',
-                  '일정,견적,발주,거래명세서,업무,매입처,재고,회계,자료실,내규'];
+  const NAV_OK = ['일정,견적,발주,업무,재고,회계,자료실,내규',
+                  '일정,견적,발주,거래명세서,업무,재고,회계,자료실,내규'];   // r279: 매입처는 업무 하위로
   ok('상단 메뉴 순서·이름', NAV_OK.indexOf(labels)>=0, labels);
 
   // ── 동작은 그대로 ──
