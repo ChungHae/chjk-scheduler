@@ -53,7 +53,7 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
         && !document.querySelector('#pageAudit .as-lrow button[onclick*="asLToggle"]')));
   ok('줄 전체가 누를 수 있는 모양(cursor:pointer)',
      await pg.evaluate(()=>getComputedStyle(document.querySelector('#pageAudit .as-lrow')).cursor==='pointer'));
-  ok('줄 맨 앞에 ▸ 표시', await pg.evaluate(()=>/▸/.test(document.querySelector('#pageAudit .as-lrow').children[0].textContent)));
+  ok('줄 맨 앞에 ▸ 표시', await pg.evaluate(()=>/▸/.test(document.querySelector('#pageAudit .as-lrow').innerText)));   // r285: 앞에 체크칸이 하나 생겼다
 
   // 업체 칸을 눌러 펼친다 (단추가 아닌 자리)
   await pg.evaluate(()=>document.querySelectorAll('#pageAudit .as-lrow')[0].children[2].click());
@@ -61,7 +61,7 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
   ok('줄 아무 곳이나 누르면 내역이 펼쳐진다',
      await pg.evaluate(()=>/품목/.test(document.getElementById('pageAudit').innerText) && !!document.querySelector('#pageAudit table table')),
      await pg.evaluate(()=>document.querySelectorAll('#pageAudit table').length));
-  ok('펼치면 ▾ 로 바뀐다', await pg.evaluate(()=>/▾/.test(document.querySelector('#pageAudit .as-lrow').children[0].textContent)));
+  ok('펼치면 ▾ 로 바뀐다', await pg.evaluate(()=>/▾/.test(document.querySelector('#pageAudit .as-lrow').innerText)));
 
   // 품목 / 규격 두 칸
   const det = await pg.evaluate(()=>{
@@ -70,10 +70,11 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
     var tds=inner.querySelectorAll('tbody tr')[0].children;
     var st=i=>getComputedStyle(tds[i]);
     var outer=document.querySelectorAll('#pageAudit .as-lrow')[0].children;
+    var oi=Array.prototype.findIndex.call(outer, function(e){ return /[가-힣]/.test(e.textContent) && !/^\s*\d/.test(e.textContent); });
     return { ths:ths,
       nameAlign:st(1).textAlign, specAlign:st(2).textAlign, noAlign:st(0).textAlign,
       specLeft:Math.round(tds[2].getBoundingClientRect().left),
-      vnameLeft:Math.round(outer[2].getBoundingClientRect().left),
+      vnameLeft:Math.round(outer[oi].getBoundingClientRect().left),
       padTop:st(2).paddingTop, rowH:Math.round(tds[2].getBoundingClientRect().height) };
   });
   ok('내역 머리가 번호·품목·규격 … 로 나뉘었다',
