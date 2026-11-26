@@ -82,7 +82,7 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
     var ov=document.getElementById('asListOv'); return !ov || getComputedStyle(ov).display==='none'; }));
   const L = () => pg.evaluate(()=>{
     var rows=Array.prototype.slice.call(document.querySelectorAll('#pageAudit .as-lrow'));
-    return { n:rows.length, dates:rows.map(r=>(r.children[0].textContent.match(/\d{4}-\d{2}-\d{2}/)||[''])[0]),   // r283: 앞에 ▸ 표시가 붙는다
+    return { n:rows.length, dates:rows.map(r=>(r.innerText.match(/\d{4}-\d{2}-\d{2}/)||[''])[0]),   // r283 ▸ 표시 · r285 체크칸
              total:(document.getElementById('pageAudit').innerText.match(/모두 (\d+)건/)||[])[1],
              pageTxt:(document.getElementById('pageAudit').innerText.match(/(\d+) \/ (\d+)/)||[0,'',''])[0] };
   });
@@ -153,7 +153,7 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
     var inner=document.querySelectorAll('#pageAudit table table, #pageAudit .as-lrow + tr table').length;
     var txt=document.getElementById('pageAudit').innerText;
     return { tables:t, inner:inner, head:/규격/.test(txt),
-             mark:/▾/.test(document.querySelector('#pageAudit .as-lrow').children[0].textContent) };
+             mark:/▾/.test(document.querySelector('#pageAudit .as-lrow').innerText) };
   });
   ok('줄을 누르면 품목이 펼쳐진다', det.head && det.mark && det.inner>0, JSON.stringify(det));
   await pg.evaluate(()=>{ document.querySelector('#pageAudit .as-lrow').children[2].click(); });
