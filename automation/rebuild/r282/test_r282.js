@@ -212,15 +212,15 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
       var kx=parseFloat((ko.style.left||'0').replace('mm',''));
       var nx=parseFloat((nm.style.left||'0').replace('mm',''));
       var fsz=parseFloat(ko.style.fontSize);
-      return { ko:ko.textContent, kx:kx, nx:nx, end:kx+ko.textContent.length*fsz*0.3528 };
+      return { ko:ko.textContent, kx:kx, nx:nx, fs:fsz, end:kx+ko.textContent.length*fsz*0.3528 };
     }
     return { short:slip(1811007), long:slip(1237537), huge:slip(987654321) };
   });
-  const tp = await pg.evaluate(()=>{ var p=__T("_AS_POS0"); return { s:(p.sclX||1), o:(p.offX||0), tk:p.totKoX }; });
+  const tp = await pg.evaluate(()=>{ var p=__T("_AS_POS0"); return { s:(p.sclX||1), o:(p.offX||0), tk:p.cTotKo[0] }; });
   ok('짧은 금액은 양식 자리 그대로', amt && Math.abs(amt.short.kx-(tp.tk*tp.s+tp.o))<0.02,
      amt?JSON.stringify(amt.short)+' 기대 '+(tp.tk*tp.s+tp.o).toFixed(3):'');
-  ok('긴 금액은 왼쪽으로 밀려 (₩…) 와 안 겹친다',
-     amt && amt.long.end <= amt.long.nx-1.4 && amt.huge.end <= amt.huge.nx-1.4,
+  ok('긴 금액은 글자를 줄여 (₩…) 와 안 겹친다',   // r287: 칸 안에서 자동 축소
+     amt && amt.long.end <= amt.long.nx-1.0 && amt.huge.end <= amt.huge.nx-1.0 && amt.huge.fs < amt.short.fs,
      amt?JSON.stringify({l:amt.long,h:amt.huge}):'');
 
   // ── 재고가 업무 소카테고리로 ──
