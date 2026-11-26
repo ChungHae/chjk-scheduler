@@ -49,10 +49,10 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
   ok('as-doc-row 가 격자다',
      await pg.evaluate(()=>getComputedStyle(document.querySelector('#pageAudit .as-doc-row')).display==='grid'));
 
-  // ① 접기 단추가 맨 앞
-  ok('접기 단추가 줄의 첫 칸',
+  // ① 접기 표시가 맨 앞 (r283: 단추를 없애고 줄 전체를 누른다)
+  ok('접기 표시가 줄의 첫 칸',
      await pg.evaluate(()=>Array.prototype.every.call(document.querySelectorAll('#pageAudit .as-doc-row'),
-       function(r){ var f=r.children[0]; return f && f.tagName==='BUTTON' && /품목 ·/.test(f.textContent); })));
+       function(r){ var f=r.children[0]; return f && /[\u25b8\u25be]/.test(f.textContent); })));
   ok('단추 바로 오른쪽이 물류출하일',
      await pg.evaluate(()=>Array.prototype.every.call(document.querySelectorAll('#pageAudit .as-doc-row'),
        function(r){ return /물류출하일/.test(r.children[1].textContent); })));
@@ -80,10 +80,12 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
   await pg.evaluate(()=>__T("asToggleDoc(0,1)")); await pg.waitForTimeout(500);
   const qty = await pg.evaluate(()=>{
     var t=document.querySelector('#pageAudit table'); if(!t) return null;
-    var th=t.querySelectorAll('thead th')[2], td=t.querySelectorAll('tbody tr')[0].children[2];
+    var ths=Array.prototype.map.call(t.querySelectorAll('thead th'), function(e){ return e.textContent.trim(); });
+    var qi=ths.indexOf('수량');                      // r283: 품목·규격이 나뉘어 자리가 밀렸다
+    var th=t.querySelectorAll('thead th')[qi], td=t.querySelectorAll('tbody tr')[0].children[qi];
     return { head:getComputedStyle(th).textAlign, cell:getComputedStyle(td).textAlign,
              headTxt:th.textContent.trim(),
-             price:getComputedStyle(t.querySelectorAll('tbody tr')[0].children[3]).textAlign };
+             price:getComputedStyle(t.querySelectorAll('tbody tr')[0].children[qi+1]).textAlign };
   });
   ok('수량 머리가 가운데', qty && qty.head==='center' && qty.headTxt==='수량', qty?JSON.stringify(qty):'(표 없음)');
   ok('수량 칸이 가운데', qty && qty.cell==='center', qty?qty.cell:'');
