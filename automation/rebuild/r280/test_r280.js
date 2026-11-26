@@ -91,16 +91,16 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
   await pg.waitForTimeout(400);
   ok('품목 표가 기본으로 접혀 있다',
      await pg.evaluate(()=>document.querySelectorAll('#pageAudit table').length===0));
-  ok('접기 단추에 품목 수가 보인다',
-     await pg.evaluate(()=>/▸ 260품목/.test(document.getElementById('pageAudit').innerText)),
-     await pg.evaluate(()=>document.getElementById('pageAudit').innerText.slice(0,200)));
+  ok('접힘 표시(▸)가 줄 맨 앞에 있다',   // r283: '260품목 · 2장' 표시는 없앴다
+     await pg.evaluate(()=>/\u25b8/.test(document.querySelector('#pageAudit .as-doc-row').children[0].textContent)),
+     await pg.evaluate(()=>document.querySelector('#pageAudit .as-doc-row').children[0].textContent));
 
   await pg.evaluate(()=>__T("asToggleDoc(0,0)")); await pg.waitForTimeout(500);
   const open = await pg.evaluate(()=>({
     tables:document.querySelectorAll('#pageAudit table').length,
     rows:document.querySelectorAll('#pageAudit table tbody tr').length,
     more:/앞 200줄만 보여 줍니다/.test(document.getElementById('pageAudit').innerText),
-    mark:/▾ 260품목/.test(document.getElementById('pageAudit').innerText)
+    mark:/\u25be/.test(document.querySelector('#pageAudit .as-doc-row').children[0].textContent)
   }));
   ok('누르면 표가 펼쳐진다', open.tables===1 && open.mark, JSON.stringify(open));
   ok('아주 긴 표는 앞 200줄만 그린다', open.rows===200 && open.more, 'rows='+open.rows);
