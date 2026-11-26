@@ -95,7 +95,7 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
   });
   ok('고른 줄에 as-sel 과 배경색', /as-sel/.test(sel1.cls) && sel1.bg!=='rgba(0, 0, 0, 0)', sel1.cls+' / '+sel1.bg);
   ok('체크해도 내역이 펼쳐지지 않는다', sel1.open===0, sel1.open);
-  ok('고른 건수와 단추가 보인다', /1건 골랐습니다/.test(sel1.txt) && /고른 것 인쇄/.test(sel1.txt) && /고른 것 삭제/.test(sel1.txt));
+  ok('고른 건수와 단추가 보인다', /1건 골랐습니다/.test(sel1.txt) && /선택 인쇄/.test(sel1.txt) && /선택 삭제/.test(sel1.txt));
 
   // 펼친 줄 배경색
   await pg.evaluate(()=>document.querySelectorAll('#pageAudit .as-lrow')[1].children[3].click());
