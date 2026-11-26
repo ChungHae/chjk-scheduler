@@ -12,7 +12,8 @@ let pass=0, fail=0; function ok(c,m){ if(c){pass++;console.log('  ✓',m);} else
   await pg.evaluate(()=>{ document.getElementById('authGate').style.display='none'; });
   const T=c=>pg.evaluate(c2=>window.__T(c2),c);
   const labels=await T(`[...document.querySelectorAll('.page-tab')].map(function(b){ return b.textContent.trim(); }).join(',')`);
-  ok(['일정,견적,발주,업무,재고,회계,자료실,내규','일정,견적,발주,거래명세서,업무,재고,회계,자료실,내규'].indexOf(labels)>=0, '메뉴 순서·이름 — '+labels);   // r279: 매입처는 업무 하위로   // r267 [발주] · r273 [거래명세서](test 만) · r276 이름 '업무'
+  ok(['일정,견적,발주,업무,재고,회계,자료실,내규','일정,견적,발주,거래명세서,업무,재고,회계,자료실,내규',
+      '일정,견적,발주,업무,회계,자료실,내규','일정,견적,발주,거래명세서,업무,회계,자료실,내규'].indexOf(labels)>=0, '메뉴 순서·이름 — '+labels);   // r279: 매입처는 업무 하위로   // r267 [발주] · r273 [거래명세서](test 만) · r276 이름 '업무'
   await T(`document.getElementById('tabEtc').click(); 'ok'`); await pg.waitForTimeout(200);
   ok(await T(`document.getElementById('pageLinks').classList.contains('active') && document.getElementById('tabEtc').classList.contains('active') && document.querySelector('.sub-tab[data-page="links"]').textContent.trim()==='사이트' && document.querySelector('#pageLinks .inv-flat-label').textContent.trim()==='사이트'`), '[업무] → 사이트 페이지 (하위 탭·제목도 사이트)');   // r276 이름 변경
   await T(`document.querySelector('.page-tab[data-page="rules"]').click(); 'ok'`); await pg.waitForTimeout(200);
