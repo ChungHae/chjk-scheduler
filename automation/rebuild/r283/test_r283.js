@@ -203,10 +203,10 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
   // ─── 인쇄 위치 보정 ───
   const cal = await pg.evaluate(()=>{
     var p=__T("_AS_POS0");
-    return { sclX:p.sclX, sclY:p.sclY, offX:p.offX, sumY:p.sumY };
+    return { sclX:p.sclX, sclY:p.sclY, offX:p.offX, sumTop:p.sumTop, sumBot:p.sumBot };
   });
   ok('배율 보정값이 생겼다', cal.sclX>0.98 && cal.sclX<1.02 && cal.sclY>0.98 && cal.sclY<1.02, JSON.stringify(cal));
-  ok("'계' 합계가 칸(110.07~118.40) 가운데로 올라왔다", cal.sumY>111 && cal.sumY<114, cal.sumY);
+  ok("'계' 합계가 인수자 칸(110.09~118.42) 안에 들어간다", cal.sumTop===110.09 && cal.sumBot===118.42, JSON.stringify(cal));
 
   const pos = await pg.evaluate(()=>{
     var p=__T("_AS_POS0"), s=p.sclX, o=p.offX;
@@ -218,9 +218,10 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
     var nm=fs.filter(e=>/^Y/.test(e.textContent))[0];          // 품명 (왼쪽 맞춤)
     var tx=fs.filter(e=>/^100$/.test(e.textContent))[0];       // 세액 (오른쪽 맞춤)
     var sum=fs.filter(e=>/^1,000$/.test(e.textContent)).pop();
-    return { left:parseFloat(nm.style.left), wantL:(p.cNameL*s+o),
-             right:parseFloat(tx.style.right), wantR:(p.slipW-(p.cTaxR*s+o)),
-             top:parseFloat(nm.style.top), wantT:(p.rowY*p.sclY+p.offY) };
+    var nmL=parseFloat(nm.style.left), txL=parseFloat(tx.style.left), txW=parseFloat(tx.style.width);
+    return { left:nmL, wantL:(p.xName[0]*s+o),
+             right:(txL+txW), wantR:(p.xTax[1]*s+o),
+             top:parseFloat(nm.style.top), wantT:((p.rowTop+p.rowPad)*p.sclY+p.offY) };
   });
   ok('왼쪽 맞춤 칸에 배율·이동이 들어간다', Math.abs(pos.left-pos.wantL)<0.01, JSON.stringify(pos));
   ok('오른쪽 맞춤 칸에도 들어간다', Math.abs(pos.right-pos.wantR)<0.01, JSON.stringify(pos));
