@@ -9508,7 +9508,7 @@ function reloadState() {
     sclX:0.9924, sclY:0.9950,                  // r283: 프린터 배율 보정 (1 = 그대로)
     slipX:26.2, slipY1:12.1, slipY2:150.4, slipW:171, slipH:127,
     fs:10, fsSub:9, fsMin:6.5, pad:1.4,        // 글자 크기(pt) · 작은 칸 · 최소 · 칸 안쪽 여백(mm)
-    fsHead:11,                                 // r291: 공급받는자 상호·성명·등록번호 (원본보다 작아 키웠다)
+    fsHead:10, fsBiz:12, fsDate:10, fsTot:12,  // r292: 상호·성명 / 사업자등록번호 / 년월일 / 총금액 줄
     // ── 아래는 빈 양식(300dpi 실측)의 칸 좌표 [왼쪽, 위, 오른쪽, 아래] mm ──
     cNo   :[26.5 , 12.90, 62.00, 18.45],       // 거래명세서 번호
     cYear :[137.0, 12.90,147.90, 18.45],
@@ -9528,7 +9528,8 @@ function reloadState() {
     cMemo :[1.20 ,118.90, 46.00,126.50]        // 비고 (테두리 아래 빈 자리)
   };
   // r283: 사람이 [인쇄 보정]에서 만지는 값. 나머지(칸 좌표)는 양식 실측값이라 저장하지 않는다.
-  var _AS_KNOBS = ['offX','offY','sclX','sclY','slipX','slipY1','slipY2','rowPad','fs','fsHead'];
+  var _AS_KNOBS = ['offX','offY','sclX','sclY','slipX','slipY1','slipY2','rowPad','fs',
+                   'fsHead','fsBiz','fsDate','fsTot'];
   var _asPos = null, _asCfgLoaded = false;
   function _asAuthBase(){ try{ return (typeof _AUTH_BASE!=='undefined' && _AUTH_BASE) ? _AUTH_BASE : _FB_PATH; }catch(e){ return _FB_PATH; } }
   function _asKeyUrl(k){ return _fbDbUrl+'/'+_asAuthBase()+'/'+k+'.json'; }
@@ -9823,18 +9824,18 @@ function reloadState() {
     cell(p.cNo, d.no==null?'':String(d.no), {al:'l'});
     var dt = (d.date||'').split('-');
     if(dt.length===3){
-      cell(p.cYear, dt[0], {fs:p.fsSub, al:'r'});
-      cell(p.cMon, String(+dt[1]), {fs:p.fsSub, al:'c'});
-      cell(p.cDay, String(+dt[2]), {fs:p.fsSub, al:'c'});
+      cell(p.cYear, dt[0], {fs:p.fsDate, al:'r'});          // r292: 9 → 10pt
+      cell(p.cMon, String(+dt[1]), {fs:p.fsDate, al:'c'});
+      cell(p.cDay, String(+dt[2]), {fs:p.fsDate, al:'c'});
     }
-    fitCell(p.cBiz, head.biz||'', {fs:p.fsHead});      // r291: 원본보다 작아 키웠다
-    fitBox(p.cVname, head.vname||'', {fs:p.fsHead});
+    fitCell(p.cBiz, head.biz||'', {fs:p.fsBiz});       // r292: 등록번호 12pt
+    fitBox(p.cVname, head.vname||'', {fs:p.fsHead});   //        상호·성명 10pt
     fitCell(p.cCeo, head.ceo||'', {fs:p.fsHead});
     fitBox(p.cAddr, head.addr||'');
     // 총금액 — 첫 장에만
     if(page===0){
-      fitCell(p.cTotKo, _asKoAmt(head.total)+'整', {fs:p.fs, al:'l'});
-      fitCell(p.cTotNo, '(₩'+_asNum(head.total)+')', {fs:p.fs, al:'l'});
+      fitCell(p.cTotKo, _asKoAmt(head.total)+'整', {fs:p.fsTot, al:'l'});   // r292: 10 → 12pt
+      fitCell(p.cTotNo, '(₩'+_asNum(head.total)+')', {fs:p.fsTot, al:'l'});
     }
     // 품목 — 표 안쪽을 13줄로 고르게 나눈다 (윗선에서 rowPad 만큼 띄운다)
     var pitch = _asPitch(p), top = p.rowTop + p.rowPad;
@@ -10899,7 +10900,8 @@ function reloadState() {
       + '<div style="height:1px;background:#eef2f7;margin:4px 0"></div>'
       + fld('slipX','전표 왼쪽') + fld('slipY1','첫째 전표 위') + fld('slipY2','둘째 전표 위')
       + fld('rowPad','품목 윗 여백') + fld('fs','글자 크기(pt)',0.5)
-      + fld('fsHead','상대방 칸 글자(pt)',0.5)
+      + fld('fsHead','상호·성명(pt)',0.5) + fld('fsBiz','사업자등록번호(pt)',0.5)
+      + fld('fsDate','년월일(pt)',0.5) + fld('fsTot','총금액 줄(pt)',0.5)
       + '</div>'
       + '<div style="display:flex;gap:8px;justify-content:flex-end;padding:13px 18px;border-top:1px solid #e5e5e5">'
       + _asBtn('시험 인쇄','asCalTest()') + ' ' + _asBtn('저장','asCalSave()','primary') + '</div></div>';
