@@ -83,19 +83,21 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
   ok('품명은 왼쪽 정렬 그대로', g.name && g.name.al === 'left', g.name && g.name.al);
 
   // ── ③ 상호·성명·사업자등록번호를 키웠다 ──
-  const knob = await pg.evaluate(() => { var q = __T("P()"); return { head:q.fsHead, fs:q.fs, sub:q.fsSub }; });
+  // r292: fsHead 가 넷으로 갈렸다 — 상호·성명 fsHead · 등록번호 fsBiz
+  const knob = await pg.evaluate(() => { var q = __T("P()");
+    return { head:q.fsHead, biz:(q.fsBiz == null ? q.fsHead : q.fsBiz), fs:q.fs, sub:q.fsSub }; });
   ok('fsHead 손잡이가 있다', typeof knob.head === 'number', JSON.stringify(knob));
-  ok('fsHead 가 본문(fs)보다 크다', knob.head > knob.fs, JSON.stringify(knob));
-  ok('fsHead 가 작은 칸(fsSub)보다 크다', knob.head > knob.sub, JSON.stringify(knob));
+  ok('상호·성명이 작은 칸(fsSub)보다 크다', knob.head > knob.sub, JSON.stringify(knob));
+  ok('사업자등록번호가 본문(fs)보다 크다', knob.biz > knob.fs, JSON.stringify(knob));
   const PX = pt => pt * 4 / 3;
-  ok('사업자등록번호가 fsHead 크기', g.biz && Math.abs(g.biz.px - PX(knob.head)) < 0.6, g.biz && g.biz.px);
+  ok('사업자등록번호가 fsBiz 크기', g.biz && Math.abs(g.biz.px - PX(knob.biz)) < 0.6, g.biz && g.biz.px);
   ok('상호가 fsHead 크기', g.vname && Math.abs(g.vname.px - PX(knob.head)) < 0.6, g.vname && g.vname.px);
   ok('성명이 fsHead 크기', g.ceo && Math.abs(g.ceo.px - PX(knob.head)) < 0.6, g.ceo && g.ceo.px);
-  ok('예전 크기(9pt·10pt)로 찍히지 않는다',
-     g.vname && Math.abs(g.vname.px - 12) > 0.6 && g.biz && Math.abs(g.biz.px - PX(knob.fs)) > 0.6);
+  ok('상호·등록번호가 옛 9pt 로 찍히지 않는다',
+     g.vname && Math.abs(g.vname.px - 12) > 0.6 && g.biz && Math.abs(g.biz.px - 12) > 0.6);
 
   const src = await pg.evaluate(() => document.documentElement.innerHTML);
-  ok('fsHead 가 저장되는 손잡이 목록에 있다', /_AS_KNOBS = \[[^\]]*'fsHead'\]/.test(src));
+  ok('fsHead 가 저장되는 손잡이 목록에 있다', /_AS_KNOBS = \[[\s\S]{0,300}?'fsHead'/.test(src));
   ok('[인쇄 보정] 창에 칸이 있다', src.indexOf("fld('fsHead'") >= 0);
 
   // ── ④ 끌어오기 표시는 드롭 칸 안에서만 ──
