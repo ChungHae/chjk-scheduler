@@ -68,13 +68,17 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
   ok('끌어다 놓는 자리가 있다',
      await pg.evaluate(()=>!!document.getElementById('asDrop')) && /끌어다 놓으세요/.test(aud));
   ok('드롭 받을 준비가 됐다', await pg.evaluate(()=>document.getElementById('pageAudit').__asDrop===1));
+  // r290: outline(상자 바깥) → inset 그림자(상자 안쪽) 로 바뀌었다
   ok('끌어오면 표시가 바뀐다', await pg.evaluate(()=>{
        var el=document.getElementById('pageAudit');
+       var z=document.getElementById('asDrop');
        var dt=new DataTransfer(); dt.items.add(new File(['x'],'a.xls',{type:'application/vnd.ms-excel'}));
        el.dispatchEvent(new DragEvent('dragover',{bubbles:true,cancelable:true,dataTransfer:dt}));
-       var on=/dashed/.test(el.style.outline||'');
+       var on=/inset/.test(el.style.boxShadow||'') && !(el.style.outline||'')
+              && /27, 58, 107|1B3A6B|#1b3a6b/i.test(z?z.style.borderColor:'');
        el.dispatchEvent(new DragEvent('dragleave',{bubbles:true,dataTransfer:dt}));
-       return on;
+       var off=!(el.style.boxShadow||'');
+       return on && off;
      }));
 
   const dropped = await pg.evaluate(async()=>{
