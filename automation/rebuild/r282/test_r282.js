@@ -84,7 +84,8 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
     var rows=Array.prototype.slice.call(document.querySelectorAll('#pageAudit .as-lrow'));
     return { n:rows.length, dates:rows.map(r=>(r.innerText.match(/\d{4}-\d{2}-\d{2}/)||[''])[0]),   // r283 ▸ 표시 · r285 체크칸
              total:(document.getElementById('pageAudit').innerText.match(/모두 (\d+)건/)||[])[1],
-             pageTxt:(document.getElementById('pageAudit').innerText.match(/(\d+) \/ (\d+)/)||[0,'',''])[0] };
+             cur:((document.querySelector('#pageAudit b[style*="background:#1B3A6B"]')||{}).textContent||''),   // r290: 지금 쪽 강조
+             nums:[].slice.call(document.querySelectorAll('#pageAudit button')).map(function(e){return e.textContent.trim();}).filter(function(t){return /^\d+$/.test(t);}) };
   });
   let l1 = await L();
   ok('목록이 현재 화면에 그려진다', l1.n>0 && l1.total==='46', JSON.stringify({n:l1.n,total:l1.total}));
@@ -93,11 +94,11 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
   ok('과거 → 현재 순으로 나온다',
      l1.dates.slice().sort().join(',')===l1.dates.join(',') && l1.dates[0]===minD,
      l1.dates.slice(0,4).join(' / ')+'  (가장 과거 '+minD+')');
-  ok('쪽 표시가 1 / 4', l1.pageTxt==='1 / 4', l1.pageTxt);   // r289
+  ok('첫 쪽이 1 로 강조된다', l1.cur==='1' && l1.nums.length>0, JSON.stringify({cur:l1.cur,nums:l1.nums}));   // r289·r290
 
   await pg.evaluate(()=>__T("asLGo(1)")); await pg.waitForTimeout(400);
   let l2 = await L();
-  ok('[다음] 으로 둘째 쪽', l2.n===15 && l2.pageTxt==='2 / 4' && l2.dates[0]>=l1.dates[14], l2.dates[0]+' >= '+l1.dates[14]);
+  ok('[다음] 으로 둘째 쪽', l2.n===15 && l2.cur==='2' && l2.dates[0]>=l1.dates[14], l2.cur+' / '+l2.dates[0]+' >= '+l1.dates[14]);
   await pg.evaluate(()=>__T("asLGo(3)")); await pg.waitForTimeout(400);
   ok('마지막 쪽은 1건', (await L()).n===1);
   await pg.evaluate(()=>__T("asLGo(0)")); await pg.waitForTimeout(400);
