@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r289 2026-11-27 -->
+<!-- test build r290 2026-11-27 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -10411,6 +10411,9 @@ function reloadState() {
     if(!best){ var h = Math.ceil(t.length/2); best = [t.slice(0,h), t.slice(h)]; }
     return best;
   }
+  // r290: 품목 줄 글꼴 — 바탕(Batang)은 영숫자가 Times 계열이라 한글과 결이 갈린다.
+  //        고정폭 바탕체가 처음 쓰던 글꼴이고 표 안에서 더 고르게 보인다.
+  var _AS_FAM_ROW = "BatangChe,'바탕체',Batang,'바탕',serif";
   function _asSlipHtml(d, page, pages, head, grid){
     var p = P(), o = [];
     // 미리보기(양식 위)는 프린터 보정을 빼고 원래 좌표 그대로 보여 준다
@@ -10419,17 +10422,34 @@ function reloadState() {
     function box(x1, y1, x2, y2, txt, opt){
       opt = opt || {};
       var fs = opt.fs || p.fs, al = opt.al || 'l', pad = (opt.pad==null? p.pad : opt.pad);
+      var fam = opt.fam || '';                                  // r290: 칸마다 글꼴을 달리 쓸 수 있게
       var px = x1*SX + p.offX, py = y1*SY + p.offY;
       var w = (x2-x1)*SX, h = (y2-y1)*SY;
       var st = 'position:absolute;white-space:pre;overflow:hidden;'
         + 'left:'+px+'mm;top:'+py+'mm;width:'+w+'mm;height:'+h+'mm;'
         + 'line-height:'+h+'mm;font-size:'+fs+'pt;'
+        + (fam ? ('font-family:'+fam+';') : '')
         + 'text-align:'+(al==='r'?'right':(al==='c'?'center':'left'))+';'
         + (al==='c' ? '' : (al==='r' ? 'padding-right:'+pad+'mm;' : 'padding-left:'+pad+'mm;'))
         + 'box-sizing:border-box;';
       o.push('<div class="as-f" style="'+st+'">'+esc(txt==null?'':String(txt))+'</div>');
     }
     function cell(c, txt, opt){ box(c[0], c[1], c[2], c[3], txt, opt); }
+    // r290: 상호·주소는 ① 그대로 한 줄 → ② 두 줄 → ③ 그래도 넘치면 글자를 줄인다
+    function fitBox(c, txt, opt){
+      opt = opt || {};
+      var base = opt.fs || p.fsSub, avail = (c[2]-c[0]) - 2*p.pad;
+      txt = String(txt==null? '' : txt);
+      if(!txt) return;
+      if(_asTextW(txt, base) <= avail){ cell(c, txt, {fs:base, al:'c'}); return; }   // ① 한 줄 그대로
+      var ls = _asTwoLines(txt, avail, base);
+      if(ls.length < 2){ cell(c, txt, {fs:_asShrink(txt, avail, base, p.fsMin), al:'c'}); return; }
+      var fs = base;                                                                  // ② 두 줄
+      while(fs > p.fsMin && Math.max(_asTextW(ls[0],fs), _asTextW(ls[1],fs)) > avail) fs -= 0.25;  // ③ 그래도 넘치면
+      var mid = (c[1]+c[3])/2, L = (opt.lead || p.addrLead);
+      box(c[0], mid-L, c[2], mid, ls[0], {fs:fs, al:'c'});
+      box(c[0], mid, c[2], mid+L, ls[1], {fs:fs, al:'c'});
+    }
     // 칸을 넘치면 글자를 줄여서 넣는다
     function fitCell(c, txt, opt){
       opt = opt || {};
@@ -10445,20 +10465,9 @@ function reloadState() {
       cell(p.cDay, String(+dt[2]), {fs:p.fsSub, al:'c'});
     }
     fitCell(p.cBiz, head.biz||'', {fs:p.fs});
-    fitCell(p.cVname, head.vname||'');
+    fitBox(p.cVname, head.vname||'');
     fitCell(p.cCeo, head.ceo||'');
-    // 주소 — 한 줄이면 한 줄, 아니면 두 줄을 칸 가운데에 맞춰 넣는다
-    var ac = p.cAddr, aAvail = (ac[2]-ac[0]) - 2*p.pad;
-    var aLines = _asTwoLines(head.addr||'', aAvail, p.fsSub);
-    if(aLines.length <= 1){
-      fitCell(ac, aLines[0]||'');
-    }else{
-      var afs = p.fsSub;
-      while(afs > p.fsMin && Math.max(_asTextW(aLines[0],afs), _asTextW(aLines[1],afs)) > aAvail) afs -= 0.25;
-      var mid = (ac[1]+ac[3])/2, L = p.addrLead;
-      box(ac[0], mid-L, ac[2], mid, aLines[0], {fs:afs, al:'c'});
-      box(ac[0], mid, ac[2], mid+L, aLines[1], {fs:afs, al:'c'});
-    }
+    fitBox(p.cAddr, head.addr||'');
     // 총금액 — 첫 장에만
     if(page===0){
       fitCell(p.cTotKo, _asKoAmt(head.total)+'整', {fs:p.fs, al:'l'});
@@ -10469,14 +10478,15 @@ function reloadState() {
     var start = page*_AS_ROWS, part = d.rows.slice(start, start+_AS_ROWS);
     part.forEach(function(r,i){
       var a = top + i*pitch, b = a + pitch;
-      box(p.xNo[0],    a, p.xNo[1],    b, String(start+i+1), {al:'c'});
+      var F = _AS_FAM_ROW;   // r290: 품목 줄은 한글·영숫자 폭이 같은 고정폭 바탕체
+      box(p.xNo[0],    a, p.xNo[1],    b, String(start+i+1), {al:'c', fam:F});
       var _nm = (r.name? (r.name+'  ') : '') + r.spec;
       box(p.xName[0],  a, p.xName[1],  b, _nm,
-          {al:'l', fs:_asShrink(_nm, (p.xName[1]-p.xName[0]) - 2*p.pad, p.fs, p.fsMin)});
-      box(p.xQty[0],   a, p.xQty[1],   b, r.qty? _asNum(r.qty):'', {al:'r'});
-      box(p.xPrice[0], a, p.xPrice[1], b, r.price? _asNum(r.price):'', {al:'r'});
-      box(p.xSup[0],   a, p.xSup[1],   b, _asNum(r.supply), {al:'r'});
-      box(p.xTax[0],   a, p.xTax[1],   b, _asNum(r.tax), {al:'r'});
+          {al:'l', fam:F, fs:_asShrink(_nm, (p.xName[1]-p.xName[0]) - 2*p.pad, p.fs, p.fsMin)});
+      box(p.xQty[0],   a, p.xQty[1],   b, r.qty? _asNum(r.qty):'', {al:'r', fam:F});
+      box(p.xPrice[0], a, p.xPrice[1], b, r.price? _asNum(r.price):'', {al:'r', fam:F});
+      box(p.xSup[0],   a, p.xSup[1],   b, _asNum(r.supply), {al:'r', fam:F});
+      box(p.xTax[0],   a, p.xTax[1],   b, _asNum(r.tax), {al:'r', fam:F});
     });
     // 이하 여백 — 마지막 장이 13줄을 채우지 않았을 때만
     if(page===pages-1 && part.length < _AS_ROWS){
@@ -10784,7 +10794,7 @@ function reloadState() {
     if(_asTab==='list'){ el.innerHTML = h + _asListHtml(); _asLRestore(); return; }
     h += '<div style="padding:14px 16px 40px">';
     if(!_asDrafts.length){
-      h += '<div id="asDrop" style="border:2px dashed #c8d2de;background:#fafbfc;padding:38px 22px;text-align:center;line-height:1.9">'
+      h += '<div id="asDrop" style="box-sizing:border-box;border:2px dashed #c8d2de;background:#fafbfc;padding:38px 22px;text-align:center;line-height:1.9">'
         + '<div style="font-size:14.5px;font-weight:700;color:#1B3A6B">엑셀을 여기에 끌어다 놓으세요</div>'
         + '<div style="font-size:12.5px;color:#6b7280;margin-top:4px">SMC 유저특가 조회에서 받은 파일</div>'
         + '<div style="margin-top:14px">' + _asBtn('엑셀 올리기','asPick()','primary') + '</div>'
@@ -11017,8 +11027,9 @@ function reloadState() {
   }
   function _asDropOn(on){
     var el=document.getElementById('pageAudit'); if(!el) return;
-    el.style.outline = on ? '3px dashed #1B3A6B' : '';
-    el.style.outlineOffset = on ? '-6px' : '';
+    // r290: outline 은 상자 바깥에 그려져 테두리를 넘어 보였다 → 안쪽에만 그리는 inset 그림자로
+    el.style.outline = ''; el.style.outlineOffset = '';
+    el.style.boxShadow = on ? 'inset 0 0 0 3px #1B3A6B' : '';
     var z=document.getElementById('asDrop');
     if(z){ z.style.borderColor = on ? '#1B3A6B' : '#c8d2de'; z.style.background = on ? '#eaf1fb' : '#fafbfc'; }
   }
@@ -11312,7 +11323,6 @@ function reloadState() {
         + _nums
         + _asBtn('다음','asLGo('+(_asLPage+1)+')')
         + _asBtn('끝','asLGo('+(pages-1)+')')
-        + '<span style="margin-left:6px;color:#6b7280">'+(_asLPage+1)+' / '+pages+'</span>'
         + '</div>';
     }
     return h + '</div>';
@@ -11383,9 +11393,8 @@ function reloadState() {
     var recs=_asSelRecs();
     if(!recs.length){ showInfoModal('삭제','고른 거래명세표가 없습니다.'); return; }
     if(_isViewer()){ showInfoModal('삭제','보기 전용 계정입니다.'); return; }
-    var head=recs.slice(0,6).map(function(v){ return '  · '+(v.date||'')+' 번호 '+(v.no||'')+' · '+(v.vname||''); }).join('\n');
     showConfirmModal('거래명세표 '+recs.length+'건 삭제',
-      head + (recs.length>6?('\n  … 모두 '+recs.length+'건'):'') + '\n\n고른 거래명세표를 모두 지웁니다. 되돌릴 수 없습니다.',
+      '총 '+recs.length+'건의 거래명세표를 삭제합니다. 되돌릴 수 없습니다.',
       async function(){
         var okN=0, bad=[];
         for(var i=0;i<recs.length;i++){
