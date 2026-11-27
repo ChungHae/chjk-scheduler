@@ -72,7 +72,8 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
   ok('5쪽에서는 보고 있는 쪽이 가운데', p5 && p5.cur === '5' && p5.btns.indexOf('3') >= 0 && p5.btns.indexOf('7') >= 0, JSON.stringify(p5 && [p5.cur, p5.btns]));
   await pg.evaluate(() => __T("asLGo(999)")); await pg.waitForTimeout(600);
   const pl = await pager();
-  ok('[끝] 으로 가면 마지막 쪽(7/7)', pl && pl.cur === '7' && /7 \/ 7/.test(pl.txt), JSON.stringify(pl && [pl.cur, pl.txt.slice(-12)]));
+  ok('[끝] 으로 가면 마지막 쪽', pl && pl.cur === '7' && pl.btns.indexOf('7') < 0, JSON.stringify(pl && [pl.cur, pl.btns]));
+  ok('n / N 쪽 표시는 없다', pl && !/\d+\s*\/\s*\d+/.test(pl.txt), pl && pl.txt);   // r290
   await pg.evaluate(() => __T("asLGo(0)")); await pg.waitForTimeout(500);
 
   // ── ④ 중복 팝업 문구 ──
