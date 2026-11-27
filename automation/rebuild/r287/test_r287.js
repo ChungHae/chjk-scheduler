@@ -164,7 +164,10 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
     return { short: fsOf(1811007), huge: fsOf(987654321) };
   });
   ok('긴 한글 금액은 칸에 맞게 작아진다', amt.huge !== null && amt.huge < amt.short, JSON.stringify(amt));
-  ok('짧은 금액은 기본 크기 그대로', amt.short === 10, JSON.stringify(amt));
+  // r292: 총금액 줄은 전용 손잡이 fsTot(기본 12pt) — 없으면 예전처럼 fs
+  ok('짧은 금액은 기본 크기 그대로',
+     amt.short === (await pg.evaluate(() => { var q = __T("P()"); return q.fsTot == null ? q.fs : q.fsTot; })),
+     JSON.stringify(amt));
   const longName = await pg.evaluate(() => {
     var nm='아주아주 긴 품목 이름입니다 그리고 규격도 길어요 ABCDEFGHIJKLMNOPQRSTUVWXYZ-0123456789-XYZ';
     var rows=[{spec:nm,name:'',qty:1,price:1,supply:1,tax:0}];
