@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- test build r292 2026-11-27 -->
+<!-- test build r293 2026-11-27 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -10168,8 +10168,8 @@ function reloadState() {
     cCeo  :[141.89,26.98,171.49, 35.48],       // 공급받는자 성명
     cAddr :[100.60,35.48,171.49, 43.98],       // 공급받는자 주소 (두 줄까지)
     addrLead:3.5,                              // 주소 두 줄일 때 줄 간격 mm
-    cTotKo:[47.50, 43.98,100.00, 52.44],       // 총금액 한글
-    cTotNo:[102.00,43.98,171.00, 52.44],       // 총금액 숫자
+    cTot  :[47.50, 43.98,171.00, 52.44],       // r293: 총금액 — 한글+숫자 한 세트, 빈칸 전체가 폭
+    totGap:5.0,                                // r293: 한글과 (₩…) 사이 간격(mm)
     rowTop:60.94, rowBot:110.09, rowPad:1.0, rowPadB:0.5,   // 품목표 안쪽
     xNo   :[0.54 , 8.08], xName:[8.08 , 97.04], xQty:[97.04,107.62],
     xPrice:[107.62,128.80], xSup:[128.80,151.05], xTax:[151.05,171.49],
@@ -10178,7 +10178,7 @@ function reloadState() {
   };
   // r283: 사람이 [인쇄 보정]에서 만지는 값. 나머지(칸 좌표)는 양식 실측값이라 저장하지 않는다.
   var _AS_KNOBS = ['offX','offY','sclX','sclY','slipX','slipY1','slipY2','rowPad','fs',
-                   'fsHead','fsBiz','fsDate','fsTot'];
+                   'fsHead','fsBiz','fsDate','fsTot','totGap'];
   var _asPos = null, _asCfgLoaded = false;
   function _asAuthBase(){ try{ return (typeof _AUTH_BASE!=='undefined' && _AUTH_BASE) ? _AUTH_BASE : _FB_PATH; }catch(e){ return _FB_PATH; } }
   function _asKeyUrl(k){ return _fbDbUrl+'/'+_asAuthBase()+'/'+k+'.json'; }
@@ -10483,8 +10483,14 @@ function reloadState() {
     fitBox(p.cAddr, head.addr||'');
     // 총금액 — 첫 장에만
     if(page===0){
-      fitCell(p.cTotKo, _asKoAmt(head.total)+'整', {fs:p.fsTot, al:'l'});   // r292: 10 → 12pt
-      fitCell(p.cTotNo, '(₩'+_asNum(head.total)+')', {fs:p.fsTot, al:'l'});
+      // r293: 한글과 (₩…) 는 한 세트 — 빈칸 전체(cTot)를 폭으로 보고 둘을 같은 크기로 이어 쓴다
+      var _tKo = _asKoAmt(head.total)+'整', _tNo = '(₩'+_asNum(head.total)+')';
+      var _tc = p.cTot, _tAvail = (_tc[2]-_tc[0]) - 2*p.pad, _tGap = p.totGap;
+      var _tFs = p.fsTot;
+      while(_tFs > p.fsMin && (_asTextW(_tKo,_tFs) + _tGap + _asTextW(_tNo,_tFs)) > _tAvail) _tFs -= 0.25;
+      var _tKw = _asTextW(_tKo, _tFs), _tNx = _tc[0] + p.pad + _tKw + _tGap;
+      box(_tc[0], _tc[1], _tNx, _tc[3], _tKo, {fs:_tFs, al:'l'});      // 한글 — 숫자 자리까지
+      box(_tNx, _tc[1], _tc[2], _tc[3], _tNo, {fs:_tFs, al:'l', pad:0});   // 숫자 — 바로 뒤에
     }
     // 품목 — 표 안쪽을 13줄로 고르게 나눈다 (윗선에서 rowPad 만큼 띄운다)
     var pitch = _asPitch(p), top = p.rowTop + p.rowPad;
@@ -11551,6 +11557,7 @@ function reloadState() {
       + fld('rowPad','품목 윗 여백') + fld('fs','글자 크기(pt)',0.5)
       + fld('fsHead','상호·성명(pt)',0.5) + fld('fsBiz','사업자등록번호(pt)',0.5)
       + fld('fsDate','년월일(pt)',0.5) + fld('fsTot','총금액 줄(pt)',0.5)
+      + fld('totGap','총금액 사이 간격')
       + '</div>'
       + '<div style="display:flex;gap:8px;justify-content:flex-end;padding:13px 18px;border-top:1px solid #e5e5e5">'
       + _asBtn('시험 인쇄','asCalTest()') + ' ' + _asBtn('저장','asCalSave()','primary') + '</div></div>';
