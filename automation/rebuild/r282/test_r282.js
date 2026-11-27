@@ -217,12 +217,16 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
     }
     return { short:slip(1811007), long:slip(1237537), huge:slip(987654321) };
   });
-  const tp = await pg.evaluate(()=>{ var p=__T("_AS_POS0"); return { s:(p.sclX||1), o:(p.offX||0), tk:p.cTotKo[0] }; });
+  // r293: 총금액 한글+숫자가 한 칸(cTot)의 한 세트가 됐다 — (₩…) 는 한글 뒤를 따라 움직인다
+  const tp = await pg.evaluate(()=>{ var p=__T("_AS_POS0");
+    return { s:(p.sclX||1), o:(p.offX||0), tk:(p.cTot||p.cTotKo)[0] }; });
   ok('짧은 금액은 양식 자리 그대로', amt && Math.abs(amt.short.kx-(tp.tk*tp.s+tp.o))<0.02,
      amt?JSON.stringify(amt.short)+' 기대 '+(tp.tk*tp.s+tp.o).toFixed(3):'');
-  ok('긴 금액은 글자를 줄여 (₩…) 와 안 겹친다',   // r287: 칸 안에서 자동 축소
-     amt && amt.long.end <= amt.long.nx-1.0 && amt.huge.end <= amt.huge.nx-1.0 && amt.huge.fs < amt.short.fs,
+  ok('긴 금액도 (₩…) 와 겹치지 않는다',
+     amt && amt.long.end <= amt.long.nx+0.2 && amt.huge.end <= amt.huge.nx+0.2,
      amt?JSON.stringify({l:amt.long,h:amt.huge}):'');
+  ok('한글이 길수록 (₩…) 가 오른쪽으로 밀린다', amt && amt.huge.nx > amt.short.nx,
+     amt?JSON.stringify([amt.short.nx, amt.huge.nx]):'');
 
   // ── 재고가 업무 소카테고리로 ──
   const inv = await pg.evaluate(()=>{
