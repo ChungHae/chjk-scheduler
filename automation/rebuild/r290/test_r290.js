@@ -106,6 +106,32 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
      steps.long.ad.length === 2 && steps.long.ad[0].fs < FS9 - 0.6,
      JSON.stringify([steps.long.vn[0], steps.long.ad[0]]));
 
+  // ── 끌어다 놓을 때 테두리가 칸 밖으로 나가지 않는다 ──
+  const drag = await pg.evaluate(() => {
+    __T("asTab('new'); _asDrafts=[]; _asRaw=null; _asFileName=''; _asShowInput=false; _asRender();");
+    return null;
+  });
+  await pg.waitForTimeout(500);
+  const dz = await pg.evaluate(() => {
+    var el = document.getElementById('pageAudit');
+    var z = document.getElementById('asDrop');
+    if (!z) return null;
+    var b0 = z.getBoundingClientRect();
+    __T("_asDropOn(true)");
+    var on = { pageShadow: el.style.boxShadow, pageOutline: el.style.outline,
+               zBorder: getComputedStyle(z).borderColor, w: z.getBoundingClientRect().width,
+               bs: getComputedStyle(z).boxSizing };
+    __T("_asDropOn(false)");
+    var off = { pageShadow: el.style.boxShadow, w: z.getBoundingClientRect().width };
+    return { w0: b0.width, on: on, off: off };
+  });
+  ok('끌 때 바깥 outline 을 쓰지 않는다', dz && !dz.on.pageOutline, dz && dz.on.pageOutline);
+  ok('끌 때 안쪽(inset) 그림자로 표시한다', dz && /inset/.test(dz.on.pageShadow), dz && dz.on.pageShadow);
+  ok('끌기를 멈추면 표시가 사라진다', dz && !dz.off.pageShadow, dz && dz.off.pageShadow);
+  ok('드롭 칸 크기가 변하지 않는다', dz && Math.abs(dz.on.w - dz.w0) < 0.5 && Math.abs(dz.off.w - dz.w0) < 0.5,
+     dz && JSON.stringify([dz.w0, dz.on.w, dz.off.w]));
+  ok('드롭 칸이 border-box', dz && dz.on.bs === 'border-box', dz && dz.on.bs);
+
   ok('pageerror 없음', errs.length === 0, errs.slice(0,2).join(' | '));
   await b.close(); return out();
 

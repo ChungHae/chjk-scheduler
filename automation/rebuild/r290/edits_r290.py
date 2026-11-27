@@ -134,6 +134,25 @@ def main():
     function fitCell(c, txt, opt){""", 1, 'fitbox')
     assert 'fitBox(p.cVname' in s and 'fitBox(p.cAddr' in s, 'KEEP fitBox calls'
 
+    # ⑦ 끌어다 놓을 때 생기는 테두리가 칸 밖으로 나가던 것 (사용자 지시 11-27)
+    rep("""    var el=document.getElementById('pageAudit'); if(!el) return;
+    el.style.outline = on ? '3px dashed #1B3A6B' : '';
+    el.style.outlineOffset = on ? '-6px' : '';
+    var z=document.getElementById('asDrop');
+    if(z){ z.style.borderColor = on ? '#1B3A6B' : '#c8d2de'; z.style.background = on ? '#eaf1fb' : '#fafbfc'; }""",
+        """    var el=document.getElementById('pageAudit'); if(!el) return;
+    // r290: outline 은 상자 바깥에 그려져 테두리를 넘어 보였다 → 안쪽에만 그리는 inset 그림자로
+    el.style.outline = ''; el.style.outlineOffset = '';
+    el.style.boxShadow = on ? 'inset 0 0 0 3px #1B3A6B' : '';
+    var z=document.getElementById('asDrop');
+    if(z){ z.style.borderColor = on ? '#1B3A6B' : '#c8d2de'; z.style.background = on ? '#eaf1fb' : '#fafbfc'; }""",
+        1, 'drop-highlight')
+
+    rep("""h += '<div id="asDrop" style="border:2px dashed #c8d2de;background:#fafbfc;padding:38px 22px;text-align:center;line-height:1.9">'""",
+        """h += '<div id="asDrop" style="box-sizing:border-box;border:2px dashed #c8d2de;background:#fafbfc;padding:38px 22px;text-align:center;line-height:1.9">'""",
+        1, 'drop-box-sizing')
+    assert "el.style.outline = on ?" not in s, 'FORBIDDEN drop outline remains'
+
     for k in ['_AS_FAM_ROW', "fam:F", "opt.fam"]:
         assert k in s, 'KEEP %s' % k
     # 이하여백·총금액·머리칸은 글꼴을 주지 않는다 (바탕 그대로)
