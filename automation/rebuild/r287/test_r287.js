@@ -105,6 +105,7 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
       mo: r.filter(function(e){return e.t==='11';})[0],
       addr: r.filter(function(e){return /화성시|대성빌딩/.test(e.t);}),
       vn: r.filter(function(e){return /한국정밀/.test(e.t);})[0],
+      vnAll: r.filter(function(e){return /한국정밀|기계공업사|주식회사/.test(e.t);}),
       row1: r.filter(function(e){return /^품목1\s/.test(e.t);})[0],
       row13: r.filter(function(e){return /^품목13\s/.test(e.t);})[0] };
     d.remove(); return out;
@@ -117,7 +118,10 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
   ok('주소 두 줄이 칸(35.48~43.98) 안에 있다',
      geo.addr.length === 2 && geo.addr[0].y1 >= 35.4 && geo.addr[1].y2 <= 44.05,
      JSON.stringify(geo.addr.map(function(a){return [a.y1,a.y2];})));
-  ok('긴 상호 글자가 작아졌다', geo.vn && geo.vn.fs < 12, geo.vn && String(geo.vn.fs));
+  // r290: 상호도 한 줄 → 두 줄 → 그래도 넘치면 축소 차례로 바뀌었다
+  ok('긴 상호는 두 줄이거나 글자가 작아진다',
+     geo.vnAll.length === 2 || (geo.vn && geo.vn.fs < 12),
+     JSON.stringify(geo.vnAll.map(function(e){ return [e.t, e.fs]; })));
   ok('첫 품목 줄이 표 윗선에서 떨어져 있다', geo.row1 && geo.row1.y1 >= 61.5, geo.row1 && String(geo.row1.y1));
   ok('열세째 품목 줄이 바닥선(110.09) 안에 있다', geo.row13 && geo.row13.y2 <= 110.1, geo.row13 && String(geo.row13.y2));
   ok('품명이 세로선(8.08mm) 오른쪽에서 시작한다', geo.row1 && geo.row1.x1 >= 8.0, geo.row1 && String(geo.row1.x1));
