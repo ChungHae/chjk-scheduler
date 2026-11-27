@@ -1,4 +1,4 @@
-// r290 테스트 — 품목 줄만 고정폭 바탕체, 나머지는 바탕 그대로
+// r290 테스트 — 품목 줄만 고정폭 바탕체, 나머지는 바탕 그대로 (r291 로 끌어오기 표시 범위 수정 반영)
 //  사용:  node test_r290.js <index.html(__T 주입본)> [라벨]
 const { chromium } = require('/home/claude/.npm-global/lib/node_modules/playwright');
 const FILE = process.argv[2], LABEL = process.argv[3] || '?';
@@ -27,11 +27,13 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
     await b.close(); return out();
   }
 
-  ok('품목 줄 글꼴이 바탕체 먼저', await pg.evaluate(() => /^BatangChe/.test(__T("_AS_FAM_ROW"))), await pg.evaluate(() => __T("_AS_FAM_ROW")));
+  ok('숫자·영문 글꼴이 바탕체 먼저', await pg.evaluate(() => /^BatangChe/.test(__T("_AS_FAM_ROW"))), await pg.evaluate(() => __T("_AS_FAM_ROW")));
   ok('글꼴 이름에 큰따옴표를 쓰지 않는다',            // style="..." 안이라 큰따옴표면 속성이 깨진다
-     await pg.evaluate(() => __T("_AS_FAM_ROW").indexOf('"') < 0), await pg.evaluate(() => __T("_AS_FAM_ROW")));
-  ok('전표 기본 글꼴은 바탕 그대로', await pg.evaluate(() =>
-     /font-family:Batang,"바탕",BatangChe/.test(__T("_asWrapDoc([], P())"))));
+     await pg.evaluate(() => __T("_AS_FAM_ROW").indexOf('"') < 0 && __T("_AS_FAM").indexOf('"') < 0),
+     await pg.evaluate(() => __T("_AS_FAM")));
+  // r291: 전표 글꼴은 글자 종류로 가르는 섞은 글꼴(ASmix) — 한글은 바탕이 먼저다
+  ok('전표 기본 글꼴이 섞은 글꼴', await pg.evaluate(() =>
+     /font-family:ASmix,Batang,'바탕'/.test(__T("_asWrapDoc([], P())"))));
 
   const g = await pg.evaluate(() => {
     var rows = []; for (var i = 1; i <= 3; i++) rows.push({ spec:'ABC-'+i, name:'품목'+i, qty:7000+i, price:800+i, supply:5000+i, tax:60+i });
@@ -51,18 +53,19 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
               ko: info(pick(/整$/)), vname: info(pick(/가나/)) };
     d.remove(); return r;
   });
-  const isChe = f => /BatangChe/.test(String(f).split(',')[0]);
-  ok('번호 칸이 바탕체', g.no && isChe(g.no.fam), g.no && g.no.fam);
-  ok('품명 및 규격이 바탕체', g.name && isChe(g.name.fam), g.name && g.name.fam);
-  ok('수량이 바탕체', g.qty && isChe(g.qty.fam), g.qty && g.qty.fam);
-  ok('공급가액이 바탕체', g.sup && isChe(g.sup.fam), g.sup && g.sup.fam);
+  // r291: 칸마다 글꼴을 주지 않고 전표 글꼴 하나로 — 글자 종류별 구분은 test_r291.js 가 본다
+  const isMix = f => /^ASmix/.test(String(f).replace(/["']/g,''));
+  ok('번호 칸이 섞은 글꼴', g.no && isMix(g.no.fam), g.no && g.no.fam);
+  ok('품명 및 규격이 섞은 글꼴', g.name && isMix(g.name.fam), g.name && g.name.fam);
+  ok('수량이 섞은 글꼴', g.qty && isMix(g.qty.fam), g.qty && g.qty.fam);
+  ok('공급가액이 섞은 글꼴', g.sup && isMix(g.sup.fam), g.sup && g.sup.fam);
   ok('번호는 가운데 정렬 그대로', g.no && g.no.al === 'center', g.no && g.no.al);
   ok('수량·금액은 오른쪽 정렬 그대로', g.qty && g.qty.al === 'right' && g.sup && g.sup.al === 'right',
      JSON.stringify([g.qty && g.qty.al, g.sup && g.sup.al]));
   ok('품명은 왼쪽 정렬 그대로', g.name && g.name.al === 'left', g.name && g.name.al);
-  ok('- 이 하 여 백 - 은 바탕 그대로', g.empty && !isChe(g.empty.fam), g.empty && g.empty.fam);
-  ok('총금액 한글도 바탕 그대로', g.ko && !isChe(g.ko.fam), g.ko && g.ko.fam);
-  ok('공급받는자 상호도 바탕 그대로', g.vname && !isChe(g.vname.fam), g.vname && g.vname.fam);
+  ok('- 이 하 여 백 - 도 같은 글꼴', g.empty && isMix(g.empty.fam), g.empty && g.empty.fam);
+  ok('총금액 한글도 같은 글꼴', g.ko && isMix(g.ko.fam), g.ko && g.ko.fam);
+  ok('공급받는자 상호도 같은 글꼴', g.vname && isMix(g.vname.fam), g.vname && g.vname.fam);
 
   // ── 쪽 표시 없애기 · [선택 삭제] 팝업 문구 ──
   const src = await pg.evaluate(() => document.documentElement.innerHTML);
@@ -93,17 +96,20 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
     var V3 = rep('가',12)+' '+rep('나',12),            A3 = rep('서',25)+' '+rep('어',25);
     return { short:draw(V1,A1), mid:draw(V2,A2), long:draw(V3,A3) };
   });
-  const FS9 = 12;   // 9pt = 12px
-  const same = v => Math.abs(v - FS9) < 0.6;
-  ok('① 짧은 상호는 한 줄 · 원래 크기', steps.short.vn.length === 1 && same(steps.short.vn[0].fs), JSON.stringify(steps.short.vn));
-  ok('① 짧은 주소도 한 줄 · 원래 크기', steps.short.ad.length === 1 && same(steps.short.ad[0].fs), JSON.stringify(steps.short.ad));
+  // r291: 상호는 fsHead, 주소는 fsSub 가 원래 크기다 (pt → px = ×4/3)
+  const base = await pg.evaluate(() => { var q = __T("P()"); return { vn: q.fsHead || q.fsSub, ad: q.fsSub }; });
+  const PX = pt => pt * 4 / 3;
+  const sameVn = v => Math.abs(v - PX(base.vn)) < 0.6;
+  const sameAd = v => Math.abs(v - PX(base.ad)) < 0.6;
+  ok('① 짧은 상호는 한 줄 · 원래 크기', steps.short.vn.length === 1 && sameVn(steps.short.vn[0].fs), JSON.stringify([steps.short.vn, base]));
+  ok('① 짧은 주소도 한 줄 · 원래 크기', steps.short.ad.length === 1 && sameAd(steps.short.ad[0].fs), JSON.stringify(steps.short.ad));
   ok('② 한 줄을 넘는 상호는 두 줄 · 크기 그대로',
-     steps.mid.vn.length === 2 && same(steps.mid.vn[0].fs) && same(steps.mid.vn[1].fs), JSON.stringify(steps.mid.vn));
+     steps.mid.vn.length === 2 && sameVn(steps.mid.vn[0].fs) && sameVn(steps.mid.vn[1].fs), JSON.stringify(steps.mid.vn));
   ok('② 한 줄을 넘는 주소도 두 줄 · 크기 그대로',
-     steps.mid.ad.length === 2 && same(steps.mid.ad[0].fs) && same(steps.mid.ad[1].fs), JSON.stringify(steps.mid.ad));
+     steps.mid.ad.length === 2 && sameAd(steps.mid.ad[0].fs) && sameAd(steps.mid.ad[1].fs), JSON.stringify(steps.mid.ad));
   ok('③ 두 줄로도 넘치면 그때 작아진다',
-     steps.long.vn.length === 2 && steps.long.vn[0].fs < FS9 - 0.6 &&
-     steps.long.ad.length === 2 && steps.long.ad[0].fs < FS9 - 0.6,
+     steps.long.vn.length === 2 && steps.long.vn[0].fs < PX(base.vn) - 0.6 &&
+     steps.long.ad.length === 2 && steps.long.ad[0].fs < PX(base.ad) - 0.6,
      JSON.stringify([steps.long.vn[0], steps.long.ad[0]]));
 
   // ── 끌어다 놓을 때 테두리가 칸 밖으로 나가지 않는다 ──
@@ -119,15 +125,21 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
     var b0 = z.getBoundingClientRect();
     __T("_asDropOn(true)");
     var on = { pageShadow: el.style.boxShadow, pageOutline: el.style.outline,
-               zBorder: getComputedStyle(z).borderColor, w: z.getBoundingClientRect().width,
-               bs: getComputedStyle(z).boxSizing };
+               zShadow: z.style.boxShadow, zBorder: getComputedStyle(z).borderColor,
+               w: z.getBoundingClientRect().width, bs: getComputedStyle(z).boxSizing };
     __T("_asDropOn(false)");
-    var off = { pageShadow: el.style.boxShadow, w: z.getBoundingClientRect().width };
+    var off = { pageShadow: el.style.boxShadow, zShadow: z.style.boxShadow,
+                zBorder: getComputedStyle(z).borderColor, w: z.getBoundingClientRect().width };
     return { w0: b0.width, on: on, off: off };
   });
   ok('끌 때 바깥 outline 을 쓰지 않는다', dz && !dz.on.pageOutline, dz && dz.on.pageOutline);
-  ok('끌 때 안쪽(inset) 그림자로 표시한다', dz && /inset/.test(dz.on.pageShadow), dz && dz.on.pageShadow);
-  ok('끌기를 멈추면 표시가 사라진다', dz && !dz.off.pageShadow, dz && dz.off.pageShadow);
+  // r291: 강조는 드롭 칸 안에서만 — 감사 페이지 전체(#pageAudit)에는 아무 표시도 걸지 않는다
+  ok('페이지 전체에는 테두리를 두르지 않는다', dz && !dz.on.pageShadow, dz && dz.on.pageShadow);
+  ok('끌 때 드롭 칸 안쪽(inset) 그림자로 표시한다', dz && /inset/.test(dz.on.zShadow), dz && dz.on.zShadow);
+  ok('끌 때 드롭 칸 테두리가 남색', dz && /27, 58, 107/.test(dz.on.zBorder), dz && dz.on.zBorder);
+  ok('끌기를 멈추면 표시가 사라진다',
+     dz && !dz.off.pageShadow && !dz.off.zShadow && !/27, 58, 107/.test(dz.off.zBorder),
+     dz && JSON.stringify(dz.off));
   ok('드롭 칸 크기가 변하지 않는다', dz && Math.abs(dz.on.w - dz.w0) < 0.5 && Math.abs(dz.off.w - dz.w0) < 0.5,
      dz && JSON.stringify([dz.w0, dz.on.w, dz.off.w]));
   ok('드롭 칸이 border-box', dz && dz.on.bs === 'border-box', dz && dz.on.bs);
