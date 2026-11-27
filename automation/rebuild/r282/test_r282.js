@@ -88,18 +88,18 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
   });
   let l1 = await L();
   ok('목록이 현재 화면에 그려진다', l1.n>0 && l1.total==='46', JSON.stringify({n:l1.n,total:l1.total}));
-  ok('한 쪽에 20건까지', l1.n===20, l1.n);
+  ok('한 쪽에 15건까지', l1.n===15, l1.n);   // r289: 20 → 15
   const minD = await pg.evaluate(()=>Object.keys(window.__DOCS).map(k=>window.__DOCS[k].date).sort()[0]);
   ok('과거 → 현재 순으로 나온다',
      l1.dates.slice().sort().join(',')===l1.dates.join(',') && l1.dates[0]===minD,
      l1.dates.slice(0,4).join(' / ')+'  (가장 과거 '+minD+')');
-  ok('쪽 표시가 1 / 3', l1.pageTxt==='1 / 3', l1.pageTxt);
+  ok('쪽 표시가 1 / 4', l1.pageTxt==='1 / 4', l1.pageTxt);   // r289
 
   await pg.evaluate(()=>__T("asLGo(1)")); await pg.waitForTimeout(400);
   let l2 = await L();
-  ok('[다음] 으로 둘째 쪽', l2.n===20 && l2.pageTxt==='2 / 3' && l2.dates[0]>=l1.dates[19], l2.dates[0]+' >= '+l1.dates[19]);
-  await pg.evaluate(()=>__T("asLGo(2)")); await pg.waitForTimeout(400);
-  ok('마지막 쪽은 6건', (await L()).n===6);
+  ok('[다음] 으로 둘째 쪽', l2.n===15 && l2.pageTxt==='2 / 4' && l2.dates[0]>=l1.dates[14], l2.dates[0]+' >= '+l1.dates[14]);
+  await pg.evaluate(()=>__T("asLGo(3)")); await pg.waitForTimeout(400);
+  ok('마지막 쪽은 1건', (await L()).n===1);
   await pg.evaluate(()=>__T("asLGo(0)")); await pg.waitForTimeout(400);
 
   // ── ④ 업체 검색 ──
