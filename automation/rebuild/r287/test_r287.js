@@ -161,9 +161,11 @@ const ok = (n, c, e) => P.push([n, !!c, e === undefined ? '' : String(e)]);
       var e=[].slice.call(d.querySelectorAll('.as-f')).filter(function(x){ return /整$/.test(x.textContent); })[0];
       return e ? parseFloat(e.style.fontSize) : null;
     }
-    return { short: fsOf(1811007), huge: fsOf(987654321) };
+    // r293: 한글+숫자가 한 세트로 빈칸 전체를 쓰므로 어지간한 금액은 줄지 않는다 — 더 긴 값으로 본다
+    return { short: fsOf(1811007), huge: fsOf(987654321), vast: fsOf(108641975320) };
   });
-  ok('긴 한글 금액은 칸에 맞게 작아진다', amt.huge !== null && amt.huge < amt.short, JSON.stringify(amt));
+  ok('긴 한글 금액은 칸에 맞게 작아진다', amt.vast !== null && amt.vast < amt.short, JSON.stringify(amt));
+  ok('보통 금액은 줄지 않는다', amt.huge === amt.short, JSON.stringify(amt));
   // r292: 총금액 줄은 전용 손잡이 fsTot(기본 12pt) — 없으면 예전처럼 fs
   ok('짧은 금액은 기본 크기 그대로',
      amt.short === (await pg.evaluate(() => { var q = __T("P()"); return q.fsTot == null ? q.fs : q.fsTot; })),
